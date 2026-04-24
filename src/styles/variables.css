@@ -1,0 +1,48 @@
+:root {
+  --color-bg-primary: #060d1a;
+  --color-bg-secondary: #0b1528;
+  --color-bg-tertiary: #111e33;
+  --color-border: #1a2d4a;
+  --color-border-light: rgba(0, 212, 255, 0.1);
+
+  --color-primary: #00d4ff;
+  --color-primary-light: rgba(0, 212, 255, 0.15);
+  --color-primary-border: rgba(0, 212, 255, 0.3);
+
+  --color-success: #00e5a0;
+  --color-success-light: rgba(0, 229, 160, 0.15);
+  --color-success-border: rgba(0, 229, 160, 0.3);
+
+  --color-warning: #f0c040;
+  --color-warning-light: rgba(240, 192, 64, 0.15);
+  --color-warning-border: rgba(240, 192, 64, 0.3);
+
+  --color-danger: #ff5566;
+  --color-danger-light: rgba(255, 85, 102, 0.15);
+  --color-danger-border: rgba(255, 85, 102, 0.3);
+
+  --color-purple: #a78bfa;
+  --color-purple-light: rgba(167, 139, 250, 0.15);
+  --color-purple-border: rgba(167, 139, 250, 0.3);
+
+  --color-text-primary: #ddeeff;
+  --color-text-secondary: #8aaac8;
+  --color-text-muted: #5a7a9a;
+
+  --font-arabic: 'Cairo', sans-serif;
+  --font-english: 'Inter', sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+
+  --sidebar-width: 240px;
+  --header-height: 64px;
+
+  --transition: all 0.2s ease;
+}

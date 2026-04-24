@@ -1,0 +1,177 @@
+{
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "add": "إضافة",
+    "search": "بحث",
+    "loading": "جاري التحميل...",
+    "noData": "لا توجد بيانات",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "next": "التالي",
+    "close": "إغلاق",
+    "yes": "نعم",
+    "no": "لا",
+    "actions": "الإجراءات",
+    "status": "الحالة",
+    "date": "التاريخ",
+    "total": "الإجمالي",
+    "name": "الاسم",
+    "phone": "الجوال",
+    "email": "البريد الإلكتروني",
+    "active": "مفعّل",
+    "inactive": "معطّل",
+    "export": "تصدير",
+    "print": "طباعة",
+    "share": "مشاركة"
+  },
+  "auth": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "loginBtn": "دخول",
+    "loginError": "بيانات الدخول غير صحيحة",
+    "welcome": "مرحباً بك في Sefay"
+  },
+  "nav": {
+    "dashboard": "الرئيسية",
+    "orders": "الطلبات",
+    "services": "الخدمات",
+    "customers": "العملاء",
+    "reports": "التقارير",
+    "branches": "الفروع",
+    "employees": "الموظفين",
+    "expenses": "المصاريف",
+    "coupons": "الكوبونات",
+    "settings": "الإعدادات"
+  },
+  "dashboard": {
+    "title": "لوحة التحكم",
+    "todaySales": "مبيعات اليوم",
+    "totalOrders": "عدد الطلبات",
+    "totalTax": "ضريبة VAT",
+    "cashRevenue": "نقد",
+    "cardRevenue": "بطاقة",
+    "recentOrders": "آخر الطلبات",
+    "topServices": "أكثر الخدمات مبيعاً"
+  },
+  "orders": {
+    "title": "الطلبات",
+    "orderNumber": "رقم الطلب",
+    "customer": "العميل",
+    "plate": "اللوحة",
+    "paymentMethod": "طريقة الدفع",
+    "status": "الحالة",
+    "total": "الإجمالي",
+    "date": "التاريخ",
+    "refund": "إرجاع",
+    "reprint": "إعادة طباعة",
+    "statuses": {
+      "completed": "مكتمل",
+      "pending": "معلق",
+      "cancelled": "ملغي",
+      "refunded": "مسترجع"
+    },
+    "paymentMethods": {
+      "cash": "نقد",
+      "mada": "مدى",
+      "visa": "فيزا",
+      "mastercard": "ماستر كارد"
+    },
+    "filters": {
+      "today": "اليوم",
+      "yesterday": "أمس",
+      "week": "هذا الأسبوع",
+      "all": "الكل"
+    }
+  },
+  "services": {
+    "title": "الخدمات",
+    "addService": "إضافة خدمة",
+    "serviceName": "اسم الخدمة",
+    "price": "السعر",
+    "category": "الفئة",
+    "type": "النوع",
+    "single": "خدمة عادية",
+    "bundle": "باقة",
+    "image": "الصورة",
+    "icon": "الأيقونة",
+    "color": "اللون",
+    "manageCategories": "إدارة الفئات"
+  },
+  "customers": {
+    "title": "العملاء",
+    "customerName": "اسم العميل",
+    "phone": "الجوال",
+    "loyaltyPoints": "نقاط الولاء",
+    "vehicles": "السيارات",
+    "totalOrders": "عدد الطلبات",
+    "joinDate": "تاريخ الانضمام"
+  },
+  "reports": {
+    "title": "التقارير",
+    "dailyReport": "التقرير اليومي",
+    "monthlyReport": "التقرير الشهري",
+    "totalSales": "إجمالي المبيعات",
+    "totalOrders": "عدد الطلبات",
+    "totalTax": "إجمالي الضريبة",
+    "totalDiscount": "إجمالي الخصومات"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "shopName": "اسم المحل",
+    "taxRate": "نسبة الضريبة",
+    "taxNumber": "الرقم الضريبي",
+    "phone": "الجوال",
+    "city": "المدينة",
+    "website": "الموقع الإلكتروني",
+    "logo": "الشعار",
+    "language": "اللغة",
+    "save": "حفظ الإعدادات"
+  },
+  "expenses": {
+    "title": "المصاريف",
+    "addExpense": "إضافة مصروف",
+    "expenseTitle": "العنوان",
+    "amount": "المبلغ",
+    "category": "الفئة",
+    "date": "التاريخ",
+    "notes": "ملاحظات"
+  },
+  "coupons": {
+    "title": "الكوبونات",
+    "addCoupon": "إضافة كوبون",
+    "code": "الكود",
+    "type": "النوع",
+    "value": "القيمة",
+    "minOrder": "الحد الأدنى",
+    "maxUses": "الحد الأقصى للاستخدام",
+    "usedCount": "عدد الاستخدامات",
+    "expiresAt": "تاريخ الانتهاء",
+    "percent": "نسبة مئوية",
+    "fixed": "مبلغ ثابت"
+  },
+  "branches": {
+    "title": "الفروع",
+    "addBranch": "إضافة فرع",
+    "branchName": "اسم الفرع",
+    "city": "المدينة",
+    "phone": "الجوال"
+  },
+  "employees": {
+    "title": "الموظفين",
+    "addEmployee": "إضافة موظف",
+    "employeeName": "اسم الموظف",
+    "role": "الدور",
+    "branch": "الفرع",
+    "roles": {
+      "owner": "مالك",
+      "manager": "مدير",
+      "cashier": "كاشير",
+      "worker": "عامل"
+    }
+  }
+}

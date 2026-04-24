@@ -1,0 +1,177 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "loading": "Loading...",
+    "noData": "No data available",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close",
+    "yes": "Yes",
+    "no": "No",
+    "actions": "Actions",
+    "status": "Status",
+    "date": "Date",
+    "total": "Total",
+    "name": "Name",
+    "phone": "Phone",
+    "email": "Email",
+    "active": "Active",
+    "inactive": "Inactive",
+    "export": "Export",
+    "print": "Print",
+    "share": "Share"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "loginBtn": "Sign In",
+    "loginError": "Invalid credentials",
+    "welcome": "Welcome to Sefay"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "orders": "Orders",
+    "services": "Services",
+    "customers": "Customers",
+    "reports": "Reports",
+    "branches": "Branches",
+    "employees": "Employees",
+    "expenses": "Expenses",
+    "coupons": "Coupons",
+    "settings": "Settings"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "todaySales": "Today's Sales",
+    "totalOrders": "Total Orders",
+    "totalTax": "VAT Tax",
+    "cashRevenue": "Cash",
+    "cardRevenue": "Card",
+    "recentOrders": "Recent Orders",
+    "topServices": "Top Services"
+  },
+  "orders": {
+    "title": "Orders",
+    "orderNumber": "Order Number",
+    "customer": "Customer",
+    "plate": "Plate",
+    "paymentMethod": "Payment Method",
+    "status": "Status",
+    "total": "Total",
+    "date": "Date",
+    "refund": "Refund",
+    "reprint": "Reprint",
+    "statuses": {
+      "completed": "Completed",
+      "pending": "Pending",
+      "cancelled": "Cancelled",
+      "refunded": "Refunded"
+    },
+    "paymentMethods": {
+      "cash": "Cash",
+      "mada": "Mada",
+      "visa": "Visa",
+      "mastercard": "Mastercard"
+    },
+    "filters": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "week": "This Week",
+      "all": "All"
+    }
+  },
+  "services": {
+    "title": "Services",
+    "addService": "Add Service",
+    "serviceName": "Service Name",
+    "price": "Price",
+    "category": "Category",
+    "type": "Type",
+    "single": "Single Service",
+    "bundle": "Bundle",
+    "image": "Image",
+    "icon": "Icon",
+    "color": "Color",
+    "manageCategories": "Manage Categories"
+  },
+  "customers": {
+    "title": "Customers",
+    "customerName": "Customer Name",
+    "phone": "Phone",
+    "loyaltyPoints": "Loyalty Points",
+    "vehicles": "Vehicles",
+    "totalOrders": "Total Orders",
+    "joinDate": "Join Date"
+  },
+  "reports": {
+    "title": "Reports",
+    "dailyReport": "Daily Report",
+    "monthlyReport": "Monthly Report",
+    "totalSales": "Total Sales",
+    "totalOrders": "Total Orders",
+    "totalTax": "Total Tax",
+    "totalDiscount": "Total Discounts"
+  },
+  "settings": {
+    "title": "Settings",
+    "shopName": "Shop Name",
+    "taxRate": "Tax Rate",
+    "taxNumber": "Tax Number",
+    "phone": "Phone",
+    "city": "City",
+    "website": "Website",
+    "logo": "Logo",
+    "language": "Language",
+    "save": "Save Settings"
+  },
+  "expenses": {
+    "title": "Expenses",
+    "addExpense": "Add Expense",
+    "expenseTitle": "Title",
+    "amount": "Amount",
+    "category": "Category",
+    "date": "Date",
+    "notes": "Notes"
+  },
+  "coupons": {
+    "title": "Coupons",
+    "addCoupon": "Add Coupon",
+    "code": "Code",
+    "type": "Type",
+    "value": "Value",
+    "minOrder": "Minimum Order",
+    "maxUses": "Maximum Uses",
+    "usedCount": "Used Count",
+    "expiresAt": "Expires At",
+    "percent": "Percentage",
+    "fixed": "Fixed Amount"
+  },
+  "branches": {
+    "title": "Branches",
+    "addBranch": "Add Branch",
+    "branchName": "Branch Name",
+    "city": "City",
+    "phone": "Phone"
+  },
+  "employees": {
+    "title": "Employees",
+    "addEmployee": "Add Employee",
+    "employeeName": "Employee Name",
+    "role": "Role",
+    "branch": "Branch",
+    "roles": {
+      "owner": "Owner",
+      "manager": "Manager",
+      "cashier": "Cashier",
+      "worker": "Worker"
+    }
+  }
+}
