@@ -221,7 +221,11 @@ export default function OrdersPage() {
                     </td>
                     <td onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: '6px' }}>
-                        <button className="action-btn" title={locale === 'ar' ? 'طباعة' : 'Print'}>
+                        <button
+                          className="action-btn"
+                          title={locale === 'ar' ? 'طباعة' : 'Print'}
+                          onClick={() => printOrder(order)}
+                          >
                           <Printer size={14} />
                         </button>
                         {order.status === 'completed' && (
