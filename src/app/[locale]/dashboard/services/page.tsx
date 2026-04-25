@@ -5,15 +5,30 @@ import { useTranslations, useLocale } from 'next-intl'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import { Service } from '@/types'
-import { Search, Plus, RefreshCw, Pencil, Trash2, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Search, RefreshCw, Trash2, ToggleLeft, ToggleRight, Plus, X, Save } from 'lucide-react'
+import '@/styles/modals.css'
+import '@/styles/forms.css'
 
 export default function ServicesPage() {
   const t = useTranslations('services')
   const locale = useLocale()
 
-  const [services, setServices] = useState<Service[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [search,   setSearch]   = useState('')
+  const [services,  setServices]  = useState<Service[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [search,    setSearch]    = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [selected,  setSelected]  = useState<Service | null>(null)
+  const [saving,    setSaving]    = useState(false)
+
+  const [name,     setName]     = useState('')
+  const [price,    setPrice]    = useState('')
+  const [category, setCategory] = useState('عام')
+  const [icon,     setIcon]     = useState('🚗')
+  const [color,    setColor]    = useState('#00d4ff')
+
+  const ICONS  = ['🚗','🚙','🏎️','🚕','🚐','🚌','🛻','🚑','🧼','💦','✨','🪣','🧽','🔧','⚙️','💎']
+  const COLORS = ['#00d4ff','#00e5a0','#a78bfa','#f0c040','#ff5566','#00b4d8','#4a90d9','#ff9500']
+  const CATS   = ['عام','غسيل خارجي','غسيل داخلي','تلميع','صيانة','إضافية']
 
   useEffect(() => { loadServices() }, [])
 
@@ -22,30 +37,54 @@ export default function ServicesPage() {
     try {
       const res = await api.services.getAll()
       setServices(res.data || [])
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
-    }
+    } catch (e) { console.error(e) }
+    finally { setLoading(false) }
+  }
+
+  function openNew() {
+    setSelected(null)
+    setName(''); setPrice(''); setCategory('عام'); setIcon('🚗'); setColor('#00d4ff')
+    setShowModal(true)
+  }
+
+  function openEdit(svc: Service) {
+    setSelected(svc)
+    setName(svc.name); setPrice(String(svc.price))
+    setCategory(svc.category || 'عام')
+    setIcon(svc.icon || '🚗')
+    setColor(svc.color || '#00d4ff')
+    setShowModal(true)
+  }
+
+  async function saveService() {
+    if (!name.trim() || price === '' || isNaN(Number(price)) || Number(price) < 0) return
+    setSaving(true)
+    try {
+      const body = { name: name.trim(), price: Number(price), category, icon, color }
+      if (selected) {
+        await api.services.update(selected.id, body)
+      } else {
+        await api.services.create(body)
+      }
+      setShowModal(false)
+      loadServices()
+    } catch (e) { console.error(e) }
+    finally { setSaving(false) }
   }
 
   async function toggleActive(svc: Service) {
     try {
       await api.services.update(svc.id, { active: !svc.active })
       loadServices()
-    } catch (e) {
-      console.error(e)
-    }
+    } catch (e) { console.error(e) }
   }
 
   async function deleteService(svc: Service) {
-    if (!confirm(locale === 'ar' ? 'هل أنت متأكد من الحذف النهائي؟' : 'Are you sure you want to permanently delete?')) return
+    if (!confirm(locale === 'ar' ? 'هل أنت متأكد من الحذف النهائي؟' : 'Are you sure?')) return
     try {
       await api.services.hardDelete(svc.id)
       loadServices()
-    } catch (e) {
-      console.error(e)
-    }
+    } catch (e) { console.error(e) }
   }
 
   const filtered = services.filter(s =>
@@ -67,8 +106,86 @@ export default function ServicesPage() {
             <RefreshCw size={14} />
             {locale === 'ar' ? 'تحديث' : 'Refresh'}
           </button>
+          <button className="btn btn-primary btn-sm" onClick={openNew}>
+            <Plus size={14} />
+            {t('addService')}
+          </button>
         </div>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal modal-md">
+            <div className="modal-header">
+              <h3 className="modal-title">
+                {selected
+                  ? (locale === 'ar' ? '✏️ تعديل خدمة' : '✏️ Edit Service')
+                  : (locale === 'ar' ? '➕ إضافة خدمة' : '➕ Add Service')}
+              </h3>
+              <button className="modal-close" onClick={() => setShowModal(false)}>
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">{t('serviceName')} <span>*</span></label>
+                <input className="form-input" value={name} onChange={e => setName(e.target.value)}
+                  placeholder={locale === 'ar' ? 'اسم الخدمة' : 'Service name'} />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">{t('price')} <span>*</span></label>
+                <input className="form-input" type="number" min="0" value={price}
+                  onChange={e => setPrice(e.target.value)} placeholder="0" />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">{t('category')}</label>
+                <select className="form-input form-select" value={category} onChange={e => setCategory(e.target.value)}>
+                  {CATS.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">{t('icon')}</label>
+                <div className="icons-grid">
+                  {ICONS.map(ic => (
+                    <button key={ic} onClick={() => setIcon(ic)}
+                      className={`icon-option ${icon === ic ? 'active' : ''}`}>
+                      {ic}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">{t('color')}</label>
+                <div className="colors-row">
+                  {COLORS.map(c => (
+                    <button key={c} onClick={() => setColor(c)}
+                      className={`color-option ${color === c ? 'selected' : ''}`}
+                      style={{ backgroundColor: c }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
+                {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button className="btn btn-primary" onClick={saveService} disabled={saving}>
+                <Save size={14} />
+                {saving
+                  ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...')
+                  : (locale === 'ar' ? 'حفظ' : 'Save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="table-container">
         <div className="table-header">
@@ -105,21 +222,18 @@ export default function ServicesPage() {
               {filtered.map(svc => (
                 <tr key={svc.id} style={{ opacity: svc.active ? 1 : 0.5 }}>
                   <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div className="svc-name-cell">
                       {svc.image_url ? (
-                        <img src={svc.image_url} style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover' }} />
+                        <img src={svc.image_url} className="svc-img" alt="" />
                       ) : (
-                        <div style={{
-                          width: '36px', height: '36px', borderRadius: '8px',
+                        <div className="svc-icon" style={{
                           backgroundColor: (svc.color || '#00d4ff') + '20',
                           border: `1px solid ${svc.color || '#00d4ff'}40`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '18px',
                         }}>
                           {svc.icon || '🚗'}
                         </div>
                       )}
-                      <span style={{ fontWeight: '700', color: 'var(--color-text-primary)' }}>{svc.name}</span>
+                      <span className="svc-label">{svc.name}</span>
                     </div>
                   </td>
                   <td style={{ color: 'var(--color-text-secondary)' }}>{svc.category || '—'}</td>
@@ -135,25 +249,18 @@ export default function ServicesPage() {
                   </td>
                   <td>
                     <span className={`badge ${svc.active ? 'badge-success' : 'badge-danger'}`}>
-                      {svc.active
-                        ? (locale === 'ar' ? 'مفعّل' : 'Active')
-                        : (locale === 'ar' ? 'معطّل' : 'Inactive')}
+                      {svc.active ? (locale === 'ar' ? 'مفعّل' : 'Active') : (locale === 'ar' ? 'معطّل' : 'Inactive')}
                     </span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button
-                        className={`action-btn ${svc.active ? '' : 'success'}`}
-                        onClick={() => toggleActive(svc)}
-                        title={svc.active ? (locale === 'ar' ? 'تعطيل' : 'Disable') : (locale === 'ar' ? 'تفعيل' : 'Enable')}
-                      >
+                    <div className="btn-group">
+                      <button className="action-btn" onClick={() => openEdit(svc)}
+                        title={locale === 'ar' ? 'تعديل' : 'Edit'}>✏️</button>
+                      <button className={`action-btn ${svc.active ? '' : 'success'}`}
+                        onClick={() => toggleActive(svc)}>
                         {svc.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
                       </button>
-                      <button
-                        className="action-btn danger"
-                        onClick={() => deleteService(svc)}
-                        title={locale === 'ar' ? 'حذف نهائي' : 'Delete'}
-                      >
+                      <button className="action-btn danger" onClick={() => deleteService(svc)}>
                         <Trash2 size={14} />
                       </button>
                     </div>

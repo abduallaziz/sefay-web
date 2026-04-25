@@ -35,6 +35,60 @@ export default function OrdersPage() {
     }
   }
 
+
+
+  async function printOrder(order: any) {
+  const rows = (order.order_items || []).map((i: any) =>
+    `<tr><td>${i.service_name}</td><td style="text-align:center">${i.qty}</td><td style="text-align:left">${(i.price * i.qty).toFixed(0)}</td></tr>`
+  ).join('')
+
+  const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"/>
+  <style>
+    @page { margin: 10mm; }
+    body { font-family: Arial, sans-serif; font-size: 13px; color: #000; }
+    .center { text-align: center; }
+    .bold { font-weight: bold; }
+    .dashed { border-top: 1px dashed #000; margin: 8px 0; }
+    .row { display: flex; justify-content: space-between; margin: 4px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+    th { border-bottom: 1px solid #000; padding: 4px; text-align: right; }
+    td { padding: 4px; text-align: right; }
+    td:last-child { text-align: left; }
+    .total-box { border: 1px solid #000; padding: 8px; margin: 8px 0; }
+    .grand { font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; }
+  </style></head><body>
+  <div class="center bold" style="font-size:18px">فاتورة ضريبية مبسطة</div>
+  <div class="dashed"></div>
+  <div class="row"><span>رقم الطلب:</span><span class="bold">#${String(order.id).slice(-8).toUpperCase()}</span></div>
+  <div class="row"><span>التاريخ:</span><span>${new Date(order.created_at).toLocaleString('ar-SA')}</span></div>
+  <div class="row"><span>اللوحة:</span><span class="bold">${order.vehicles?.plate || '—'}</span></div>
+  <div class="row"><span>الجوال:</span><span>${order.customers?.phone || '—'}</span></div>
+  <div class="dashed"></div>
+  <table>
+    <thead><tr><th>الخدمة</th><th>ك</th><th>المبلغ</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="dashed"></div>
+  <div class="total-box">
+    <div class="row"><span>المجموع:</span><span>${order.subtotal?.toFixed(2)} ر.س</span></div>
+    ${order.discount > 0 ? `<div class="row"><span>خصم:</span><span>- ${order.discount?.toFixed(2)} ر.س</span></div>` : ''}
+    <div class="row"><span>ضريبة:</span><span>${order.tax?.toFixed(2)} ر.س</span></div>
+    <div class="dashed"></div>
+    <div class="grand"><span>الإجمالي</span><span>${order.total?.toFixed(2)} ر.س</span></div>
+  </div>
+  <div class="dashed"></div>
+  <div class="center" style="font-size:11px">شكراً لزيارتكم</div>
+  </body></html>`
+
+  const win = window.open('', '_blank', 'width=400,height=600')
+  if (win) {
+    win.document.write(html + '<script>window.onload=()=>{window.print();window.close();}<\/script>')
+    win.document.close()
+  }
+}
+
+
+
   async function refundOrder(order: Order) {
     if (!confirm(
       locale === 'ar'
