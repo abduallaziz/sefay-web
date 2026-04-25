@@ -36,7 +36,7 @@ export function formatNumber(num: number, locale: string = 'ar-SA'): string {
 }
 
 export function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0]
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' })
 }
 
 export function getPaymentLabel(method: string, locale: string = 'ar-SA'): string {

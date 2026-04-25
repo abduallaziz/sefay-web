@@ -3,26 +3,29 @@
 import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { api } from '@/lib/api'
-import { formatCurrency, formatDateTime } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
+import { getSession } from '@/lib/auth'
+import { formatCurrency, formatDateTime, getTodayDate } from '@/lib/utils'
 import { Order } from '@/types'
-import { Search, RefreshCw, Printer } from 'lucide-react'
+import { Search, RefreshCw, Printer, RotateCcw } from 'lucide-react'
 
 export default function OrdersPage() {
   const t = useTranslations('orders')
   const locale = useLocale()
 
-  const [orders,   setOrders]   = useState<Order[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [search,   setSearch]   = useState('')
-  const [filter,   setFilter]   = useState('today')
-  const [expanded, setExpanded] = useState<string | null>(null)
+  const [orders,    setOrders]    = useState<Order[]>([])
+  const [loading,   setLoading]   = useState(true)
+  const [search,    setSearch]    = useState('')
+  const [filter,    setFilter]    = useState('today')
+  const [expanded,  setExpanded]  = useState<string | null>(null)
+  const [refunding, setRefunding] = useState<string | null>(null)
 
   useEffect(() => { loadOrders() }, [filter])
 
   async function loadOrders() {
     setLoading(true)
     try {
-      const date = filter === 'today' ? new Date().toISOString().split('T')[0] : undefined
+      const date = filter === 'today' ? getTodayDate() : undefined
       const res = await api.orders.getAll(date)
       setOrders(res.data || [])
     } catch (e) {
@@ -32,10 +35,30 @@ export default function OrdersPage() {
     }
   }
 
+  async function refundOrder(order: Order) {
+    if (!confirm(
+      locale === 'ar'
+        ? `هل أنت متأكد من إرجاع الطلب #${String(order.id).slice(-8).toUpperCase()}؟`
+        : `Are you sure you want to refund order #${String(order.id).slice(-8).toUpperCase()}?`
+    )) return
+    setRefunding(order.id)
+    try {
+      await supabase
+        .from('orders')
+        .update({ status: 'refunded' })
+        .eq('id', order.id)
+      loadOrders()
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setRefunding(null)
+    }
+  }
+
   const filtered = orders.filter(o =>
     String(o.id).slice(-8).toLowerCase().includes(search.toLowerCase()) ||
-    o.vehicles?.plate?.toLowerCase().includes(search.toLowerCase()) ||
-    o.customers?.phone?.includes(search)
+    (o as any).vehicles?.plate?.toLowerCase().includes(search.toLowerCase()) ||
+    (o as any).customers?.phone?.includes(search)
   )
 
   const totalRevenue = orders.filter(o => o.status === 'completed').reduce((s, o) => s + o.total, 0)
@@ -120,8 +143,8 @@ export default function OrdersPage() {
                     <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
                       #{String(order.id).slice(-8).toUpperCase()}
                     </td>
-                    <td>{order.vehicles?.plate || '—'}</td>
-                    <td>{order.customers?.phone || '—'}</td>
+                    <td>{(order as any).vehicles?.plate || '—'}</td>
+                    <td>{(order as any).customers?.phone || '—'}</td>
                     <td style={{ fontWeight: '700' }}>
                       {formatCurrency(order.total, locale === 'ar' ? 'ar-SA' : 'en-US')}
                     </td>
@@ -142,11 +165,21 @@ export default function OrdersPage() {
                     <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                       {formatDateTime(order.created_at, locale === 'ar' ? 'ar-SA' : 'en-US')}
                     </td>
-                    <td>
+                    <td onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', gap: '6px' }}>
                         <button className="action-btn" title={locale === 'ar' ? 'طباعة' : 'Print'}>
                           <Printer size={14} />
                         </button>
+                        {order.status === 'completed' && (
+                          <button
+                            className="action-btn danger"
+                            title={locale === 'ar' ? 'إرجاع' : 'Refund'}
+                            onClick={() => refundOrder(order)}
+                            disabled={refunding === order.id}
+                          >
+                            <RotateCcw size={14} />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -161,7 +194,7 @@ export default function OrdersPage() {
                           <div style={{ marginBottom: '12px', fontWeight: '700', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
                             {locale === 'ar' ? 'الخدمات' : 'Services'}
                           </div>
-                          {(order.order_items || []).map((item, i) => (
+                          {((order as any).order_items || []).map((item: any, i: number) => (
                             <div key={i} style={{
                               display: 'flex',
                               justifyContent: 'space-between',
