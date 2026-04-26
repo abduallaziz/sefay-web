@@ -161,6 +161,7 @@ html[dir='rtl'] .drawer {
   flex-shrink: 0;
 }
 
+
 .drawer-title {
   font-size: 16px;
   font-weight: 900;
@@ -226,3 +227,4 @@ html[dir='rtl'] .drawer {
   color: var(--color-text-muted);
   line-height: 1.6;
 }
+
