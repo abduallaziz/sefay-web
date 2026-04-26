@@ -1,23 +1,21 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useTranslations, useLocale } from 'next-intl'
+import { useLocale } from 'next-intl'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
-import { Branch } from '@/types'
 import { Search, RefreshCw, Plus, X, Save, ToggleLeft, ToggleRight } from 'lucide-react'
 import '@/styles/modals.css'
 import '@/styles/forms.css'
 
 export default function BranchesPage() {
-  const t = useTranslations('branches')
   const locale = useLocale()
 
-  const [branches,  setBranches]  = useState<Branch[]>([])
+  const [branches,  setBranches]  = useState<any[]>([])
   const [loading,   setLoading]   = useState(true)
   const [search,    setSearch]    = useState('')
   const [showModal, setShowModal] = useState(false)
-  const [selected,  setSelected]  = useState<Branch | null>(null)
+  const [selected,  setSelected]  = useState<any>(null)
   const [saving,    setSaving]    = useState(false)
 
   const [name,    setName]    = useState('')
@@ -32,11 +30,12 @@ export default function BranchesPage() {
     try {
       const session = getSession()
       if (!session) return
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('branches')
         .select('*')
         .eq('tenant_id', session.tenant_id)
         .order('name')
+      if (error) throw error
       setBranches(data || [])
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
@@ -48,10 +47,12 @@ export default function BranchesPage() {
     setShowModal(true)
   }
 
-  function openEdit(b: Branch) {
+  function openEdit(b: any) {
     setSelected(b)
-    setName(b.name); setCity(b.city || ''); setPhone(b.phone || '')
-    setAddress((b as any).address || '')
+    setName(b.name || '')
+    setCity(b.city || '')
+    setPhone(b.phone || '')
+    setAddress(b.address || '')
     setShowModal(true)
   }
 
@@ -61,11 +62,23 @@ export default function BranchesPage() {
     try {
       const session = getSession()
       if (!session) return
-      const body = { name: name.trim(), city, phone, address }
+      const body = {
+        name: name.trim(),
+        city: city.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+      }
       if (selected) {
-        await supabase.from('branches').update(body).eq('id', selected.id)
+        const { error } = await supabase
+          .from('branches')
+          .update(body)
+          .eq('id', selected.id)
+        if (error) throw error
       } else {
-        await supabase.from('branches').insert({ ...body, tenant_id: session.tenant_id, active: true })
+        const { error } = await supabase
+          .from('branches')
+          .insert({ ...body, tenant_id: session.tenant_id, active: true })
+        if (error) throw error
       }
       setShowModal(false)
       loadBranches()
@@ -73,7 +86,7 @@ export default function BranchesPage() {
     finally { setSaving(false) }
   }
 
-  async function toggleBranch(b: Branch) {
+  async function toggleBranch(b: any) {
     try {
       await supabase.from('branches').update({ active: !b.active }).eq('id', b.id)
       loadBranches()
@@ -81,7 +94,7 @@ export default function BranchesPage() {
   }
 
   const filtered = branches.filter(b =>
-    b.name.toLowerCase().includes(search.toLowerCase()) ||
+    b.name?.toLowerCase().includes(search.toLowerCase()) ||
     b.city?.toLowerCase().includes(search.toLowerCase())
   )
 
@@ -89,7 +102,9 @@ export default function BranchesPage() {
     <div>
       <div className="dashboard-page-header">
         <div>
-          <h2 className="dashboard-page-title">{t('title')}</h2>
+          <h2 className="dashboard-page-title">
+            {locale === 'ar' ? 'الفروع' : 'Branches'}
+          </h2>
           <p className="dashboard-page-subtitle">
             {branches.length} {locale === 'ar' ? 'فرع' : 'branches'}
           </p>
@@ -106,7 +121,6 @@ export default function BranchesPage() {
         </div>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal modal-md">
@@ -123,31 +137,48 @@ export default function BranchesPage() {
 
             <div className="modal-body">
               <div className="form-group">
-                <label className="form-label">{t('branchName')} <span>*</span></label>
-                <input id="branch-name" name="branch-name" className="form-input"
-                  value={name} onChange={e => setName(e.target.value)}
-                  placeholder={locale === 'ar' ? 'اسم الفرع' : 'Branch name'} />
+                <label className="form-label">
+                  {locale === 'ar' ? 'اسم الفرع' : 'Branch Name'} <span>*</span>
+                </label>
+                <input
+                  id="br-name" name="br-name"
+                  className="form-input"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder={locale === 'ar' ? 'الفرع الرئيسي' : 'Main Branch'}
+                />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">{t('city')}</label>
-                  <input id="branch-city" name="branch-city" className="form-input"
-                    value={city} onChange={e => setCity(e.target.value)}
-                    placeholder={locale === 'ar' ? 'الرياض' : 'Riyadh'} />
+                  <label className="form-label">{locale === 'ar' ? 'المدينة' : 'City'}</label>
+                  <input
+                    id="br-city" name="br-city"
+                    className="form-input"
+                    value={city}
+                    onChange={e => setCity(e.target.value)}
+                    placeholder={locale === 'ar' ? 'الرياض' : 'Riyadh'}
+                  />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">{t('phone')}</label>
-                  <input id="branch-phone" name="branch-phone" className="form-input"
-                    value={phone} onChange={e => setPhone(e.target.value)}
-                    placeholder="05XXXXXXXX" />
+                  <label className="form-label">{locale === 'ar' ? 'الجوال' : 'Phone'}</label>
+                  <input
+                    id="br-phone" name="br-phone"
+                    className="form-input"
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="05XXXXXXXX"
+                  />
                 </div>
               </div>
               <div className="form-group">
                 <label className="form-label">{locale === 'ar' ? 'العنوان' : 'Address'}</label>
-                <textarea id="branch-address" name="branch-address"
+                <textarea
+                  id="br-address" name="br-address"
                   className="form-input form-textarea"
-                  value={address} onChange={e => setAddress(e.target.value)}
-                  placeholder={locale === 'ar' ? 'العنوان التفصيلي' : 'Detailed address'} />
+                  value={address}
+                  onChange={e => setAddress(e.target.value)}
+                  placeholder={locale === 'ar' ? 'العنوان التفصيلي' : 'Detailed address'}
+                />
               </div>
             </div>
 
@@ -168,13 +199,16 @@ export default function BranchesPage() {
 
       <div className="table-container">
         <div className="table-header">
-          <h3 className="table-title">{t('title')}</h3>
+          <h3 className="table-title">{locale === 'ar' ? 'الفروع' : 'Branches'}</h3>
           <div className="table-actions">
             <div className="table-search">
               <Search size={14} />
-              <input id="branch-search" name="branch-search"
+              <input
+                id="br-search" name="br-search"
                 placeholder={locale === 'ar' ? 'بحث...' : 'Search...'}
-                value={search} onChange={e => setSearch(e.target.value)} />
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+              />
             </div>
           </div>
         </div>
@@ -187,9 +221,9 @@ export default function BranchesPage() {
           <table>
             <thead>
               <tr>
-                <th>{t('branchName')}</th>
-                <th>{t('city')}</th>
-                <th>{t('phone')}</th>
+                <th>{locale === 'ar' ? 'اسم الفرع' : 'Branch'}</th>
+                <th>{locale === 'ar' ? 'المدينة' : 'City'}</th>
+                <th>{locale === 'ar' ? 'الجوال' : 'Phone'}</th>
                 <th>{locale === 'ar' ? 'العنوان' : 'Address'}</th>
                 <th>{locale === 'ar' ? 'الحالة' : 'Status'}</th>
                 <th>{locale === 'ar' ? 'إجراءات' : 'Actions'}</th>
@@ -204,19 +238,19 @@ export default function BranchesPage() {
                   <td style={{ color: 'var(--color-text-secondary)' }}>{b.city || '—'}</td>
                   <td style={{ color: 'var(--color-text-secondary)' }}>{b.phone || '—'}</td>
                   <td style={{ color: 'var(--color-text-secondary)', fontSize: '12px' }}>
-                    {(b as any).address || '—'}
+                    {b.address || '—'}
                   </td>
                   <td>
                     <span className={`badge ${b.active ? 'badge-success' : 'badge-danger'}`}>
-                      {b.active ? (locale === 'ar' ? 'مفعّل' : 'Active') : (locale === 'ar' ? 'معطّل' : 'Inactive')}
+                      {b.active
+                        ? (locale === 'ar' ? 'مفعّل' : 'Active')
+                        : (locale === 'ar' ? 'معطّل' : 'Inactive')}
                     </span>
                   </td>
                   <td>
                     <div className="btn-group">
-                      <button className="action-btn" onClick={() => openEdit(b)}
-                        title={locale === 'ar' ? 'تعديل' : 'Edit'}>✏️</button>
-                      <button className={`action-btn ${b.active ? '' : 'success'}`}
-                        onClick={() => toggleBranch(b)}>
+                      <button className="action-btn" onClick={() => openEdit(b)}>✏️</button>
+                      <button className={`action-btn ${b.active ? '' : 'success'}`} onClick={() => toggleBranch(b)}>
                         {b.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
                       </button>
                     </div>
