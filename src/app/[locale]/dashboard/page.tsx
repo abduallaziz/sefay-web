@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { api } from '@/lib/api'
+import { supabase } from '@/lib/supabase'
+import { getSession } from '@/lib/auth'
 import { formatCurrency, formatNumber, getTodayDate } from '@/lib/utils'
-import { TrendingUp, ShoppingCart, Banknote, Percent, CreditCard, Calendar } from 'lucide-react'
+import { TrendingUp, ShoppingCart, Banknote, Percent, CreditCard, Calendar, GitBranch } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import '@/styles/forms.css'
-
 
 type RangePreset = 'today' | 'yesterday' | '7days' | '30days' | '3months' | '6months' | '1year' | 'custom'
 
@@ -29,12 +30,20 @@ function getDateRange(preset: RangePreset): { from: string; to: string } {
 
 export default function DashboardPage() {
   const locale = useLocale()
-  const [summary,  setSummary]  = useState<any>(null)
-  const [orders,   setOrders]   = useState<any[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [preset,   setPreset]   = useState<RangePreset>('today')
-  const [fromDate, setFromDate] = useState(getTodayDate())
-  const [toDate,   setToDate]   = useState(getTodayDate())
+
+  const [summary,        setSummary]        = useState<any>(null)
+  const [orders,         setOrders]         = useState<any[]>([])
+  const [branches,       setBranches]       = useState<any[]>([])
+  const [selectedBranch, setSelectedBranch] = useState<string>('all')
+  const [branchSummaries,setBranchSummaries]= useState<any[]>([])
+  const [loading,        setLoading]        = useState(true)
+  const [preset,         setPreset]         = useState<RangePreset>('today')
+  const [fromDate,       setFromDate]       = useState(getTodayDate())
+  const [toDate,         setToDate]         = useState(getTodayDate())
+
+  useEffect(() => {
+    loadBranches()
+  }, [])
 
   useEffect(() => {
     if (preset !== 'custom') {
@@ -45,6 +54,19 @@ export default function DashboardPage() {
     }
   }, [preset])
 
+  async function loadBranches() {
+    try {
+      const session = getSession()
+      if (!session) return
+      const { data } = await supabase
+        .from('branches')
+        .select('id, name')
+        .eq('tenant_id', session.tenant_id)
+        .eq('active', true)
+      setBranches(data || [])
+    } catch (e) { console.error(e) }
+  }
+
   async function loadData(from: string, to: string) {
     setLoading(true)
     try {
@@ -53,33 +75,82 @@ export default function DashboardPage() {
         api.orders.getByRange(from, to),
       ])
       setSummary(summaryRes.data)
-      setOrders(ordersRes.data || [])
+      const allOrders = ordersRes.data || []
+      setOrders(allOrders)
+
+      // ملخص لكل فرع
+      const session = getSession()
+      if (session) {
+        const { data: branchList } = await supabase
+          .from('branches')
+          .select('id, name')
+          .eq('tenant_id', session.tenant_id)
+          .eq('active', true)
+
+        if (branchList) {
+          const summaries = branchList.map(b => {
+            const bOrders = allOrders.filter((o: any) => o.branch_id === b.id && o.status === 'completed')
+            return {
+              id: b.id,
+              name: b.name,
+              total_orders: bOrders.length,
+              total_sales: bOrders.reduce((s: number, o: any) => s + Number(o.total), 0),
+              cash: bOrders.filter((o: any) => o.payment_method === 'cash').reduce((s: number, o: any) => s + Number(o.total), 0),
+              card: bOrders.filter((o: any) => o.payment_method !== 'cash').reduce((s: number, o: any) => s + Number(o.total), 0),
+            }
+          })
+          setBranchSummaries(summaries)
+        }
+      }
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }
 
+  const filteredOrders = selectedBranch === 'all'
+    ? orders
+    : orders.filter((o: any) => o.branch_id === selectedBranch)
+
+  const displaySummary = selectedBranch === 'all' ? summary : (() => {
+    const bOrders = filteredOrders.filter((o: any) => o.status === 'completed')
+    return {
+      total_orders:   bOrders.length,
+      total_sales:    bOrders.reduce((s: number, o: any) => s + Number(o.total), 0),
+      total_tax:      bOrders.reduce((s: number, o: any) => s + Number(o.tax), 0),
+      total_discount: bOrders.reduce((s: number, o: any) => s + Number(o.discount), 0),
+      cash:           bOrders.filter((o: any) => o.payment_method === 'cash').reduce((s: number, o: any) => s + Number(o.total), 0),
+      card:           bOrders.filter((o: any) => o.payment_method !== 'cash').reduce((s: number, o: any) => s + Number(o.total), 0),
+    }
+  })()
+
   const presets: { id: RangePreset; label: string }[] = [
-    { id: 'today',     label: locale === 'ar' ? 'اليوم'      : 'Today' },
-    { id: 'yesterday', label: locale === 'ar' ? 'أمس'        : 'Yesterday' },
-    { id: '7days',     label: locale === 'ar' ? '٧ أيام'     : '7 Days' },
-    { id: '30days',    label: locale === 'ar' ? '٣٠ يوم'     : '30 Days' },
-    { id: '3months',   label: locale === 'ar' ? '٣ أشهر'     : '3 Months' },
-    { id: '6months',   label: locale === 'ar' ? '٦ أشهر'     : '6 Months' },
-    { id: '1year',     label: locale === 'ar' ? 'سنة'        : '1 Year' },
-    { id: 'custom',    label: locale === 'ar' ? 'مخصص'       : 'Custom' },
+    { id: 'today',     label: locale === 'ar' ? 'اليوم'    : 'Today' },
+    { id: 'yesterday', label: locale === 'ar' ? 'أمس'      : 'Yesterday' },
+    { id: '7days',     label: locale === 'ar' ? '٧ أيام'   : '7 Days' },
+    { id: '30days',    label: locale === 'ar' ? '٣٠ يوم'   : '30 Days' },
+    { id: '3months',   label: locale === 'ar' ? '٣ أشهر'   : '3 Months' },
+    { id: '6months',   label: locale === 'ar' ? '٦ أشهر'   : '6 Months' },
+    { id: '1year',     label: locale === 'ar' ? 'سنة'      : '1 Year' },
+    { id: 'custom',    label: locale === 'ar' ? 'مخصص'     : 'Custom' },
   ]
 
   const stats = [
-    { label: locale === 'ar' ? 'إجمالي المبيعات' : 'Total Sales',    value: formatCurrency(summary?.total_sales || 0,    locale === 'ar' ? 'ar-SA' : 'en-US'), icon: TrendingUp,  color: 'var(--color-primary)',  bg: 'var(--color-primary-light)',  border: 'var(--color-primary-border)' },
-    { label: locale === 'ar' ? 'عدد الطلبات'     : 'Total Orders',   value: formatNumber(summary?.total_orders || 0,     locale === 'ar' ? 'ar-SA' : 'en-US'), icon: ShoppingCart, color: 'var(--color-success)',  bg: 'var(--color-success-light)',  border: 'var(--color-success-border)' },
-    { label: locale === 'ar' ? 'نقد'             : 'Cash',           value: formatCurrency(summary?.cash || 0,           locale === 'ar' ? 'ar-SA' : 'en-US'), icon: Banknote,    color: 'var(--color-warning)',  bg: 'var(--color-warning-light)',  border: 'var(--color-warning-border)' },
-    { label: locale === 'ar' ? 'بطاقة'           : 'Card',           value: formatCurrency(summary?.card || 0,           locale === 'ar' ? 'ar-SA' : 'en-US'), icon: CreditCard,  color: 'var(--color-purple)',   bg: 'var(--color-purple-light)',   border: 'var(--color-purple-border)' },
-    { label: locale === 'ar' ? 'ضريبة VAT'       : 'VAT Tax',        value: formatCurrency(summary?.total_tax || 0,      locale === 'ar' ? 'ar-SA' : 'en-US'), icon: Percent,     color: 'var(--color-danger)',   bg: 'var(--color-danger-light)',   border: 'var(--color-danger-border)' },
-    { label: locale === 'ar' ? 'خصومات'          : 'Discounts',      value: formatCurrency(summary?.total_discount || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: TrendingUp,  color: 'var(--color-success)',  bg: 'var(--color-success-light)',  border: 'var(--color-success-border)' },
+    { label: locale === 'ar' ? 'إجمالي المبيعات' : 'Total Sales',  value: formatCurrency(displaySummary?.total_sales || 0,    locale === 'ar' ? 'ar-SA' : 'en-US'), icon: TrendingUp,  color: 'var(--color-primary)',  bg: 'var(--color-primary-light)',  border: 'var(--color-primary-border)' },
+    { label: locale === 'ar' ? 'عدد الطلبات'     : 'Total Orders', value: formatNumber(displaySummary?.total_orders || 0,     locale === 'ar' ? 'ar-SA' : 'en-US'), icon: ShoppingCart, color: 'var(--color-success)',  bg: 'var(--color-success-light)',  border: 'var(--color-success-border)' },
+    { label: locale === 'ar' ? 'نقد'             : 'Cash',         value: formatCurrency(displaySummary?.cash || 0,           locale === 'ar' ? 'ar-SA' : 'en-US'), icon: Banknote,    color: 'var(--color-warning)',  bg: 'var(--color-warning-light)',  border: 'var(--color-warning-border)' },
+    { label: locale === 'ar' ? 'بطاقة'           : 'Card',         value: formatCurrency(displaySummary?.card || 0,           locale === 'ar' ? 'ar-SA' : 'en-US'), icon: CreditCard,  color: 'var(--color-purple)',   bg: 'var(--color-purple-light)',   border: 'var(--color-purple-border)' },
+    { label: locale === 'ar' ? 'ضريبة VAT'       : 'VAT Tax',      value: formatCurrency(displaySummary?.total_tax || 0,      locale === 'ar' ? 'ar-SA' : 'en-US'), icon: Percent,     color: 'var(--color-danger)',   bg: 'var(--color-danger-light)',   border: 'var(--color-danger-border)' },
+    { label: locale === 'ar' ? 'خصومات'          : 'Discounts',    value: formatCurrency(displaySummary?.total_discount || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: TrendingUp,  color: 'var(--color-success)',  bg: 'var(--color-success-light)',  border: 'var(--color-success-border)' },
   ]
 
-  const profit = (summary?.total_sales || 0) - (summary?.total_tax || 0) - (summary?.total_discount || 0)
-  const chartData = summary?.orders_by_day || []
+  const profit = (displaySummary?.total_sales || 0) - (displaySummary?.total_tax || 0) - (displaySummary?.total_discount || 0)
+  const chartData = selectedBranch === 'all' ? (summary?.orders_by_day || []) : (() => {
+    const map: Record<string, number> = {}
+    filteredOrders.filter((o: any) => o.status === 'completed').forEach((o: any) => {
+      const day = new Date(o.created_at).toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' })
+      map[day] = (map[day] || 0) + Number(o.total)
+    })
+    return Object.entries(map).map(([date, total]) => ({ date, total }))
+  })()
 
   return (
     <div>
@@ -95,7 +166,7 @@ export default function DashboardPage() {
         backgroundColor: 'var(--color-bg-secondary)',
         border: '1px solid var(--color-border)',
         borderRadius: 'var(--radius-lg)',
-        padding: '16px', marginBottom: '20px',
+        padding: '16px', marginBottom: '16px',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <Calendar size={16} color="var(--color-text-muted)" />
@@ -121,6 +192,31 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Branch Filter */}
+      {branches.length > 1 && (
+        <div style={{
+          backgroundColor: 'var(--color-bg-secondary)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '12px 16px', marginBottom: '16px',
+          display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
+        }}>
+          <GitBranch size={16} color="var(--color-text-muted)" />
+          <button
+            className={`table-filter-btn ${selectedBranch === 'all' ? 'active' : ''}`}
+            onClick={() => setSelectedBranch('all')}>
+            {locale === 'ar' ? 'كل الفروع' : 'All Branches'}
+          </button>
+          {branches.map(b => (
+            <button key={b.id}
+              className={`table-filter-btn ${selectedBranch === b.id ? 'active' : ''}`}
+              onClick={() => setSelectedBranch(b.id)}>
+              🏬 {b.name}
+            </button>
+          ))}
+        </div>
+      )}
+
       {loading ? (
         <div style={{ padding: '60px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
           {locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}
@@ -128,7 +224,7 @@ export default function DashboardPage() {
       ) : (
         <>
           {/* Stats */}
-          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '20px' }}>
+          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '16px' }}>
             {stats.map((stat, i) => (
               <div key={i} className="stat-card">
                 <div className="stat-card-header">
@@ -147,7 +243,7 @@ export default function DashboardPage() {
             backgroundColor: 'var(--color-bg-secondary)',
             border: '2px solid var(--color-success-border)',
             borderRadius: 'var(--radius-lg)', padding: '20px',
-            marginBottom: '20px', display: 'flex',
+            marginBottom: '16px', display: 'flex',
             justifyContent: 'space-between', alignItems: 'center',
           }}>
             <div>
@@ -161,8 +257,56 @@ export default function DashboardPage() {
             <div style={{ fontSize: '48px' }}>📈</div>
           </div>
 
+          {/* Branch Summaries */}
+          {selectedBranch === 'all' && branchSummaries.length > 1 && (
+            <div style={{ marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)', marginBottom: '12px' }}>
+                🏬 {locale === 'ar' ? 'ملخص الفروع' : 'Branches Summary'}
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '12px' }}>
+                {branchSummaries.map(b => (
+                  <div key={b.id} style={{
+                    backgroundColor: 'var(--color-bg-secondary)',
+                    border: '1px solid var(--color-border)',
+                    borderRadius: 'var(--radius-lg)', padding: '16px',
+                    cursor: 'pointer', transition: 'var(--transition)',
+                  }}
+                    onClick={() => setSelectedBranch(b.id)}>
+                    <div style={{ fontWeight: '700', color: 'var(--color-text-primary)', marginBottom: '10px', fontSize: '14px' }}>
+                      🏬 {b.name}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                        {locale === 'ar' ? 'الطلبات' : 'Orders'}
+                      </span>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-success)' }}>
+                        {b.total_orders}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                        {locale === 'ar' ? 'المبيعات' : 'Sales'}
+                      </span>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-primary)' }}>
+                        {formatCurrency(b.total_sales, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                        {locale === 'ar' ? 'نقد / بطاقة' : 'Cash / Card'}
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
+                        {formatCurrency(b.cash, locale === 'ar' ? 'ar-SA' : 'en-US')} / {formatCurrency(b.card, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Charts */}
-          <div className="charts-grid" style={{ marginBottom: '20px' }}>
+          <div className="charts-grid" style={{ marginBottom: '16px' }}>
             <div className="chart-card">
               <div className="chart-card-header">
                 <h3 className="chart-card-title">{locale === 'ar' ? 'المبيعات اليومية' : 'Daily Sales'}</h3>
@@ -173,8 +317,10 @@ export default function DashboardPage() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                     <XAxis dataKey="date" tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} tickFormatter={d => d.slice(5)} />
                     <YAxis tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} />
-                    <Tooltip contentStyle={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)' }}
-                      formatter={(v: any) => [formatCurrency(v, locale === 'ar' ? 'ar-SA' : 'en-US'), locale === 'ar' ? 'المبيعات' : 'Sales']} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)' }}
+                      formatter={(v: any) => [formatCurrency(v, locale === 'ar' ? 'ar-SA' : 'en-US'), locale === 'ar' ? 'المبيعات' : 'Sales']}
+                    />
                     <Bar dataKey="total" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -191,10 +337,10 @@ export default function DashboardPage() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {[
-                  { label: locale === 'ar' ? 'نقد'     : 'Cash',      value: summary?.cash || 0,           color: 'var(--color-success)' },
-                  { label: locale === 'ar' ? 'بطاقة'   : 'Card',      value: summary?.card || 0,           color: 'var(--color-primary)' },
-                  { label: locale === 'ar' ? 'ضريبة'   : 'Tax',       value: summary?.total_tax || 0,      color: 'var(--color-purple)' },
-                  { label: locale === 'ar' ? 'خصومات'  : 'Discounts', value: summary?.total_discount || 0, color: 'var(--color-warning)' },
+                  { label: locale === 'ar' ? 'نقد'    : 'Cash',      value: displaySummary?.cash || 0,           color: 'var(--color-success)' },
+                  { label: locale === 'ar' ? 'بطاقة'  : 'Card',      value: displaySummary?.card || 0,           color: 'var(--color-primary)' },
+                  { label: locale === 'ar' ? 'ضريبة'  : 'Tax',       value: displaySummary?.total_tax || 0,      color: 'var(--color-purple)' },
+                  { label: locale === 'ar' ? 'خصومات' : 'Discounts', value: displaySummary?.total_discount || 0, color: 'var(--color-warning)' },
                 ].map((item, i) => (
                   <div key={i} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -216,7 +362,9 @@ export default function DashboardPage() {
             <div className="table-header">
               <h3 className="table-title">
                 {locale === 'ar' ? 'الطلبات' : 'Orders'}
-                <span style={{ marginRight: '8px', fontSize: '12px', color: 'var(--color-text-muted)' }}>({orders.length})</span>
+                <span style={{ marginRight: '8px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                  ({filteredOrders.length})
+                </span>
               </h3>
             </div>
             <table>
@@ -231,28 +379,36 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {orders.slice(0, 20).map(order => (
+                {filteredOrders.slice(0, 20).map((order: any) => (
                   <tr key={order.id}>
-                    <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>#{String(order.id).slice(-8).toUpperCase()}</td>
+                    <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
+                      #{String(order.id).slice(-8).toUpperCase()}
+                    </td>
                     <td>{order.vehicles?.plate || '—'}</td>
-                    <td style={{ fontWeight: '700' }}>{formatCurrency(order.total, locale === 'ar' ? 'ar-SA' : 'en-US')}</td>
+                    <td style={{ fontWeight: '700' }}>
+                      {formatCurrency(order.total, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                    </td>
                     <td><span className="badge badge-primary">{order.payment_method}</span></td>
                     <td>
-                      <span className={`badge ${order.status === 'completed' ? 'badge-success' : order.status === 'refunded' ? 'badge-purple' : order.status === 'cancelled' ? 'badge-danger' : 'badge-warning'}`}>
-                        {order.status}
-                      </span>
+                      <span className={`badge ${
+                        order.status === 'completed' ? 'badge-success' :
+                        order.status === 'refunded'  ? 'badge-purple' :
+                        order.status === 'cancelled' ? 'badge-danger' : 'badge-warning'
+                      }`}>{order.status}</span>
                     </td>
                     <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                       {new Date(order.created_at).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US')}
                     </td>
                   </tr>
                 ))}
-                {orders.length === 0 && (
+                {filteredOrders.length === 0 && (
                   <tr>
                     <td colSpan={6}>
                       <div className="table-empty">
                         <div className="table-empty-icon">📊</div>
-                        <div className="table-empty-text">{locale === 'ar' ? 'لا توجد طلبات' : 'No orders'}</div>
+                        <div className="table-empty-text">
+                          {locale === 'ar' ? 'لا توجد طلبات' : 'No orders'}
+                        </div>
                       </div>
                     </td>
                   </tr>
