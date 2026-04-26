@@ -11,6 +11,13 @@ import { Search, RefreshCw, Trash2, ToggleLeft, ToggleRight, Plus, X, Save, Uplo
 import '@/styles/modals.css'
 import '@/styles/forms.css'
 
+interface BundleItem {
+  service_id: string
+  service_name: string
+  price: number
+  custom_price: boolean
+}
+
 export default function ServicesPage() {
   const t = useTranslations('services')
   const locale = useLocale()
@@ -22,6 +29,10 @@ export default function ServicesPage() {
   const [selected,  setSelected]  = useState<Service | null>(null)
   const [saving,    setSaving]    = useState(false)
   const [uploading, setUploading] = useState(false)
+
+  const [serviceType,  setServiceType]  = useState<'single' | 'bundle'>('single')
+  const [bundleItems,  setBundleItems]  = useState<BundleItem[]>([])
+  const [bundleSearch, setBundleSearch] = useState('')
 
   const [name,         setName]         = useState('')
   const [price,        setPrice]        = useState('')
@@ -49,6 +60,7 @@ export default function ServicesPage() {
   function openNew() {
     setSelected(null)
     setName(''); setPrice(''); setCashierPrice(false)
+    setServiceType('single'); setBundleItems([])
     setCategory('عام'); setIcon('🚗'); setColor('#00d4ff'); setImageUrl('')
     setShowModal(true)
   }
@@ -58,6 +70,8 @@ export default function ServicesPage() {
     setName(svc.name)
     setPrice(String(svc.price))
     setCashierPrice((svc as any).cashier_price || false)
+    setServiceType((svc as any).type === 'bundle' ? 'bundle' : 'single')
+    setBundleItems((svc as any).bundle_items || [])
     setCategory(svc.category || 'عام')
     setIcon(svc.icon || '🚗')
     setColor(svc.color || '#00d4ff')
@@ -81,18 +95,56 @@ export default function ServicesPage() {
     finally { setUploading(false) }
   }
 
+  function addBundleItem(svc: Service) {
+    if (bundleItems.find(i => i.service_id === svc.id)) return
+    setBundleItems([...bundleItems, {
+      service_id: svc.id,
+      service_name: svc.name,
+      price: svc.price,
+      custom_price: false,
+    }])
+  }
+
+  function removeBundleItem(id: string) {
+    setBundleItems(bundleItems.filter(i => i.service_id !== id))
+  }
+
+  function toggleBundleItemCustomPrice(id: string) {
+    setBundleItems(bundleItems.map(i =>
+      i.service_id === id ? { ...i, custom_price: !i.custom_price } : i
+    ))
+  }
+
+  function updateBundleItemPrice(id: string, val: string) {
+    setBundleItems(bundleItems.map(i =>
+      i.service_id === id ? { ...i, price: Number(val) || 0 } : i
+    ))
+  }
+
   async function saveService() {
     if (!name.trim()) return
-    if (!cashierPrice && (price === '' || isNaN(Number(price)) || Number(price) < 0)) return
     setSaving(true)
     try {
+      let finalPrice = 0
+      if (serviceType === 'bundle') {
+        finalPrice = bundleItems.reduce((s, i) => s + (i.custom_price ? 0 : i.price), 0)
+      } else {
+        if (!cashierPrice && (price === '' || isNaN(Number(price)) || Number(price) < 0)) {
+          setSaving(false); return
+        }
+        finalPrice = cashierPrice ? 0 : Number(price)
+      }
+
       const body: any = {
         name: name.trim(),
-        price: cashierPrice ? 0 : Number(price),
+        price: finalPrice,
         category, icon, color,
         image_url: imageUrl || null,
-        cashier_price: cashierPrice,
+        cashier_price: serviceType === 'single' ? cashierPrice : false,
+        type: serviceType,
+        bundle_items: serviceType === 'bundle' ? bundleItems : [],
       }
+
       if (selected) {
         await api.services.update(selected.id, body)
       } else {
@@ -124,6 +176,15 @@ export default function ServicesPage() {
     s.category?.toLowerCase().includes(search.toLowerCase())
   )
 
+  const singleServices = services.filter(s => (s as any).type !== 'bundle' && s.active)
+  const filteredBundle = singleServices.filter(s =>
+    s.name.toLowerCase().includes(bundleSearch.toLowerCase()) &&
+    !bundleItems.find(b => b.service_id === s.id)
+  )
+
+  const bundleTotal = bundleItems.reduce((s, i) => s + (i.custom_price ? 0 : i.price), 0)
+  const hasCustom   = bundleItems.some(i => i.custom_price)
+
   return (
     <div>
       <div className="dashboard-page-header">
@@ -148,7 +209,7 @@ export default function ServicesPage() {
       {/* Modal */}
       {showModal && (
         <div className="modal-overlay">
-          <div className="modal modal-md">
+          <div className="modal modal-lg">
             <div className="modal-header">
               <h3 className="modal-title">
                 {selected
@@ -162,99 +223,236 @@ export default function ServicesPage() {
 
             <div className="modal-body">
 
-              {/* صورة الخدمة */}
+              {/* نوع الخدمة */}
               <div className="form-group">
-                <label className="form-label">{t('image')}</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <label className="form-label">{t('type')}</label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {[
+                    { id: 'single', labelAr: '🔧 خدمة عادية', labelEn: '🔧 Single Service' },
+                    { id: 'bundle', labelAr: '📦 خدمات مجمّعة', labelEn: '📦 Bundle' },
+                  ].map(tp => (
+                    <button key={tp.id}
+                      onClick={() => setServiceType(tp.id as any)}
+                      style={{
+                        flex: 1, padding: '12px', borderRadius: 'var(--radius-sm)',
+                        border: `1.5px solid ${serviceType === tp.id ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                        backgroundColor: serviceType === tp.id ? 'var(--color-primary-light)' : 'var(--color-bg-tertiary)',
+                        color: serviceType === tp.id ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                        fontWeight: '700', fontSize: '13px', cursor: 'pointer',
+                      }}>
+                      {locale === 'ar' ? tp.labelAr : tp.labelEn}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* صورة + اسم */}
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div>
                   {imageUrl ? (
                     <img src={imageUrl} alt="" style={{
-                      width: '80px', height: '80px', borderRadius: '8px',
+                      width: '72px', height: '72px', borderRadius: '8px',
                       objectFit: 'cover', border: '1px solid var(--color-border)',
                     }} />
                   ) : (
                     <div style={{
-                      width: '80px', height: '80px', borderRadius: '8px',
+                      width: '72px', height: '72px', borderRadius: '8px',
                       backgroundColor: color + '20', border: `1px solid ${color}40`,
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px',
                     }}>{icon}</div>
                   )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
-                      <Upload size={14} />
-                      {uploading
-                        ? (locale === 'ar' ? 'جاري الرفع...' : 'Uploading...')
-                        : (locale === 'ar' ? 'اختر صورة' : 'Choose image')}
-                      <input
-                        type="file" accept="image/*"
-                        style={{ display: 'none' }}
-                        disabled={uploading}
-                        onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0])}
-                      />
-                    </label>
-                    {imageUrl && (
-                      <button className="btn btn-danger btn-sm" onClick={() => setImageUrl('')}>
-                        {locale === 'ar' ? '🗑️ حذف الصورة' : '🗑️ Remove'}
-                      </button>
-                    )}
+                  <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', marginTop: '6px', display: 'flex', gap: '4px' }}>
+                    <Upload size={12} />
+                    {uploading ? '...' : (locale === 'ar' ? 'صورة' : 'Image')}
+                    <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading}
+                      onChange={e => e.target.files?.[0] && uploadImage(e.target.files[0])} />
+                  </label>
+                  {imageUrl && (
+                    <button className="btn btn-danger btn-sm" onClick={() => setImageUrl('')}
+                      style={{ marginTop: '4px', width: '100%' }}>
+                      {locale === 'ar' ? 'حذف' : 'Remove'}
+                    </button>
+                  )}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div className="form-group">
+                    <label className="form-label">{t('serviceName')} <span>*</span></label>
+                    <input className="form-input" value={name} onChange={e => setName(e.target.value)}
+                      placeholder={locale === 'ar' ? 'اسم الخدمة' : 'Service name'} />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">{t('category')}</label>
+                    <select className="form-input form-select" value={category} onChange={e => setCategory(e.target.value)}>
+                      {CATS.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
                   </div>
                 </div>
               </div>
 
-              {/* اسم الخدمة */}
-              <div className="form-group">
-                <label className="form-label">{t('serviceName')} <span>*</span></label>
-                <input className="form-input" value={name} onChange={e => setName(e.target.value)}
-                  placeholder={locale === 'ar' ? 'اسم الخدمة' : 'Service name'} />
-              </div>
-
-              {/* السعر */}
-              <div className="form-group">
-                <label className="form-label">{t('price')}</label>
-                <div className="form-switch" onClick={() => setCashierPrice(!cashierPrice)} style={{ marginBottom: '8px' }}>
-                  <div>
-                    <div className="form-switch-label">
-                      {locale === 'ar' ? 'الكاشير يحدد السعر' : 'Cashier sets price'}
+              {/* Single: السعر */}
+              {serviceType === 'single' && (
+                <div className="form-group">
+                  <label className="form-label">{t('price')}</label>
+                  <div className="form-switch" onClick={() => setCashierPrice(!cashierPrice)} style={{ marginBottom: '8px' }}>
+                    <div>
+                      <div className="form-switch-label">
+                        {locale === 'ar' ? 'الكاشير يحدد السعر' : 'Cashier sets price'}
+                      </div>
                     </div>
-                    <div className="form-switch-desc">
-                      {locale === 'ar' ? 'يطلب من الكاشير إدخال السعر عند البيع' : 'Cashier will be prompted to enter price'}
-                    </div>
-                  </div>
-                  <div style={{
-                    width: '40px', height: '22px', borderRadius: '11px',
-                    backgroundColor: cashierPrice ? 'var(--color-primary)' : 'var(--color-border)',
-                    position: 'relative', transition: 'var(--transition)',
-                  }}>
                     <div style={{
-                      width: '16px', height: '16px', borderRadius: '50%',
-                      backgroundColor: '#fff', position: 'absolute',
-                      top: '3px', transition: 'var(--transition)',
-                      left: cashierPrice ? '21px' : '3px',
-                    }} />
+                      width: '40px', height: '22px', borderRadius: '11px',
+                      backgroundColor: cashierPrice ? 'var(--color-primary)' : 'var(--color-border)',
+                      position: 'relative', transition: 'var(--transition)',
+                    }}>
+                      <div style={{
+                        width: '16px', height: '16px', borderRadius: '50%',
+                        backgroundColor: '#fff', position: 'absolute',
+                        top: '3px', transition: 'var(--transition)',
+                        left: cashierPrice ? '21px' : '3px',
+                      }} />
+                    </div>
+                  </div>
+                  {!cashierPrice && (
+                    <input className="form-input" type="number" min="0" value={price}
+                      onChange={e => setPrice(e.target.value)} placeholder="0" />
+                  )}
+                </div>
+              )}
+
+              {/* Bundle: خدمات مجمّعة */}
+              {serviceType === 'bundle' && (
+                <div className="form-group">
+                  <label className="form-label">
+                    {locale === 'ar' ? 'الخدمات داخل الباقة' : 'Services in bundle'}
+                  </label>
+
+                  {/* الخدمات المضافة */}
+                  {bundleItems.length > 0 && (
+                    <div style={{ marginBottom: '12px' }}>
+                      {bundleItems.map(item => (
+                        <div key={item.service_id} style={{
+                          display: 'flex', alignItems: 'center', gap: '8px',
+                          padding: '10px 12px', marginBottom: '6px',
+                          backgroundColor: 'var(--color-bg-tertiary)',
+                          border: '1px solid var(--color-border)',
+                          borderRadius: 'var(--radius-sm)',
+                        }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-text-primary)' }}>
+                              {item.service_name}
+                            </div>
+                            {!item.custom_price && (
+                              <input
+                                type="number" min="0"
+                                value={item.price}
+                                onChange={e => updateBundleItemPrice(item.service_id, e.target.value)}
+                                style={{
+                                  marginTop: '4px', padding: '4px 8px',
+                                  backgroundColor: 'var(--color-bg-secondary)',
+                                  border: '1px solid var(--color-border)',
+                                  borderRadius: '6px', fontSize: '12px',
+                                  color: 'var(--color-primary)', width: '100px',
+                                }}
+                              />
+                            )}
+                            {item.custom_price && (
+                              <div style={{ fontSize: '11px', color: 'var(--color-warning)', marginTop: '4px' }}>
+                                ⌨️ {locale === 'ar' ? 'الكاشير يحدد السعر' : 'Cashier sets price'}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* toggle custom price */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+                              {locale === 'ar' ? 'كاشير' : 'Cashier'}
+                            </span>
+                            <div
+                              onClick={() => toggleBundleItemCustomPrice(item.service_id)}
+                              style={{
+                                width: '36px', height: '20px', borderRadius: '10px', cursor: 'pointer',
+                                backgroundColor: item.custom_price ? 'var(--color-warning)' : 'var(--color-border)',
+                                position: 'relative', transition: 'var(--transition)',
+                              }}>
+                              <div style={{
+                                width: '14px', height: '14px', borderRadius: '50%',
+                                backgroundColor: '#fff', position: 'absolute',
+                                top: '3px', transition: 'var(--transition)',
+                                left: item.custom_price ? '19px' : '3px',
+                              }} />
+                            </div>
+                          </div>
+
+                          <button onClick={() => removeBundleItem(item.service_id)}
+                            style={{
+                              width: '28px', height: '28px', borderRadius: '6px',
+                              border: '1px solid var(--color-danger-border)',
+                              backgroundColor: 'var(--color-danger-light)',
+                              color: 'var(--color-danger)', cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+
+                      {/* إجمالي الباقة */}
+                      <div style={{
+                        padding: '10px 12px', borderRadius: 'var(--radius-sm)',
+                        backgroundColor: 'var(--color-success-light)',
+                        border: '1px solid var(--color-success-border)',
+                        fontSize: '13px', fontWeight: '700', color: 'var(--color-success)',
+                      }}>
+                        {locale === 'ar' ? 'إجمالي الباقة:' : 'Bundle total:'}{' '}
+                        {formatCurrency(bundleTotal, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                        {hasCustom && (
+                          <span style={{ color: 'var(--color-warning)', marginRight: '8px', fontWeight: '400', fontSize: '12px' }}>
+                            + {locale === 'ar' ? 'يحدده الكاشير' : 'cashier sets'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* البحث عن خدمة لإضافتها */}
+                  <div style={{ marginBottom: '8px' }}>
+                    <input
+                      className="form-input"
+                      placeholder={locale === 'ar' ? 'ابحث عن خدمة لإضافتها...' : 'Search service to add...'}
+                      value={bundleSearch}
+                      onChange={e => setBundleSearch(e.target.value)}
+                    />
+                  </div>
+                  <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
+                    {filteredBundle.length === 0 ? (
+                      <div style={{ padding: '16px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '12px' }}>
+                        {locale === 'ar' ? 'لا توجد خدمات' : 'No services'}
+                      </div>
+                    ) : filteredBundle.map(svc => (
+                      <div key={svc.id}
+                        onClick={() => addBundleItem(svc)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '10px',
+                          padding: '10px 12px', cursor: 'pointer',
+                          borderBottom: '1px solid var(--color-border)',
+                          transition: 'var(--transition)',
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--color-primary-light)')}
+                        onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                      >
+                        <div style={{ fontSize: '18px' }}>{svc.icon || '🚗'}</div>
+                        <div style={{ flex: 1, fontSize: '13px', color: 'var(--color-text-primary)', fontWeight: '600' }}>
+                          {svc.name}
+                        </div>
+                        <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--color-primary)' }}>
+                          {formatCurrency(svc.price, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                        </div>
+                        <Plus size={14} color="var(--color-primary)" />
+                      </div>
+                    ))}
                   </div>
                 </div>
-                {!cashierPrice && (
-                  <input className="form-input" type="number" min="0" value={price}
-                    onChange={e => setPrice(e.target.value)} placeholder="0" />
-                )}
-                {cashierPrice && (
-                  <div style={{
-                    padding: '10px 14px', borderRadius: 'var(--radius-sm)',
-                    backgroundColor: 'var(--color-warning-light)',
-                    border: '1px solid var(--color-warning-border)',
-                    fontSize: '12px', color: 'var(--color-warning)',
-                  }}>
-                    ⌨️ {locale === 'ar' ? 'سيطلب من الكاشير إدخال السعر عند البيع' : 'Cashier will enter price at time of sale'}
-                  </div>
-                )}
-              </div>
-
-              {/* الفئة */}
-              <div className="form-group">
-                <label className="form-label">{t('category')}</label>
-                <select className="form-input form-select" value={category} onChange={e => setCategory(e.target.value)}>
-                  {CATS.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
+              )}
 
               {/* الأيقونة */}
               <div className="form-group">
@@ -345,6 +543,11 @@ export default function ServicesPage() {
                       )}
                       <div>
                         <div className="svc-label">{svc.name}</div>
+                        {(svc as any).type === 'bundle' && (
+                          <div style={{ fontSize: '11px', color: 'var(--color-purple)' }}>
+                            📦 {((svc as any).bundle_items || []).map((i: any) => i.service_name).join(' · ')}
+                          </div>
+                        )}
                         {(svc as any).cashier_price && (
                           <div style={{ fontSize: '11px', color: 'var(--color-warning)' }}>
                             ⌨️ {locale === 'ar' ? 'الكاشير يحدد السعر' : 'Cashier price'}
@@ -360,9 +563,9 @@ export default function ServicesPage() {
                       : formatCurrency(svc.price, locale === 'ar' ? 'ar-SA' : 'en-US')}
                   </td>
                   <td>
-                    <span className={`badge ${svc.type === 'bundle' ? 'badge-purple' : 'badge-primary'}`}>
-                      {svc.type === 'bundle'
-                        ? (locale === 'ar' ? 'باقة' : 'Bundle')
+                    <span className={`badge ${(svc as any).type === 'bundle' ? 'badge-purple' : 'badge-primary'}`}>
+                      {(svc as any).type === 'bundle'
+                        ? (locale === 'ar' ? '📦 باقة' : '📦 Bundle')
                         : (locale === 'ar' ? 'عادية' : 'Single')}
                     </span>
                   </td>
