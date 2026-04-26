@@ -6,6 +6,8 @@ import { api } from '@/lib/api'
 import { formatCurrency, formatNumber, getTodayDate } from '@/lib/utils'
 import { TrendingUp, ShoppingCart, Banknote, Percent, CreditCard, Calendar } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import '@/styles/forms.css'
+
 
 type RangePreset = 'today' | 'yesterday' | '7days' | '30days' | '3months' | '6months' | '1year' | 'custom'
 
