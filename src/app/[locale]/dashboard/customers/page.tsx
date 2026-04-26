@@ -4,14 +4,13 @@ import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
-import { Customer } from '@/types'
 import { Search, RefreshCw } from 'lucide-react'
 
 export default function CustomersPage() {
   const t = useTranslations('customers')
   const locale = useLocale()
 
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const [customers, setCustomers] = useState<any[]>([])
   const [loading,   setLoading]   = useState(true)
   const [search,    setSearch]    = useState('')
 
@@ -21,7 +20,15 @@ export default function CustomersPage() {
     setLoading(true)
     try {
       const res = await api.customers.getAll()
-      setCustomers(res.data || [])
+      const raw = res.data || []
+      // إزالة المكررين بناءً على customer.id
+      const seen = new Set()
+      const unique = raw.filter((item: any) => {
+        if (seen.has(item.customer?.id)) return false
+        seen.add(item.customer?.id)
+        return true
+      })
+      setCustomers(unique)
     } catch (e) {
       console.error(e)
     } finally {
@@ -30,8 +37,9 @@ export default function CustomersPage() {
   }
 
   const filtered = customers.filter(c =>
-    c.name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.phone?.includes(search)
+    c.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
+    c.customer?.phone?.includes(search) ||
+    c.plate?.includes(search)
   )
 
   return (
@@ -56,6 +64,8 @@ export default function CustomersPage() {
             <div className="table-search">
               <Search size={14} />
               <input
+                id="customer-search"
+                name="customer-search"
                 placeholder={locale === 'ar' ? 'بحث...' : 'Search...'}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -74,30 +84,42 @@ export default function CustomersPage() {
               <tr>
                 <th>{t('customerName')}</th>
                 <th>{t('phone')}</th>
+                <th>{locale === 'ar' ? 'اللوحة' : 'Plate'}</th>
+                <th>{locale === 'ar' ? 'نوع السيارة' : 'Car Type'}</th>
                 <th>{t('loyaltyPoints')}</th>
                 <th>{t('joinDate')}</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(c => (
-                <tr key={c.id}>
+              {filtered.map((c, i) => (
+                <tr key={c.customer?.id || i}>
                   <td style={{ fontWeight: '700', color: 'var(--color-text-primary)' }}>
-                    {c.name || '—'}
+                    {c.customer?.name || '—'}
                   </td>
-                  <td style={{ color: 'var(--color-text-secondary)' }}>{c.phone}</td>
+                  <td style={{ color: 'var(--color-text-secondary)' }}>
+                    {c.customer?.phone || '—'}
+                  </td>
+                  <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
+                    {c.plate || '—'}
+                  </td>
+                  <td style={{ color: 'var(--color-text-secondary)' }}>
+                    {c.vehicle?.type || '—'}
+                  </td>
                   <td>
                     <span className="badge badge-warning">
-                      ⭐ {c.loyalty_points}
+                      ⭐ {c.customer?.loyalty_points || 0}
                     </span>
                   </td>
                   <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                    {formatDate(c.created_at, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                    {c.customer?.created_at
+                      ? formatDate(c.customer.created_at, locale === 'ar' ? 'ar-SA' : 'en-US')
+                      : '—'}
                   </td>
                 </tr>
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={4}>
+                  <td colSpan={6}>
                     <div className="table-empty">
                       <div className="table-empty-icon">👥</div>
                       <div className="table-empty-text">
