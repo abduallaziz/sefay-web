@@ -4,28 +4,27 @@ import { routing } from './i18n/routing'
 
 const intlMiddleware = createMiddleware(routing)
 
-const protectedRoutes = ['/dashboard']
-const publicRoutes = ['/login']
-
 export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const token = request.cookies.get('token')?.value
 
-  const isProtected = protectedRoutes.some(route =>
-    pathname.includes(route)
-  )
-  const isPublic = publicRoutes.some(route =>
-    pathname.includes(route)
-  )
+  const locale = pathname.split('/')[1] || routing.defaultLocale
+  const pathWithoutLocale = pathname.replace(`/${locale}`, '') || '/'
+
+  const isProtected = pathWithoutLocale.startsWith('/dashboard')
+  const isLoginPage = pathWithoutLocale.startsWith('/login')
+  const isRoot      = pathWithoutLocale === '/' || pathWithoutLocale === ''
 
   if (isProtected && !token) {
-    const locale = pathname.split('/')[1] || routing.defaultLocale
     return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
   }
 
-  if (isPublic && token) {
-    const locale = pathname.split('/')[1] || routing.defaultLocale
-    return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url))
+  if (isRoot) {
+    if (token) {
+      return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url))
+    } else {
+      return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
+    }
   }
 
   return intlMiddleware(request)
