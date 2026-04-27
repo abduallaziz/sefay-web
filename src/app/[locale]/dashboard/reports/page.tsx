@@ -4,18 +4,19 @@ import { useEffect, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { api } from '@/lib/api'
 import { formatCurrency, formatNumber, getTodayDate } from '@/lib/utils'
-import { TrendingUp, ShoppingCart, Banknote, Percent, CreditCard, Download } from 'lucide-react'
+import { TrendingUp, ShoppingCart, Banknote, Percent, CreditCard, Download, Search } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 
 export default function ReportsPage() {
   const locale = useLocale()
 
-  const [summary, setSummary] = useState<any>(null)
-  const [orders,  setOrders]  = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [summary,  setSummary]  = useState<any>(null)
+  const [orders,   setOrders]   = useState<any[]>([])
+  const [loading,  setLoading]  = useState(true)
   const [fromDate, setFromDate] = useState(getTodayDate())
   const [toDate,   setToDate]   = useState(getTodayDate())
+  const [search,   setSearch]   = useState('')
 
   useEffect(() => { loadData(getTodayDate(), getTodayDate()) }, [])
 
@@ -32,10 +33,19 @@ export default function ReportsPage() {
     finally { setLoading(false) }
   }
 
+  const filtered = orders.filter(o =>
+    String(o.id).slice(-8).toLowerCase().includes(search.toLowerCase()) ||
+    o.vehicles?.plate?.toLowerCase().includes(search.toLowerCase()) ||
+    o.customers?.phone?.includes(search) ||
+    o.customers?.name?.toLowerCase().includes(search.toLowerCase())
+  )
+
   function exportCSV() {
-    const headers = ['رقم الطلب', 'اللوحة', 'المجموع قبل', 'الخصم', 'الضريبة', 'الإجمالي', 'الدفع', 'الحالة', 'التاريخ']
-    const rows = orders.map(o => [
+    const headers = ['رقم الطلب', 'اسم العميل', 'الجوال', 'اللوحة', 'المجموع قبل', 'الخصم', 'الضريبة', 'الإجمالي', 'الدفع', 'الحالة', 'التاريخ']
+    const rows = filtered.map(o => [
       String(o.id).slice(-8).toUpperCase(),
+      o.customers?.name || '',
+      o.customers?.phone || '',
       o.vehicles?.plate || '',
       o.subtotal,
       o.discount,
@@ -56,9 +66,11 @@ export default function ReportsPage() {
   }
 
   function exportHTML() {
-    const rows = orders.map(o => `
+    const rows = filtered.map(o => `
       <tr>
         <td>#${String(o.id).slice(-8).toUpperCase()}</td>
+        <td>${o.customers?.name || '—'}</td>
+        <td>${o.customers?.phone || '—'}</td>
         <td>${o.vehicles?.plate || '—'}</td>
         <td>${o.subtotal?.toFixed(2)}</td>
         <td>${o.discount?.toFixed(2)}</td>
@@ -101,7 +113,7 @@ export default function ReportsPage() {
   <div class="stat"><div class="stat-label">خصومات</div><div class="stat-value">${summary?.total_discount?.toFixed(2)} ر.س</div></div>
 </div>
 <table>
-  <thead><tr><th>رقم الطلب</th><th>اللوحة</th><th>المجموع</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th><th>الدفع</th><th>الحالة</th><th>التاريخ</th></tr></thead>
+  <thead><tr><th>رقم الطلب</th><th>اسم العميل</th><th>الجوال</th><th>اللوحة</th><th>المجموع</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th><th>الدفع</th><th>الحالة</th><th>التاريخ</th></tr></thead>
   <tbody>${rows}</tbody>
 </table>
 <div class="footer">Sefay ERP — تم الإنشاء بتاريخ ${new Date().toLocaleDateString('ar-SA')}</div>
@@ -263,14 +275,27 @@ export default function ReportsPage() {
               <h3 className="table-title">
                 {locale === 'ar' ? 'تفاصيل الطلبات' : 'Orders Details'}
                 <span style={{ marginRight: '8px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                  ({orders.length})
+                  ({filtered.length})
                 </span>
               </h3>
+              <div className="table-actions">
+                <div className="table-search">
+                  <Search size={14} />
+                  <input
+                    id="rep-search" name="rep-search"
+                    placeholder={locale === 'ar' ? 'بحث...' : 'Search...'}
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
             <table>
               <thead>
                 <tr>
                   <th>{locale === 'ar' ? 'رقم الطلب' : 'Order #'}</th>
+                  <th>{locale === 'ar' ? 'اسم العميل' : 'Customer'}</th>
+                  <th>{locale === 'ar' ? 'الجوال' : 'Phone'}</th>
                   <th>{locale === 'ar' ? 'اللوحة' : 'Plate'}</th>
                   <th>{locale === 'ar' ? 'المجموع' : 'Subtotal'}</th>
                   <th>{locale === 'ar' ? 'الخصم' : 'Discount'}</th>
@@ -281,10 +306,16 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map(order => (
+                {filtered.map(order => (
                   <tr key={order.id}>
                     <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
                       #{String(order.id).slice(-8).toUpperCase()}
+                    </td>
+                    <td style={{ color: 'var(--color-text-secondary)' }}>
+                      {order.customers?.name || '—'}
+                    </td>
+                    <td style={{ color: 'var(--color-text-secondary)' }}>
+                      {order.customers?.phone || '—'}
                     </td>
                     <td>{order.vehicles?.plate || '—'}</td>
                     <td>{formatCurrency(order.subtotal, locale === 'ar' ? 'ar-SA' : 'en-US')}</td>
@@ -307,9 +338,9 @@ export default function ReportsPage() {
                     </td>
                   </tr>
                 ))}
-                {orders.length === 0 && (
+                {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8}>
+                    <td colSpan={10}>
                       <div className="table-empty">
                         <div className="table-empty-icon">📊</div>
                         <div className="table-empty-text">
