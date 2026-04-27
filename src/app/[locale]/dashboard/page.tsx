@@ -6,53 +6,27 @@ import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 import { formatCurrency, formatNumber, getTodayDate } from '@/lib/utils'
-import { TrendingUp, ShoppingCart, Banknote, Percent, CreditCard, Calendar, GitBranch } from 'lucide-react'
+import { TrendingUp, ShoppingCart, Banknote, Percent, CreditCard, GitBranch } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import DateRangePicker from '@/components/ui/DateRangePicker'
 import '@/styles/forms.css'
-
-type RangePreset = 'today' | 'yesterday' | '7days' | '30days' | '3months' | '6months' | '1year' | 'custom'
-
-function getDateRange(preset: RangePreset): { from: string; to: string } {
-  const now = new Date()
-  const toSaudiDate = (d: Date) => d.toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' })
-  const today = toSaudiDate(now)
-  switch (preset) {
-    case 'today':     return { from: today, to: today }
-    case 'yesterday': { const d = new Date(now); d.setDate(d.getDate()-1); const y = toSaudiDate(d); return { from: y, to: y } }
-    case '7days':     { const d = new Date(now); d.setDate(d.getDate()-6); return { from: toSaudiDate(d), to: today } }
-    case '30days':    { const d = new Date(now); d.setDate(d.getDate()-29); return { from: toSaudiDate(d), to: today } }
-    case '3months':   { const d = new Date(now); d.setMonth(d.getMonth()-3); return { from: toSaudiDate(d), to: today } }
-    case '6months':   { const d = new Date(now); d.setMonth(d.getMonth()-6); return { from: toSaudiDate(d), to: today } }
-    case '1year':     { const d = new Date(now); d.setFullYear(d.getFullYear()-1); return { from: toSaudiDate(d), to: today } }
-    default:          return { from: today, to: today }
-  }
-}
 
 export default function DashboardPage() {
   const locale = useLocale()
 
-  const [summary,        setSummary]        = useState<any>(null)
-  const [orders,         setOrders]         = useState<any[]>([])
-  const [branches,       setBranches]       = useState<any[]>([])
-  const [selectedBranch, setSelectedBranch] = useState<string>('all')
-  const [branchSummaries,setBranchSummaries]= useState<any[]>([])
-  const [loading,        setLoading]        = useState(true)
-  const [preset,         setPreset]         = useState<RangePreset>('today')
-  const [fromDate,       setFromDate]       = useState(getTodayDate())
-  const [toDate,         setToDate]         = useState(getTodayDate())
+  const [summary,         setSummary]         = useState<any>(null)
+  const [orders,          setOrders]          = useState<any[]>([])
+  const [branches,        setBranches]        = useState<any[]>([])
+  const [selectedBranch,  setSelectedBranch]  = useState<string>('all')
+  const [branchSummaries, setBranchSummaries] = useState<any[]>([])
+  const [loading,         setLoading]         = useState(true)
+  const [fromDate,        setFromDate]        = useState(getTodayDate())
+  const [toDate,          setToDate]          = useState(getTodayDate())
 
   useEffect(() => {
     loadBranches()
+    loadData(getTodayDate(), getTodayDate())
   }, [])
-
-  useEffect(() => {
-    if (preset !== 'custom') {
-      const range = getDateRange(preset)
-      setFromDate(range.from)
-      setToDate(range.to)
-      loadData(range.from, range.to)
-    }
-  }, [preset])
 
   async function loadBranches() {
     try {
@@ -78,7 +52,6 @@ export default function DashboardPage() {
       const allOrders = ordersRes.data || []
       setOrders(allOrders)
 
-      // ملخص لكل فرع
       const session = getSession()
       if (session) {
         const { data: branchList } = await supabase
@@ -94,9 +67,9 @@ export default function DashboardPage() {
               id: b.id,
               name: b.name,
               total_orders: bOrders.length,
-              total_sales: bOrders.reduce((s: number, o: any) => s + Number(o.total), 0),
-              cash: bOrders.filter((o: any) => o.payment_method === 'cash').reduce((s: number, o: any) => s + Number(o.total), 0),
-              card: bOrders.filter((o: any) => o.payment_method !== 'cash').reduce((s: number, o: any) => s + Number(o.total), 0),
+              total_sales:  bOrders.reduce((s: number, o: any) => s + Number(o.total), 0),
+              cash:         bOrders.filter((o: any) => o.payment_method === 'cash').reduce((s: number, o: any) => s + Number(o.total), 0),
+              card:         bOrders.filter((o: any) => o.payment_method !== 'cash').reduce((s: number, o: any) => s + Number(o.total), 0),
             }
           })
           setBranchSummaries(summaries)
@@ -122,17 +95,6 @@ export default function DashboardPage() {
     }
   })()
 
-  const presets: { id: RangePreset; label: string }[] = [
-    { id: 'today',     label: locale === 'ar' ? 'اليوم'    : 'Today' },
-    { id: 'yesterday', label: locale === 'ar' ? 'أمس'      : 'Yesterday' },
-    { id: '7days',     label: locale === 'ar' ? '٧ أيام'   : '7 Days' },
-    { id: '30days',    label: locale === 'ar' ? '٣٠ يوم'   : '30 Days' },
-    { id: '3months',   label: locale === 'ar' ? '٣ أشهر'   : '3 Months' },
-    { id: '6months',   label: locale === 'ar' ? '٦ أشهر'   : '6 Months' },
-    { id: '1year',     label: locale === 'ar' ? 'سنة'      : '1 Year' },
-    { id: 'custom',    label: locale === 'ar' ? 'مخصص'     : 'Custom' },
-  ]
-
   const stats = [
     { label: locale === 'ar' ? 'إجمالي المبيعات' : 'Total Sales',  value: formatCurrency(displaySummary?.total_sales || 0,    locale === 'ar' ? 'ar-SA' : 'en-US'), icon: TrendingUp,  color: 'var(--color-primary)',  bg: 'var(--color-primary-light)',  border: 'var(--color-primary-border)' },
     { label: locale === 'ar' ? 'عدد الطلبات'     : 'Total Orders', value: formatNumber(displaySummary?.total_orders || 0,     locale === 'ar' ? 'ar-SA' : 'en-US'), icon: ShoppingCart, color: 'var(--color-success)',  bg: 'var(--color-success-light)',  border: 'var(--color-success-border)' },
@@ -143,6 +105,7 @@ export default function DashboardPage() {
   ]
 
   const profit = (displaySummary?.total_sales || 0) - (displaySummary?.total_tax || 0) - (displaySummary?.total_discount || 0)
+
   const chartData = selectedBranch === 'all' ? (summary?.orders_by_day || []) : (() => {
     const map: Record<string, number> = {}
     filteredOrders.filter((o: any) => o.status === 'completed').forEach((o: any) => {
@@ -154,6 +117,7 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {/* Header */}
       <div className="dashboard-page-header">
         <div>
           <h2 className="dashboard-page-title">{locale === 'ar' ? 'لوحة التحكم' : 'Dashboard'}</h2>
@@ -161,35 +125,17 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Date Presets */}
-      <div style={{
-        backgroundColor: 'var(--color-bg-secondary)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-lg)',
-        padding: '16px', marginBottom: '16px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-          <Calendar size={16} color="var(--color-text-muted)" />
-          {presets.map(p => (
-            <button key={p.id}
-              className={`table-filter-btn ${preset === p.id ? 'active' : ''}`}
-              onClick={() => setPreset(p.id)}>
-              {p.label}
-            </button>
-          ))}
-        </div>
-        {preset === 'custom' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '12px', flexWrap: 'wrap' }}>
-            <input type="date" className="form-input" value={fromDate}
-              onChange={e => setFromDate(e.target.value)} style={{ width: 'auto' }} />
-            <span style={{ color: 'var(--color-text-muted)' }}>—</span>
-            <input type="date" className="form-input" value={toDate}
-              onChange={e => setToDate(e.target.value)} style={{ width: 'auto' }} />
-            <button className="btn btn-primary btn-sm" onClick={() => loadData(fromDate, toDate)}>
-              {locale === 'ar' ? 'تطبيق' : 'Apply'}
-            </button>
-          </div>
-        )}
+      {/* Date Picker */}
+      <div style={{ marginBottom: '16px' }}>
+        <DateRangePicker
+          from={fromDate}
+          to={toDate}
+          onChange={(from, to) => {
+            setFromDate(from)
+            setToDate(to)
+            loadData(from, to)
+          }}
+        />
       </div>
 
       {/* Branch Filter */}
@@ -276,25 +222,17 @@ export default function DashboardPage() {
                       🏬 {b.name}
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                        {locale === 'ar' ? 'الطلبات' : 'Orders'}
-                      </span>
-                      <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-success)' }}>
-                        {b.total_orders}
-                      </span>
+                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{locale === 'ar' ? 'الطلبات' : 'Orders'}</span>
+                      <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-success)' }}>{b.total_orders}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                        {locale === 'ar' ? 'المبيعات' : 'Sales'}
-                      </span>
+                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{locale === 'ar' ? 'المبيعات' : 'Sales'}</span>
                       <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-primary)' }}>
                         {formatCurrency(b.total_sales, locale === 'ar' ? 'ar-SA' : 'en-US')}
                       </span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                        {locale === 'ar' ? 'نقد / بطاقة' : 'Cash / Card'}
-                      </span>
+                      <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{locale === 'ar' ? 'نقد / بطاقة' : 'Cash / Card'}</span>
                       <span style={{ fontSize: '11px', color: 'var(--color-text-secondary)' }}>
                         {formatCurrency(b.cash, locale === 'ar' ? 'ar-SA' : 'en-US')} / {formatCurrency(b.card, locale === 'ar' ? 'ar-SA' : 'en-US')}
                       </span>

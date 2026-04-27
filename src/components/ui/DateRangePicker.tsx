@@ -5,216 +5,226 @@ import { useLocale } from 'next-intl'
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import '@/styles/datepicker.css'
 
-interface DateRangePickerProps {
+interface Props {
   from: string
   to: string
-  onChange: (from: string, to: string, preset?: string) => void
+  onChange: (from: string, to: string) => void
 }
 
-type Preset = {
-  id: string
-  labelAr: string
-  labelEn: string
-}
-
-const PRESETS: Preset[] = [
-  { id: 'today',    labelAr: 'اليوم',        labelEn: 'Today' },
-  { id: 'yesterday',labelAr: 'أمس',          labelEn: 'Yesterday' },
-  { id: '7days',    labelAr: '٧ أيام',       labelEn: '7 Days' },
-  { id: '30days',   labelAr: '٣٠ يوم',       labelEn: '30 Days' },
-  { id: '3months',  labelAr: '٣ أشهر',       labelEn: '3 Months' },
-  { id: '6months',  labelAr: '٦ أشهر',       labelEn: '6 Months' },
-  { id: '1year',    labelAr: 'سنة كاملة',    labelEn: '1 Year' },
-  { id: 'custom',   labelAr: 'مخصص',         labelEn: 'Custom' },
-]
+const PRESETS_AR = ['اليوم','امس','اسبوع','شهر','شهرين','ثلاث اشهر','سته اشهر','سنه','تارخ مخصص']
+const PRESETS_EN = ['Today','Yesterday','Week','Month','2 Months','3 Months','6 Months','Year','Custom']
 
 function toSaudiDate(d: Date): string {
   return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' })
 }
 
-function getPresetRange(id: string): { from: string; to: string } {
+function getPresetRange(idx: number): { from: string; to: string } {
   const now = new Date()
   const today = toSaudiDate(now)
-  switch (id) {
-    case 'today':     return { from: today, to: today }
-    case 'yesterday': { const d = new Date(now); d.setDate(d.getDate()-1); const y = toSaudiDate(d); return { from: y, to: y } }
-    case '7days':     { const d = new Date(now); d.setDate(d.getDate()-6); return { from: toSaudiDate(d), to: today } }
-    case '30days':    { const d = new Date(now); d.setDate(d.getDate()-29); return { from: toSaudiDate(d), to: today } }
-    case '3months':   { const d = new Date(now); d.setMonth(d.getMonth()-3); return { from: toSaudiDate(d), to: today } }
-    case '6months':   { const d = new Date(now); d.setMonth(d.getMonth()-6); return { from: toSaudiDate(d), to: today } }
-    case '1year':     { const d = new Date(now); d.setFullYear(d.getFullYear()-1); return { from: toSaudiDate(d), to: today } }
-    default:          return { from: today, to: today }
+  const d = (n: number) => { const x = new Date(now); x.setDate(x.getDate() + n); return toSaudiDate(x) }
+  const m = (n: number) => { const x = new Date(now); x.setMonth(x.getMonth() + n); return toSaudiDate(x) }
+  const y = (n: number) => { const x = new Date(now); x.setFullYear(x.getFullYear() + n); return toSaudiDate(x) }
+  switch (idx) {
+    case 0: return { from: today, to: today }
+    case 1: return { from: d(-1), to: d(-1) }
+    case 2: return { from: d(-6), to: today }
+    case 3: return { from: m(-1), to: today }
+    case 4: return { from: m(-2), to: today }
+    case 5: return { from: m(-3), to: today }
+    case 6: return { from: m(-6), to: today }
+    case 7: return { from: y(-1), to: today }
+    default: return { from: today, to: today }
   }
 }
 
-function getDaysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate()
-}
+function getDaysInMonth(y: number, m: number) { return new Date(y, m + 1, 0).getDate() }
+function getFirstDay(y: number, m: number) { return new Date(y, m, 1).getDay() }
 
-function getFirstDayOfMonth(year: number, month: number) {
-  return new Date(year, month, 1).getDay()
-}
+const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
+const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const DAYS_AR   = ['أحد','إثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت']
+const DAYS_EN   = ['Su','Mo','Tu','We','Th','Fr','Sa']
 
-export default function DateRangePicker({ from, to, onChange }: DateRangePickerProps) {
+export default function DateRangePicker({ from, to, onChange }: Props) {
   const locale = useLocale()
-  const isRtl = locale === 'ar'
-  const [open, setOpen] = useState(false)
-  const [activePreset, setActivePreset] = useState('today')
-  const [selecting, setSelecting] = useState<'from' | 'to'>('from')
-  const [tempFrom, setTempFrom] = useState(from)
-  const [tempTo, setTempTo] = useState(to)
-  const [calYear, setCalYear] = useState(new Date().getFullYear())
-  const [calMonth, setCalMonth] = useState(new Date().getMonth())
+  const isAr = locale === 'ar'
+  const [open,      setOpen]      = useState(false)
+  const [preset,    setPreset]    = useState(0)
+  const [tempFrom,  setTempFrom]  = useState(from)
+  const [tempTo,    setTempTo]    = useState(to)
+  const [selecting, setSelecting] = useState<'from'|'to'>('from')
+  const [calYear,   setCalYear]   = useState(new Date().getFullYear())
+  const [calMonth,  setCalMonth]  = useState(new Date().getMonth())
   const ref = useRef<HTMLDivElement>(null)
-
   const today = toSaudiDate(new Date())
 
   useEffect(() => {
-    function handleClick(e: MouseEvent) {
+    function h(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
+    document.addEventListener('mousedown', h)
+    return () => document.removeEventListener('mousedown', h)
   }, [])
 
-  function selectPreset(id: string) {
-    setActivePreset(id)
-    if (id === 'custom') return
-    const range = getPresetRange(id)
-    setTempFrom(range.from)
-    setTempTo(range.to)
-    onChange(range.from, range.to, id)
-    setOpen(false)
+  function clickPreset(idx: number) {
+    setPreset(idx)
+    if (idx === 8) return // custom
+    const r = getPresetRange(idx)
+    setTempFrom(r.from)
+    setTempTo(r.to)
+    setSelecting('from')
   }
 
-  function handleDayClick(dateStr: string) {
+  function clickDay(date: string) {
+    setPreset(8)
     if (selecting === 'from') {
-      setTempFrom(dateStr)
-      setTempTo(dateStr)
-      setSelecting('to')
+      setTempFrom(date); setTempTo(date); setSelecting('to')
     } else {
-      if (dateStr < tempFrom) {
-        setTempTo(tempFrom)
-        setTempFrom(dateStr)
-      } else {
-        setTempTo(dateStr)
-      }
+      if (date < tempFrom) { setTempFrom(date); setTempTo(tempFrom) }
+      else setTempTo(date)
       setSelecting('from')
     }
   }
 
-  function applyCustom() {
-    onChange(tempFrom, tempTo, 'custom')
+  function apply() {
+    onChange(tempFrom, tempTo)
     setOpen(false)
   }
 
-  const MONTH_NAMES_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
-  const MONTH_NAMES_EN = ['January','February','March','April','May','June','July','August','September','October','November','December']
-  const DAY_NAMES_AR   = ['أحد','إثنين','ثلاثاء','أربعاء','خميس','جمعة','سبت']
-  const DAY_NAMES_EN   = ['Su','Mo','Tu','We','Th','Fr','Sa']
+  function prevMonth() {
+    if (calMonth === 0) { setCalMonth(11); setCalYear(y => y-1) }
+    else setCalMonth(m => m-1)
+  }
 
-  const daysInMonth  = getDaysInMonth(calYear, calMonth)
-  const firstDay     = getFirstDayOfMonth(calYear, calMonth)
-  const prevDays     = getDaysInMonth(calYear, calMonth - 1)
+  function nextMonth() {
+    if (calMonth === 11) { setCalMonth(0); setCalYear(y => y+1) }
+    else setCalMonth(m => m+1)
+  }
 
-  const cells: { date: string; day: number; otherMonth: boolean }[] = []
-  for (let i = firstDay - 1; i >= 0; i--) {
-    const d = new Date(calYear, calMonth - 1, prevDays - i)
-    cells.push({ date: toSaudiDate(d), day: prevDays - i, otherMonth: true })
+  // بناء أيام التقويم
+  const daysInMonth = getDaysInMonth(calYear, calMonth)
+  const firstDay    = getFirstDay(calYear, calMonth)
+  const prevDays    = getDaysInMonth(calYear, calMonth-1)
+  const cells: { date: string; day: number; other: boolean }[] = []
+
+  for (let i = firstDay-1; i >= 0; i--) {
+    const d = new Date(calYear, calMonth-1, prevDays-i)
+    cells.push({ date: toSaudiDate(d), day: prevDays-i, other: true })
   }
   for (let i = 1; i <= daysInMonth; i++) {
-    const d = new Date(calYear, calMonth, i)
-    cells.push({ date: toSaudiDate(d), day: i, otherMonth: false })
+    cells.push({ date: toSaudiDate(new Date(calYear, calMonth, i)), day: i, other: false })
   }
-  const remaining = 42 - cells.length
-  for (let i = 1; i <= remaining; i++) {
-    const d = new Date(calYear, calMonth + 1, i)
-    cells.push({ date: toSaudiDate(d), day: i, otherMonth: true })
+  for (let i = 1; cells.length < 42; i++) {
+    cells.push({ date: toSaudiDate(new Date(calYear, calMonth+1, i)), day: i, other: true })
   }
 
-  function getDayClass(cell: { date: string; otherMonth: boolean }) {
-    const classes = ['drp-cal-day']
-    if (cell.otherMonth) classes.push('other-month')
-    if (cell.date === today) classes.push('today')
-    if (cell.date === tempFrom && cell.date === tempTo) classes.push('selected')
-    else if (cell.date === tempFrom) classes.push('range-start')
-    else if (cell.date === tempTo) classes.push('range-end')
-    else if (cell.date > tempFrom && cell.date < tempTo) classes.push('in-range')
-    return classes.join(' ')
+  function dayClass(cell: { date: string; other: boolean }) {
+    if (cell.other) return 'drp-cal-day other-month'
+    if (cell.date === today && cell.date !== tempFrom && cell.date !== tempTo) return 'drp-cal-day today'
+    if (cell.date === tempFrom && cell.date === tempTo) return 'drp-cal-day selected'
+    if (cell.date === tempFrom) return 'drp-cal-day range-start'
+    if (cell.date === tempTo)   return 'drp-cal-day range-end'
+    if (cell.date > tempFrom && cell.date < tempTo) return 'drp-cal-day in-range'
+    return 'drp-cal-day'
   }
 
-  const displayLabel = activePreset !== 'custom'
-    ? PRESETS.find(p => p.id === activePreset)?.[isRtl ? 'labelAr' : 'labelEn']
-    : `${from} — ${to}`
+  const label = preset === 8 ? `${from} — ${to}` : (isAr ? PRESETS_AR[preset] : PRESETS_EN[preset])
 
   return (
     <div className="drp-wrapper" ref={ref}>
       <button className="drp-trigger" onClick={() => setOpen(!open)}>
         <Calendar size={14} />
-        {displayLabel}
+        {label}
       </button>
 
       {open && (
-        <div className="drp-dropdown">
-          {/* Presets */}
-          <div className="drp-presets">
-            {PRESETS.map(p => (
-              <button
-                key={p.id}
-                className={`drp-preset-btn ${activePreset === p.id ? 'active' : ''}`}
-                onClick={() => selectPreset(p.id)}
-              >
-                {isRtl ? p.labelAr : p.labelEn}
+        <div style={{
+          position: 'absolute',
+          top: 'calc(100% + 8px)',
+          insetInlineStart: '0',
+          zIndex: 1000,
+          backgroundColor: 'var(--color-bg-secondary)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-lg)',
+          display: 'flex',
+          flexDirection: isAr ? 'row' : 'row-reverse',
+          overflow: 'hidden',
+          minWidth: '520px',
+        }}>
+          {/* Presets — على اليمين للعربي */}
+          <div style={{
+            width: '140px',
+            borderInlineStart: '1px solid var(--color-border)',
+            padding: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+            backgroundColor: 'var(--color-bg-tertiary)',
+          }}>
+            {(isAr ? PRESETS_AR : PRESETS_EN).map((p, i) => (
+              <button key={i} onClick={() => clickPreset(i)}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '13px',
+                  fontWeight: preset === i ? '700' : '500',
+                  color: preset === i ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                  backgroundColor: preset === i ? 'var(--color-primary-light)' : 'transparent',
+                  border: preset === i ? '1px solid var(--color-primary-border)' : '1px solid transparent',
+                  textAlign: 'start',
+                  cursor: 'pointer',
+                  transition: 'var(--transition)',
+                }}>
+                {p}
               </button>
             ))}
           </div>
 
           {/* Calendar */}
-          <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
-            <div className="drp-calendar">
-              <div className="drp-cal-header">
-                <button className="drp-cal-nav" onClick={() => {
-                  if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1) }
-                  else setCalMonth(m => m - 1)
-                }}>
-                  <ChevronLeft size={14} />
-                </button>
-                <span className="drp-cal-title">
-                  {isRtl ? MONTH_NAMES_AR[calMonth] : MONTH_NAMES_EN[calMonth]} {calYear}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '16px' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <button className="drp-cal-nav" onClick={prevMonth}><ChevronRight size={14} /></button>
+                <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)' }}>
+                  {isAr ? MONTHS_AR[calMonth] : MONTHS_EN[calMonth]} {calYear}
                 </span>
-                <button className="drp-cal-nav" onClick={() => {
-                  if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1) }
-                  else setCalMonth(m => m + 1)
-                }}>
-                  <ChevronRight size={14} />
-                </button>
+                <button className="drp-cal-nav" onClick={nextMonth}><ChevronLeft size={14} /></button>
               </div>
 
-              <div className="drp-cal-grid">
-                {(isRtl ? DAY_NAMES_AR : DAY_NAMES_EN).map(d => (
-                  <div key={d} className="drp-cal-day-name">{d}</div>
+              {/* Days Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+                {(isAr ? DAYS_AR : DAYS_EN).map(d => (
+                  <div key={d} style={{ textAlign: 'center', fontSize: '11px', fontWeight: '700', color: 'var(--color-text-muted)', padding: '4px 0' }}>
+                    {d}
+                  </div>
                 ))}
                 {cells.map((cell, i) => (
-                  <div key={i} className={getDayClass(cell)} onClick={() => {
-                    setActivePreset('custom')
-                    handleDayClick(cell.date)
-                  }}>
+                  <div key={i} className={dayClass(cell)} onClick={() => !cell.other && clickDay(cell.date)}
+                    style={{ cursor: cell.other ? 'default' : 'pointer' }}>
                     {cell.day}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="drp-footer">
-              <span className="drp-selected-range">
+            {/* Footer */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 16px',
+              borderTop: '1px solid var(--color-border)',
+              backgroundColor: 'var(--color-bg-tertiary)',
+            }}>
+              <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                 {tempFrom} — {tempTo}
               </span>
-              <div className="drp-footer-btns">
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <button className="btn btn-secondary btn-sm" onClick={() => setOpen(false)}>
-                  {isRtl ? 'إلغاء' : 'Cancel'}
+                  {isAr ? 'إلغاء' : 'Cancel'}
                 </button>
-                <button className="btn btn-primary btn-sm" onClick={applyCustom}>
-                  {isRtl ? 'تطبيق' : 'Apply'}
+                <button className="btn btn-primary btn-sm" onClick={apply}>
+                  {isAr ? 'تطبيق' : 'Apply'}
                 </button>
               </div>
             </div>

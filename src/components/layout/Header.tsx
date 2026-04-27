@@ -2,7 +2,10 @@
 
 import { useTranslations, useLocale } from 'next-intl'
 import { useRouter, usePathname } from 'next/navigation'
-import { Bell, Menu, Globe } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Bell, Menu, Globe, ChevronDown } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { getSession } from '@/lib/auth'
 import '@/styles/dashboard.css'
 
 interface HeaderProps {
@@ -16,6 +19,55 @@ export default function Header({ session, collapsed, setCollapsed }: HeaderProps
   const locale = useLocale()
   const router = useRouter()
   const pathname = usePathname()
+
+  const [branches,        setBranches]        = useState<any[]>([])
+  const [selectedBranch,  setSelectedBranch]  = useState<any>(null)
+  const [branchDropdown,  setBranchDropdown]  = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    loadBranches()
+  }, [])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setBranchDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  async function loadBranches() {
+    try {
+      const s = getSession()
+      if (!s) return
+      const { data } = await supabase
+        .from('branches')
+        .select('id, name')
+        .eq('tenant_id', s.tenant_id)
+        .eq('active', true)
+        .order('name')
+      setBranches(data || [])
+      // تعيين الفرع الحالي من الجلسة
+      const current = data?.find((b: any) => b.id === s.branch_id)
+      setSelectedBranch(current || data?.[0] || null)
+    } catch (e) { console.error(e) }
+  }
+
+  function selectBranch(branch: any) {
+    setSelectedBranch(branch)
+    setBranchDropdown(false)
+    // نحدث الـ session
+    const s = getSession()
+    if (s) {
+      const updated = { ...s, branch_id: branch.id, branch_name: branch.name }
+      localStorage.setItem('session', JSON.stringify(updated))
+    }
+    // نعيد تحميل الصفحة لتطبيق الفرع الجديد
+    router.refresh()
+  }
 
   function toggleLocale() {
     const newLocale = locale === 'ar' ? 'en' : 'ar'
@@ -39,20 +91,75 @@ export default function Header({ session, collapsed, setCollapsed }: HeaderProps
   return (
     <header className="dashboard-header">
       <div className="dashboard-header-left">
-        <button
-          className="btn btn-ghost btn-icon"
-          onClick={() => setCollapsed(!collapsed)}
-        >
+        <button className="btn btn-ghost btn-icon" onClick={() => setCollapsed(!collapsed)}>
           <Menu size={18} />
         </button>
         <h1 className="dashboard-header-title">{getPageTitle()}</h1>
       </div>
 
       <div className="dashboard-header-right">
-        {/* Branch Info */}
-        {session?.branch_name && (
-          <div className="branch-selector">
-            🏬 {session.branch_name}
+
+        {/* Branch Dropdown */}
+        {branches.length > 0 && (
+          <div ref={dropdownRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setBranchDropdown(!branchDropdown)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '6px 12px',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--color-border)',
+                backgroundColor: 'var(--color-bg-tertiary)',
+                color: 'var(--color-text-primary)',
+                fontSize: '13px', fontWeight: '600', cursor: 'pointer',
+                transition: 'var(--transition)',
+              }}
+            >
+              🏬 {selectedBranch?.name || (locale === 'ar' ? 'اختر فرع' : 'Select Branch')}
+              <ChevronDown size={12} />
+            </button>
+
+            {branchDropdown && (
+              <div style={{
+                position: 'absolute',
+                top: 'calc(100% + 6px)',
+                insetInlineStart: '0',
+                backgroundColor: 'var(--color-bg-secondary)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-lg)',
+                minWidth: '180px',
+                zIndex: 1000,
+                overflow: 'hidden',
+              }}>
+                {branches.map(b => (
+                  <div
+                    key={b.id}
+                    onClick={() => selectBranch(b)}
+                    style={{
+                      padding: '10px 14px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: selectedBranch?.id === b.id ? 'var(--color-primary)' : 'var(--color-text-primary)',
+                      backgroundColor: selectedBranch?.id === b.id ? 'var(--color-primary-light)' : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'var(--transition)',
+                      borderBottom: '1px solid var(--color-border)',
+                    }}
+                    onMouseEnter={e => {
+                      if (selectedBranch?.id !== b.id)
+                        (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--color-bg-tertiary)'
+                    }}
+                    onMouseLeave={e => {
+                      if (selectedBranch?.id !== b.id)
+                        (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'
+                    }}
+                  >
+                    🏬 {b.name}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -69,9 +176,7 @@ export default function Header({ session, collapsed, setCollapsed }: HeaderProps
 
         {/* User */}
         <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
+          display: 'flex', alignItems: 'center', gap: '8px',
           padding: '6px 12px',
           borderRadius: 'var(--radius-sm)',
           border: '1px solid var(--color-border)',
@@ -79,17 +184,11 @@ export default function Header({ session, collapsed, setCollapsed }: HeaderProps
           cursor: 'pointer',
         }}>
           <div style={{
-            width: '28px',
-            height: '28px',
-            borderRadius: '50%',
+            width: '28px', height: '28px', borderRadius: '50%',
             backgroundColor: 'var(--color-primary-light)',
             border: '1px solid var(--color-primary-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '12px',
-            fontWeight: '700',
-            color: 'var(--color-primary)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '12px', fontWeight: '700', color: 'var(--color-primary)',
           }}>
             {session?.user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </div>
