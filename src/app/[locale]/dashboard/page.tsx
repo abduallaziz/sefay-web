@@ -138,31 +138,6 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Branch Filter */}
-      {branches.length > 1 && (
-        <div style={{
-          backgroundColor: 'var(--color-bg-secondary)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '12px 16px', marginBottom: '16px',
-          display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
-        }}>
-          <GitBranch size={16} color="var(--color-text-muted)" />
-          <button
-            className={`table-filter-btn ${selectedBranch === 'all' ? 'active' : ''}`}
-            onClick={() => setSelectedBranch('all')}>
-            {locale === 'ar' ? 'كل الفروع' : 'All Branches'}
-          </button>
-          {branches.map(b => (
-            <button key={b.id}
-              className={`table-filter-btn ${selectedBranch === b.id ? 'active' : ''}`}
-              onClick={() => setSelectedBranch(b.id)}>
-              🏬 {b.name}
-            </button>
-          ))}
-        </div>
-      )}
-
       {loading ? (
         <div style={{ padding: '60px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
           {locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}

@@ -133,9 +133,9 @@ export default function DateRangePicker({ from, to, onChange }: Props) {
   return (
     <div className="drp-wrapper" ref={ref}>
       <button className="drp-trigger" onClick={() => setOpen(!open)}>
-        <Calendar size={14} />
-        {label}
-      </button>
+      <Calendar size={14} />
+      <span>{from === to ? from : `${from} — ${to}`}</span>
+    </button>
 
       {open && (
         <div style={{
