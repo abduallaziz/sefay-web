@@ -170,6 +170,7 @@
     "roles": {
       "owner": "Owner",
       "manager": "Manager",
+      "sync": "Sync",
       "cashier": "Cashier",
       "worker": "Worker"
     }

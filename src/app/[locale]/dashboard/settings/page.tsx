@@ -5,7 +5,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 import { Tenant } from '@/types'
-import { Save, Printer, Star, Upload, AlertTriangle } from 'lucide-react'
+import { Save, Upload, AlertTriangle } from 'lucide-react'
 import '@/styles/modals.css'
 import '@/styles/forms.css'
 
@@ -13,39 +13,35 @@ export default function SettingsPage() {
   const t = useTranslations('settings')
   const locale = useLocale()
 
-  const [tenant,  setTenant]  = useState<Tenant | null>(null)
+  const [tenant, setTenant] = useState<Tenant | null>(null)
   const [loading, setLoading] = useState(true)
-  const [saving,  setSaving]  = useState(false)
-  const [toast,   setToast]   = useState('')
-  const [tab,     setTab]     = useState<'company' | 'tax' | 'loyalty' | 'printer' | 'reset'>('company')
+  const [saving, setSaving] = useState(false)
+  const [toast, setToast] = useState('')
+  const [tab, setTab] = useState<'company' | 'tax' | 'loyalty' | 'printer' | 'reset'>('company')
   const [showResetModal, setShowResetModal] = useState(false)
-  const [resetConfirm,   setResetConfirm]   = useState('')
-  const [resetting,      setResetting]      = useState(false)
-  const [newAdminPass,   setNewAdminPass]   = useState('')
+  const [resetConfirm, setResetConfirm] = useState('')
+  const [resetting, setResetting] = useState(false)
+  const [newAdminPass, setNewAdminPass] = useState('')
 
-  // Company
-  const [name,      setName]      = useState('')
-  const [phone,     setPhone]     = useState('')
-  const [city,      setCity]      = useState('')
-  const [website,   setWebsite]   = useState('')
-  const [logoUrl,   setLogoUrl]   = useState('')
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [city, setCity] = useState('')
+  const [website, setWebsite] = useState('')
+  const [logoUrl, setLogoUrl] = useState('')
   const [uploading, setUploading] = useState(false)
 
-  // Tax
-  const [taxRate,   setTaxRate]   = useState('15')
+  const [taxRate, setTaxRate] = useState('15')
   const [taxNumber, setTaxNumber] = useState('')
 
-  // Loyalty
-  const [loyaltyEnabled,      setLoyaltyEnabled]      = useState(false)
+  const [loyaltyEnabled, setLoyaltyEnabled] = useState(false)
   const [loyaltyPointsPerSar, setLoyaltyPointsPerSar] = useState('1')
-  const [loyaltyMinRedeem,    setLoyaltyMinRedeem]    = useState('100')
-  const [loyaltyRedeemValue,  setLoyaltyRedeemValue]  = useState('1')
+  const [loyaltyMinRedeem, setLoyaltyMinRedeem] = useState('100')
+  const [loyaltyRedeemValue, setLoyaltyRedeemValue] = useState('1')
 
-  // Printer
-  const [autoPrint,    setAutoPrint]    = useState(false)
-  const [printerType,  setPrinterType]  = useState('sunmi')
+  const [autoPrint, setAutoPrint] = useState(false)
+  const [printerType, setPrinterType] = useState('sunmi')
   const [printerWidth, setPrinterWidth] = useState('80')
-  const [printFooter,  setPrintFooter]  = useState('')
+  const [printFooter, setPrintFooter] = useState('')
 
   useEffect(() => { loadTenant() }, [])
 
@@ -59,6 +55,7 @@ export default function SettingsPage() {
         .select('*')
         .eq('id', session.tenant_id)
         .single()
+
       if (data) {
         setTenant(data)
         setName(data.name || '')
@@ -103,10 +100,13 @@ export default function SettingsPage() {
     try {
       const session = getSession()
       if (!session) return
-      await supabase
+      const { error } = await supabase
         .from('tenants')
         .update({
-          name, phone, city, website,
+          name,
+          phone,
+          city,
+          website,
           logo_url: logoUrl || null,
           tax_rate: taxRate === '' ? 0 : Number(taxRate),
           tax_number: taxNumber,
@@ -122,8 +122,11 @@ export default function SettingsPage() {
           },
         })
         .eq('id', session.tenant_id)
+
+      if (error) throw error
       showToast(locale === 'ar' ? '✅ تم حفظ الإعدادات' : '✅ Settings saved')
     } catch (e) {
+      console.error(e)
       showToast(locale === 'ar' ? '❌ حدث خطأ' : '❌ Error occurred')
     } finally { setSaving(false) }
   }
@@ -137,10 +140,19 @@ export default function SettingsPage() {
       if (!session) return
       const tid = session.tenant_id
 
-      // حذف كل البيانات
-      await supabase.from('order_items').delete().eq('order_id', (
-        await supabase.from('orders').select('id').eq('tenant_id', tid)
-      ).data?.map((o: any) => o.id) as any)
+      // جلب IDs الطلبات أولاً
+      const { data: ordersData } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('tenant_id', tid)
+
+      const orderIds = (ordersData || []).map((o: any) => o.id)
+
+      // حذف order_items بـ .in() مو .eq()
+      if (orderIds.length > 0) {
+        await supabase.from('order_items').delete().in('order_id', orderIds)
+      }
+
       await supabase.from('orders').delete().eq('tenant_id', tid)
       await supabase.from('expenses').delete().eq('tenant_id', tid)
       await supabase.from('queue').delete().eq('tenant_id', tid)
@@ -149,7 +161,6 @@ export default function SettingsPage() {
       await supabase.from('vehicles').delete().eq('tenant_id', tid)
       await supabase.from('customers').delete().eq('tenant_id', tid)
 
-      // تحديث كلمة مرور الادمن
       await supabase
         .from('users')
         .update({ password: newAdminPass.trim() })
@@ -172,11 +183,11 @@ export default function SettingsPage() {
   }
 
   const TABS = [
-    { id: 'company', labelAr: '🏢 الشركة',    labelEn: '🏢 Company' },
-    { id: 'tax',     labelAr: '💰 الضريبة',   labelEn: '💰 Tax' },
-    { id: 'loyalty', labelAr: '⭐ الولاء',    labelEn: '⭐ Loyalty' },
-    { id: 'printer', labelAr: '🖨️ الطابعة',  labelEn: '🖨️ Printer' },
-    { id: 'reset',   labelAr: '🔄 إعادة تعيين', labelEn: '🔄 Reset' },
+    { id: 'company',  labelAr: '🏢 الشركة',          labelEn: '🏢 Company' },
+    { id: 'tax',      labelAr: '💰 الضريبة',          labelEn: '💰 Tax' },
+    { id: 'loyalty',  labelAr: '⭐ الولاء',           labelEn: '⭐ Loyalty' },
+    { id: 'printer',  labelAr: '🖨️ الطابعة',         labelEn: '🖨️ Printer' },
+    { id: 'reset',    labelAr: '🔄 إعادة تعيين',      labelEn: '🔄 Reset' },
   ]
 
   if (loading) return (
@@ -211,7 +222,6 @@ export default function SettingsPage() {
         )}
       </div>
 
-      {/* Tabs */}
       <div className="table-filters" style={{ marginBottom: '20px' }}>
         {TABS.map(tb => (
           <button key={tb.id}
@@ -233,12 +243,14 @@ export default function SettingsPage() {
             {locale === 'ar' ? '🏢 معلومات الشركة' : '🏢 Company Info'}
           </h3>
 
-          {/* Logo */}
           <div className="form-group">
             <label className="form-label">{locale === 'ar' ? 'شعار الشركة' : 'Company Logo'}</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               {logoUrl ? (
-                <img src={logoUrl} alt="logo" style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--color-border)' }} />
+                <img src={logoUrl} alt="logo" style={{
+                  width: '80px', height: '80px', borderRadius: '12px',
+                  objectFit: 'cover', border: '1px solid var(--color-border)',
+                }} />
               ) : (
                 <div style={{
                   width: '80px', height: '80px', borderRadius: '12px',
@@ -251,8 +263,11 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
                   <Upload size={13} />
-                  {uploading ? (locale === 'ar' ? 'جاري الرفع...' : 'Uploading...') : (locale === 'ar' ? 'رفع شعار' : 'Upload logo')}
-                  <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading}
+                  {uploading
+                    ? (locale === 'ar' ? 'جاري الرفع...' : 'Uploading...')
+                    : (locale === 'ar' ? 'رفع شعار' : 'Upload logo')}
+                  <input type="file" accept="image/*" style={{ display: 'none' }}
+                    disabled={uploading}
                     onChange={e => e.target.files?.[0] && uploadLogo(e.target.files[0])} />
                 </label>
                 {logoUrl && (
@@ -267,21 +282,26 @@ export default function SettingsPage() {
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">{t('shopName')} <span>*</span></label>
-              <input id="s-name" name="s-name" className="form-input" value={name} onChange={e => setName(e.target.value)} />
+              <input id="s-name" name="s-name" className="form-input"
+                value={name} onChange={e => setName(e.target.value)} />
             </div>
             <div className="form-group">
               <label className="form-label">{t('phone')}</label>
-              <input id="s-phone" name="s-phone" className="form-input" value={phone} onChange={e => setPhone(e.target.value)} placeholder="05XXXXXXXX" />
+              <input id="s-phone" name="s-phone" className="form-input"
+                value={phone} onChange={e => setPhone(e.target.value)} placeholder="05XXXXXXXX" />
             </div>
           </div>
+
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">{t('city')}</label>
-              <input id="s-city" name="s-city" className="form-input" value={city} onChange={e => setCity(e.target.value)} />
+              <input id="s-city" name="s-city" className="form-input"
+                value={city} onChange={e => setCity(e.target.value)} />
             </div>
             <div className="form-group">
               <label className="form-label">{t('website')}</label>
-              <input id="s-web" name="s-web" className="form-input" value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://" />
+              <input id="s-web" name="s-web" className="form-input"
+                value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://" />
             </div>
           </div>
 
@@ -329,8 +349,9 @@ export default function SettingsPage() {
           </div>
           <div className="form-group">
             <label className="form-label">{t('taxNumber')}</label>
-            <input id="s-taxnum" name="s-taxnum" className="form-input" value={taxNumber}
-              onChange={e => setTaxNumber(e.target.value)} placeholder="3XXXXXXXXXXXXXXXX" />
+            <input id="s-taxnum" name="s-taxnum" className="form-input"
+              value={taxNumber} onChange={e => setTaxNumber(e.target.value)}
+              placeholder="3XXXXXXXXXXXXXXXX" />
           </div>
         </div>
       )}
@@ -345,14 +366,16 @@ export default function SettingsPage() {
           <h3 className="form-section-title">
             ⭐ {locale === 'ar' ? 'نقاط الولاء' : 'Loyalty Points'}
           </h3>
-
-          <div className="form-switch" onClick={() => setLoyaltyEnabled(!loyaltyEnabled)} style={{ marginBottom: '16px' }}>
+          <div className="form-switch" onClick={() => setLoyaltyEnabled(!loyaltyEnabled)}
+            style={{ marginBottom: '16px' }}>
             <div>
               <div className="form-switch-label">
                 {locale === 'ar' ? 'تفعيل نقاط الولاء' : 'Enable Loyalty Points'}
               </div>
               <div className="form-switch-desc">
-                {locale === 'ar' ? 'العملاء يكسبون نقاط مع كل عملية شراء' : 'Customers earn points with every purchase'}
+                {locale === 'ar'
+                  ? 'العملاء يكسبون نقاط مع كل عملية شراء'
+                  : 'Customers earn points with every purchase'}
               </div>
             </div>
             <div style={{
@@ -377,9 +400,12 @@ export default function SettingsPage() {
                     {locale === 'ar' ? 'نقاط لكل ريال' : 'Points per SAR'}
                   </label>
                   <input id="s-lpp" name="s-lpp" className="form-input" type="number" min="0"
-                    value={loyaltyPointsPerSar} onChange={e => setLoyaltyPointsPerSar(e.target.value)} />
+                    value={loyaltyPointsPerSar}
+                    onChange={e => setLoyaltyPointsPerSar(e.target.value)} />
                   <span className="form-hint">
-                    {locale === 'ar' ? 'عدد النقاط لكل ريال ينفقه العميل' : 'Points earned per SAR spent'}
+                    {locale === 'ar'
+                      ? 'عدد النقاط لكل ريال ينفقه العميل'
+                      : 'Points earned per SAR spent'}
                   </span>
                 </div>
                 <div className="form-group">
@@ -387,7 +413,8 @@ export default function SettingsPage() {
                     {locale === 'ar' ? 'الحد الأدنى للاسترداد (نقطة)' : 'Min redeem points'}
                   </label>
                   <input id="s-lmr" name="s-lmr" className="form-input" type="number" min="0"
-                    value={loyaltyMinRedeem} onChange={e => setLoyaltyMinRedeem(e.target.value)} />
+                    value={loyaltyMinRedeem}
+                    onChange={e => setLoyaltyMinRedeem(e.target.value)} />
                 </div>
               </div>
               <div className="form-group">
@@ -395,10 +422,13 @@ export default function SettingsPage() {
                   {locale === 'ar' ? 'قيمة كل نقطة (ريال)' : 'Value per point (SAR)'}
                 </label>
                 <input id="s-lrv" name="s-lrv" className="form-input" type="number" min="0" step="0.01"
-                  value={loyaltyRedeemValue} onChange={e => setLoyaltyRedeemValue(e.target.value)}
+                  value={loyaltyRedeemValue}
+                  onChange={e => setLoyaltyRedeemValue(e.target.value)}
                   style={{ width: '150px' }} />
                 <span className="form-hint">
-                  {locale === 'ar' ? 'كل نقطة تساوي كم ريال عند الاسترداد' : 'SAR value of each point when redeemed'}
+                  {locale === 'ar'
+                    ? 'كل نقطة تساوي كم ريال عند الاسترداد'
+                    : 'SAR value of each point when redeemed'}
                 </span>
               </div>
             </>
@@ -416,14 +446,16 @@ export default function SettingsPage() {
           <h3 className="form-section-title">
             🖨️ {locale === 'ar' ? 'إعدادات الطابعة' : 'Printer Settings'}
           </h3>
-
-          <div className="form-switch" onClick={() => setAutoPrint(!autoPrint)} style={{ marginBottom: '16px' }}>
+          <div className="form-switch" onClick={() => setAutoPrint(!autoPrint)}
+            style={{ marginBottom: '16px' }}>
             <div>
               <div className="form-switch-label">
                 {locale === 'ar' ? 'طباعة تلقائية عند الدفع' : 'Auto print on payment'}
               </div>
               <div className="form-switch-desc">
-                {locale === 'ar' ? 'يطبع الفاتورة تلقائياً بعد كل عملية دفع' : 'Automatically prints receipt after each payment'}
+                {locale === 'ar'
+                  ? 'يطبع الفاتورة تلقائياً بعد كل عملية دفع'
+                  : 'Automatically prints receipt after each payment'}
               </div>
             </div>
             <div style={{
@@ -462,7 +494,9 @@ export default function SettingsPage() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">{locale === 'ar' ? 'نص أسفل الفاتورة' : 'Receipt footer text'}</label>
+            <label className="form-label">
+              {locale === 'ar' ? 'نص أسفل الفاتورة' : 'Receipt footer text'}
+            </label>
             <textarea id="s-pf" name="s-pf" className="form-input form-textarea"
               value={printFooter} onChange={e => setPrintFooter(e.target.value)}
               placeholder={locale === 'ar' ? 'شكراً لزيارتكم...' : 'Thank you for your visit...'} />
@@ -488,15 +522,23 @@ export default function SettingsPage() {
             marginBottom: '20px',
           }}>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-              <AlertTriangle size={20} color="var(--color-danger)" style={{ flexShrink: 0, marginTop: '2px' }} />
+              <AlertTriangle size={20} color="var(--color-danger)"
+                style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <div style={{ fontWeight: '700', color: 'var(--color-danger)', marginBottom: '6px', fontSize: '14px' }}>
-                  {locale === 'ar' ? 'تحذير: هذه العملية لا يمكن التراجع عنها!' : 'Warning: This action cannot be undone!'}
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', lineHeight: '1.7' }}>
+                <div style={{
+                  fontWeight: '700', color: 'var(--color-danger)',
+                  marginBottom: '6px', fontSize: '14px',
+                }}>
                   {locale === 'ar'
-                    ? 'سيتم حذف جميع البيانات التالية نهائياً:\n• جميع الطلبات والفواتير\n• جميع العملاء والمركبات\n• جميع المصروفات\n• سجلات المزامنة والتدقيق\n• سجلات الوردية\n\nسيتم الاحتفاظ بـ: الخدمات، الموظفين، الفروع، الإعدادات'
-                    : 'The following data will be permanently deleted:\n• All orders and invoices\n• All customers and vehicles\n• All expenses\n• Sync and audit logs\n• Shift records\n\nWill be kept: Services, employees, branches, settings'}
+                    ? 'تحذير: هذه العملية لا يمكن التراجع عنها!'
+                    : 'Warning: This action cannot be undone!'}
+                </div>
+                <div style={{
+                  fontSize: '12px', color: 'var(--color-text-secondary)', lineHeight: '1.7',
+                }}>
+                  {locale === 'ar'
+                    ? 'سيتم حذف: الطلبات، العملاء، المركبات، المصروفات، سجلات الوردية\nيُحتفظ بـ: الخدمات، الموظفين، الفروع، الإعدادات'
+                    : 'Will delete: Orders, customers, vehicles, expenses, shift records\nWill keep: Services, employees, branches, settings'}
                 </div>
               </div>
             </div>
@@ -504,14 +546,16 @@ export default function SettingsPage() {
 
           <div className="form-group">
             <label className="form-label">
-              {locale === 'ar' ? 'كلمة مرور الادمن الجديدة (بعد الإعادة)' : 'New admin password (after reset)'}
+              {locale === 'ar' ? 'كلمة مرور الادمن الجديدة' : 'New admin password'}
               <span>*</span>
             </label>
             <input id="s-newpass" name="s-newpass" type="password" className="form-input"
               value={newAdminPass} onChange={e => setNewAdminPass(e.target.value)}
               placeholder="••••••••" />
             <span className="form-hint">
-              {locale === 'ar' ? 'ستحتاج هذه الكلمة للدخول بعد إعادة التعيين' : 'You will need this password to login after reset'}
+              {locale === 'ar'
+                ? 'ستحتاج هذه الكلمة للدخول بعد إعادة التعيين'
+                : 'You will need this password to login after reset'}
             </span>
           </div>
 

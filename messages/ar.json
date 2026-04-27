@@ -46,7 +46,9 @@
     "employees": "الموظفين",
     "expenses": "المصاريف",
     "coupons": "الكوبونات",
+    "sync": "المزامنة",
     "settings": "الإعدادات"
+    
   },
   "dashboard": {
     "title": "لوحة التحكم",

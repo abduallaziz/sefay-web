@@ -9,7 +9,7 @@ import {
   LayoutDashboard, ShoppingCart, Users, Wrench,
   BarChart3, GitBranch, UserCog, Receipt,
   Tag, Settings, LogOut, ChevronLeft, ChevronRight,
-  DollarSign,
+  DollarSign, RefreshCw,
 } from 'lucide-react'
 import '@/styles/sidebar.css'
 
@@ -35,6 +35,7 @@ export default function Sidebar({ collapsed, setCollapsed, session }: SidebarPro
     { href: '/dashboard/employees', icon: UserCog,         label: t('employees') },
     { href: '/dashboard/expenses',  icon: DollarSign,      label: t('expenses') },
     { href: '/dashboard/coupons',   icon: Tag,             label: t('coupons') },
+    { href: '/dashboard/sync',      icon: RefreshCw,       label: t('sync') },
     { href: '/dashboard/settings',  icon: Settings,        label: t('settings') },
   ]
 
