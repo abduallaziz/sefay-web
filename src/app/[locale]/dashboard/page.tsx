@@ -7,9 +7,17 @@ import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 import { formatCurrency, formatNumber, getTodayDate } from '@/lib/utils'
 import { TrendingUp, ShoppingCart, Banknote, Percent, CreditCard, RotateCcw } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import dynamic from 'next/dynamic'
 import DateRangePicker from '@/components/ui/DateRangePicker'
 import '@/styles/forms.css'
+
+const BarChart           = dynamic(() => import('recharts').then(m => ({ default: m.BarChart })),           { ssr: false })
+const Bar                = dynamic(() => import('recharts').then(m => ({ default: m.Bar })),                { ssr: false })
+const XAxis              = dynamic(() => import('recharts').then(m => ({ default: m.XAxis })),              { ssr: false })
+const YAxis              = dynamic(() => import('recharts').then(m => ({ default: m.YAxis })),              { ssr: false })
+const CartesianGrid      = dynamic(() => import('recharts').then(m => ({ default: m.CartesianGrid })),      { ssr: false })
+const Tooltip            = dynamic(() => import('recharts').then(m => ({ default: m.Tooltip })),            { ssr: false })
+const ResponsiveContainer = dynamic(() => import('recharts').then(m => ({ default: m.ResponsiveContainer })), { ssr: false })
 
 export default function DashboardPage() {
   const locale = useLocale()
@@ -66,13 +74,13 @@ export default function DashboardPage() {
               o.branch_id === b.id && ['completed','partially_refunded'].includes(o.status)
             )
             return {
-              id:              b.id,
-              name:            b.name,
-              total_orders:    bOrders.length,
-              total_sales:     bOrders.reduce((s: number, o: any) => s + Number(o.total) - (Number(o.refunded_amount) || 0), 0),
-              total_refunded:  bOrders.reduce((s: number, o: any) => s + (Number(o.refunded_amount) || 0), 0),
-              cash:            bOrders.reduce((s: number, o: any) => s + (Number(o.cash_amount) || 0), 0),
-              card:            bOrders.reduce((s: number, o: any) => s + (Number(o.card_amount) || 0), 0),
+              id:             b.id,
+              name:           b.name,
+              total_orders:   bOrders.length,
+              total_sales:    bOrders.reduce((s: number, o: any) => s + Number(o.total) - (Number(o.refunded_amount) || 0), 0),
+              total_refunded: bOrders.reduce((s: number, o: any) => s + (Number(o.refunded_amount) || 0), 0),
+              cash:           bOrders.reduce((s: number, o: any) => s + (Number(o.cash_amount) || 0), 0),
+              card:           bOrders.reduce((s: number, o: any) => s + (Number(o.card_amount) || 0), 0),
             }
           })
           setBranchSummaries(summaries)
@@ -102,12 +110,12 @@ export default function DashboardPage() {
   const totalRefunded = displaySummary?.total_refunded || summary?.total_refunded || 0
 
   const stats = [
-    { label: locale === 'ar' ? 'صافي المبيعات'  : 'Net Sales',    value: formatCurrency(displaySummary?.total_sales    || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: TrendingUp,  color: 'var(--color-primary)',  bg: 'var(--color-primary-light)',  border: 'var(--color-primary-border)' },
-    { label: locale === 'ar' ? 'عدد الطلبات'    : 'Total Orders', value: formatNumber(displaySummary?.total_orders     || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: ShoppingCart, color: 'var(--color-success)',  bg: 'var(--color-success-light)',  border: 'var(--color-success-border)' },
-    { label: locale === 'ar' ? 'نقد'            : 'Cash',         value: formatCurrency(displaySummary?.cash           || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: Banknote,    color: 'var(--color-warning)',  bg: 'var(--color-warning-light)',  border: 'var(--color-warning-border)' },
-    { label: locale === 'ar' ? 'بطاقة'          : 'Card',         value: formatCurrency(displaySummary?.card           || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: CreditCard,  color: 'var(--color-purple)',   bg: 'var(--color-purple-light)',   border: 'var(--color-purple-border)' },
-    { label: locale === 'ar' ? 'ضريبة VAT'      : 'VAT Tax',      value: formatCurrency(displaySummary?.total_tax      || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: Percent,     color: 'var(--color-danger)',   bg: 'var(--color-danger-light)',   border: 'var(--color-danger-border)' },
-    { label: locale === 'ar' ? 'مسترجعات'       : 'Refunds',      value: formatCurrency(totalRefunded,                      locale === 'ar' ? 'ar-SA' : 'en-US'), icon: RotateCcw,   color: 'var(--color-danger)',   bg: 'var(--color-danger-light)',   border: 'var(--color-danger-border)' },
+    { label: locale === 'ar' ? 'صافي المبيعات' : 'Net Sales',    value: formatCurrency(displaySummary?.total_sales    || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: TrendingUp,  color: 'var(--color-primary)',  bg: 'var(--color-primary-light)',  border: 'var(--color-primary-border)' },
+    { label: locale === 'ar' ? 'عدد الطلبات'   : 'Total Orders', value: formatNumber(displaySummary?.total_orders     || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: ShoppingCart, color: 'var(--color-success)',  bg: 'var(--color-success-light)',  border: 'var(--color-success-border)' },
+    { label: locale === 'ar' ? 'نقد'           : 'Cash',         value: formatCurrency(displaySummary?.cash           || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: Banknote,    color: 'var(--color-warning)',  bg: 'var(--color-warning-light)',  border: 'var(--color-warning-border)' },
+    { label: locale === 'ar' ? 'بطاقة'         : 'Card',         value: formatCurrency(displaySummary?.card           || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: CreditCard,  color: 'var(--color-purple)',   bg: 'var(--color-purple-light)',   border: 'var(--color-purple-border)' },
+    { label: locale === 'ar' ? 'ضريبة VAT'     : 'VAT Tax',      value: formatCurrency(displaySummary?.total_tax      || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: Percent,     color: 'var(--color-danger)',   bg: 'var(--color-danger-light)',   border: 'var(--color-danger-border)' },
+    { label: locale === 'ar' ? 'مسترجعات'      : 'Refunds',      value: formatCurrency(totalRefunded,                      locale === 'ar' ? 'ar-SA' : 'en-US'), icon: RotateCcw,   color: 'var(--color-danger)',   bg: 'var(--color-danger-light)',   border: 'var(--color-danger-border)' },
   ]
 
   const profit = (displaySummary?.total_sales || 0) - (displaySummary?.total_tax || 0) - (displaySummary?.total_discount || 0)
@@ -132,17 +140,16 @@ export default function DashboardPage() {
 
   const statusLabel = (status: string) => {
     const map: Record<string, string> = {
-      completed:          locale === 'ar' ? 'مكتمل'        : 'Completed',
-      refunded:           locale === 'ar' ? 'مسترجع'       : 'Refunded',
-      partially_refunded: locale === 'ar' ? 'مسترجع جزئي'  : 'Partial Refund',
-      cancelled:          locale === 'ar' ? 'ملغي'         : 'Cancelled',
+      completed:          locale === 'ar' ? 'مكتمل'       : 'Completed',
+      refunded:           locale === 'ar' ? 'مسترجع'      : 'Refunded',
+      partially_refunded: locale === 'ar' ? 'مسترجع جزئي' : 'Partial Refund',
+      cancelled:          locale === 'ar' ? 'ملغي'        : 'Cancelled',
     }
     return map[status] || status
   }
 
   return (
     <div>
-      {/* Header */}
       <div className="dashboard-page-header">
         <div>
           <h2 className="dashboard-page-title">{locale === 'ar' ? 'لوحة التحكم' : 'Dashboard'}</h2>
@@ -150,7 +157,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Date Picker */}
       <div style={{ marginBottom: '16px' }}>
         <DateRangePicker
           from={fromDate}
@@ -169,7 +175,6 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          {/* Stats */}
           <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '16px' }}>
             {stats.map((stat, i) => (
               <div key={i} className="stat-card">
@@ -184,7 +189,6 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Profit */}
           <div style={{
             backgroundColor: 'var(--color-bg-secondary)',
             border: '2px solid var(--color-success-border)',
@@ -213,7 +217,6 @@ export default function DashboardPage() {
             <div style={{ fontSize: '48px' }}>📈</div>
           </div>
 
-          {/* Branch Summaries */}
           {selectedBranch === 'all' && branchSummaries.length > 1 && (
             <div style={{ marginBottom: '16px' }}>
               <h3 style={{ fontSize: '14px', fontWeight: '700', color: 'var(--color-text-primary)', marginBottom: '12px' }}>
@@ -227,9 +230,7 @@ export default function DashboardPage() {
                     borderRadius: 'var(--radius-lg)', padding: '16px',
                     cursor: 'pointer', transition: 'var(--transition)',
                   }} onClick={() => setSelectedBranch(b.id)}>
-                    <div style={{ fontWeight: '700', color: 'var(--color-text-primary)', marginBottom: '10px', fontSize: '14px' }}>
-                      🏬 {b.name}
-                    </div>
+                    <div style={{ fontWeight: '700', color: 'var(--color-text-primary)', marginBottom: '10px', fontSize: '14px' }}>🏬 {b.name}</div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                       <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{locale === 'ar' ? 'الطلبات' : 'Orders'}</span>
                       <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-success)' }}>{b.total_orders}</span>
@@ -260,7 +261,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Charts */}
           <div className="charts-grid" style={{ marginBottom: '16px' }}>
             <div className="chart-card">
               <div className="chart-card-header">
@@ -270,13 +270,13 @@ export default function DashboardPage() {
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                    <XAxis dataKey="date" tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} tickFormatter={d => d.slice(5)} />
+                    <XAxis dataKey="date" tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} tickFormatter={(d: string) => d.slice(5)} />
                     <YAxis tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} />
                     <Tooltip
                       contentStyle={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)' }}
                       formatter={(v: any) => [formatCurrency(v, locale === 'ar' ? 'ar-SA' : 'en-US'), locale === 'ar' ? 'الصافي' : 'Net']}
                     />
-                    <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={60} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -292,11 +292,11 @@ export default function DashboardPage() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {[
-                  { label: locale === 'ar' ? 'نقد'        : 'Cash',      value: displaySummary?.cash           || 0, color: 'var(--color-success)' },
-                  { label: locale === 'ar' ? 'بطاقة'      : 'Card',      value: displaySummary?.card           || 0, color: 'var(--color-primary)' },
-                  { label: locale === 'ar' ? 'ضريبة'      : 'Tax',       value: displaySummary?.total_tax      || 0, color: 'var(--color-purple)' },
-                  { label: locale === 'ar' ? 'خصومات'     : 'Discounts', value: displaySummary?.total_discount || 0, color: 'var(--color-warning)' },
-                  { label: locale === 'ar' ? 'مسترجعات'   : 'Refunds',   value: totalRefunded,                      color: 'var(--color-danger)' },
+                  { label: locale === 'ar' ? 'نقد'      : 'Cash',      value: displaySummary?.cash           || 0, color: 'var(--color-success)' },
+                  { label: locale === 'ar' ? 'بطاقة'    : 'Card',      value: displaySummary?.card           || 0, color: 'var(--color-primary)' },
+                  { label: locale === 'ar' ? 'ضريبة'    : 'Tax',       value: displaySummary?.total_tax      || 0, color: 'var(--color-purple)' },
+                  { label: locale === 'ar' ? 'خصومات'   : 'Discounts', value: displaySummary?.total_discount || 0, color: 'var(--color-warning)' },
+                  { label: locale === 'ar' ? 'مسترجعات' : 'Refunds',   value: totalRefunded,                      color: 'var(--color-danger)' },
                 ].map((item, i) => (
                   <div key={i} style={{
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -314,7 +314,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Orders Table */}
           <div className="table-container">
             <div className="table-header">
               <h3 className="table-title">
@@ -350,9 +349,7 @@ export default function DashboardPage() {
                         </div>
                       )}
                     </td>
-                    <td>
-                      <span className="badge badge-primary">{paymentLabel(order.payment_method, order)}</span>
-                    </td>
+                    <td><span className="badge badge-primary">{paymentLabel(order.payment_method, order)}</span></td>
                     <td>
                       <span className={`badge ${
                         order.status === 'completed'          ? 'badge-success' :
