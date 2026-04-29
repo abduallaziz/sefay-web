@@ -67,10 +67,10 @@ export default function EmployeesPage() {
     setShowModal(true)
   }
 
-  function openEdit(emp: User) {
+ function openEdit(emp: User) {
     setSelected(emp)
     setName(emp.name || '')
-    setUsername((emp as any).username || '')
+    setUsername((emp as any).email || '')
     setPassword('')
     setRole(emp.role)
     setBranchId(emp.branch_id || '')
@@ -86,18 +86,23 @@ export default function EmployeesPage() {
       if (!session) return
 
       if (selected) {
-        const body: any = { name: name.trim(), username: username.trim(), role, branch_id: branchId || null }
-        if (password.trim()) body.password = password.trim()
+        const body: any = { 
+          name: name.trim(), 
+          email: username.trim(), 
+          role, 
+          branch_id: branchId || null 
+        }
+        if (password.trim()) body.password_hash = password.trim()
         await supabase.from('users').update(body).eq('id', selected.id)
       } else {
         await supabase.from('users').insert({
           tenant_id: session.tenant_id,
           name: name.trim(),
-          username: username.trim(),
-          password: password.trim(),
+          email: username.trim(),
+          password_hash: password.trim(),
           role,
           branch_id: branchId || null,
-          active: true,
+          is_active: true,
         })
       }
       setShowModal(false)
@@ -108,7 +113,7 @@ export default function EmployeesPage() {
 
   async function toggleEmployee(emp: User) {
     try {
-      await supabase.from('users').update({ active: !emp.active }).eq('id', emp.id)
+      await supabase.from('users').update({ is_active: !(emp as any).is_active }).eq('id', emp.id)
       loadData()
     } catch (e) { console.error(e) }
   }
@@ -288,17 +293,17 @@ export default function EmployeesPage() {
                     {branches.find(b => b.id === emp.branch_id)?.name || '—'}
                   </td>
                   <td>
-                    <span className={`badge ${emp.active ? 'badge-success' : 'badge-danger'}`}>
-                      {emp.active ? (locale === 'ar' ? 'مفعّل' : 'Active') : (locale === 'ar' ? 'معطّل' : 'Inactive')}
+                    <span className={`badge ${(emp as any).is_active ? 'badge-success' : 'badge-danger'}`}>
+                      {(emp as any).is_active ? (locale === 'ar' ? 'مفعّل' : 'Active') : (locale === 'ar' ? 'معطّل' : 'Inactive')}
                     </span>
                   </td>
                   <td>
                     <div className="btn-group">
                       <button className="action-btn" onClick={() => openEdit(emp)}
                         title={locale === 'ar' ? 'تعديل' : 'Edit'}>✏️</button>
-                      <button className={`action-btn ${emp.active ? '' : 'success'}`}
+                      <button className={`action-btn ${(emp as any).is_active ? '' : 'success'}`}
                         onClick={() => toggleEmployee(emp)}>
-                        {emp.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                        {(emp as any).is_active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
                       </button>
                     </div>
                   </td>
