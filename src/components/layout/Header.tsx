@@ -92,12 +92,12 @@ export default function Header({ session, collapsed, setCollapsed, mobileOpen, s
         <button
           className="btn btn-ghost btn-icon"
           onClick={() => {
-            if (window.innerWidth <= 768) {
-              setMobileOpen?.(!mobileOpen)
-            } else {
-              setCollapsed(!collapsed)
-            }
-          }}
+            if (setMobileOpen && window.innerWidth <= 768) {
+            setMobileOpen(!mobileOpen)
+          } else {
+           setCollapsed(!collapsed)
+         }
+        }}
         >
           {mobileOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
