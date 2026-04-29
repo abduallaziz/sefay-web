@@ -5,7 +5,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 import { User } from '@/types'
-import { Search, RefreshCw, Plus, X, Save, ToggleLeft, ToggleRight } from 'lucide-react'
+import { Search, RefreshCw, Plus, X, Save, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
 import '@/styles/modals.css'
 import '@/styles/forms.css'
 
@@ -60,6 +60,13 @@ export default function EmployeesPage() {
     finally { setLoading(false) }
   }
 
+  async function hashPassword(pass: string): Promise<string> {
+    const msgBuffer = new TextEncoder().encode(pass)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
+  }
+
   function openNew() {
     setSelected(null)
     setName(''); setEmail(''); setPassword('')
@@ -92,14 +99,14 @@ export default function EmployeesPage() {
           role,
           branch_id: branchId || null,
         }
-        if (password.trim()) body.password_hash = password.trim()
+        if (password.trim()) body.password_hash = await hashPassword(password.trim())
         await supabase.from('users').update(body).eq('id', selected.id)
       } else {
         await supabase.from('users').insert({
           tenant_id: session.tenant_id,
           name: name.trim(),
           email: email.trim(),
-          password_hash: password.trim(),
+          password_hash: await hashPassword(password.trim()),
           role,
           branch_id: branchId || null,
           is_active: true,
@@ -114,6 +121,14 @@ export default function EmployeesPage() {
   async function toggleEmployee(emp: User) {
     try {
       await supabase.from('users').update({ is_active: !(emp as any).is_active }).eq('id', emp.id)
+      loadData()
+    } catch (e) { console.error(e) }
+  }
+
+  async function deleteEmployee(emp: User) {
+    if (!confirm(locale === 'ar' ? `هل أنت متأكد من حذف "${emp.name}"؟` : `Delete "${emp.name}"?`)) return
+    try {
+      await supabase.from('users').delete().eq('id', emp.id)
       loadData()
     } catch (e) { console.error(e) }
   }
@@ -307,6 +322,10 @@ export default function EmployeesPage() {
                       <button className={`action-btn ${(emp as any).is_active ? '' : 'success'}`}
                         onClick={() => toggleEmployee(emp)}>
                         {(emp as any).is_active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
+                      </button>
+                      <button className="action-btn danger" onClick={() => deleteEmployee(emp)}
+                        title={locale === 'ar' ? 'حذف' : 'Delete'}>
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </td>
