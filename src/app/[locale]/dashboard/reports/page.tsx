@@ -94,7 +94,10 @@ export default function ReportsPage() {
         orders.forEach((o: any) => {
           const br = branches?.find((b: any) => b.id === o.branch_id)
           const key = o.branch_id || 'unknown'
-          if (!map[key]) map[key] = { name: br?.name || '—', total: 0, orders: 0 }
+          if (!map[key]) map[key] = { 
+  name: br?.name || (locale === 'ar' ? 'غير محدد' : 'Unassigned'), 
+  total: 0, orders: 0 
+}
           map[key].total += Number(o.total)
           map[key].orders += 1
         })
