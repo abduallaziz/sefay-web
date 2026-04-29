@@ -90,17 +90,14 @@ export default function Header({ session, collapsed, setCollapsed, mobileOpen, s
       <div className="dashboard-header-left">
         {/* Desktop: collapse sidebar | Mobile: open/close sidebar */}
         <button
-          className="btn btn-ghost btn-icon"
-          onClick={() => {
-            if (setMobileOpen && window.innerWidth <= 768) {
-            setMobileOpen(!mobileOpen)
-          } else {
-           setCollapsed(!collapsed)
-         }
-        }}
-        >
-          {mobileOpen ? <X size={18} /> : <Menu size={18} />}
-        </button>
+  className="btn btn-ghost btn-icon"
+  onClick={() => {
+    console.log('clicked', mobileOpen)
+    setMobileOpen?.(!mobileOpen)
+  }}
+>
+  {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+</button>
         <h1 className="dashboard-header-title" style={{ fontSize: 'clamp(13px, 2vw, 16px)' }}>
           {getPageTitle()}
         </h1>
