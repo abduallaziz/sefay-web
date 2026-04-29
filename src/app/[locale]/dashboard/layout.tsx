@@ -38,10 +38,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
-  useEffect(() => {
-    console.log('mobileOpen:', mobileOpen)
-  }, [mobileOpen])
-
   if (loading) {
     return (
       <div style={{
