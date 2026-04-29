@@ -26,16 +26,12 @@ export default function ExpensesPage() {
   const [title,        setTitle]        = useState('')
   const [amount,       setAmount]       = useState('')
   const [category,     setCategory]     = useState('عام')
-  const [customCat,    setCustomCat]    = useState('')
-  const [showCustom,   setShowCustom]   = useState(false)
   const [notes,        setNotes]        = useState('')
   const [date,         setDate]         = useState(getTodayDate())
   const [recurring,    setRecurring]    = useState<RecurringType>('none')
   const [recurringDay, setRecurringDay] = useState('1')
 
   const DEFAULT_CATS = ['عام','رواتب','إيجار','كهرباء','ماء','صيانة','مشتريات','تأمين','ضرائب','أخرى']
-
-  // استخرج الفئات المخصصة من المصاريف الموجودة
   const [extraCats, setExtraCats] = useState<string[]>([])
   const CATS = [...new Set([...DEFAULT_CATS, ...extraCats])]
 
@@ -59,7 +55,6 @@ export default function ExpensesPage() {
         .eq('tenant_id', session.tenant_id)
         .order('date', { ascending: false })
       setExpenses(data || [])
-      // استخرج فئات مخصصة غير موجودة في DEFAULT_CATS
       const cats = (data || [])
         .map((e: any) => e.category)
         .filter((c: string) => c && !DEFAULT_CATS.includes(c))
@@ -70,33 +65,20 @@ export default function ExpensesPage() {
 
   function openNew() {
     setTitle(''); setAmount(''); setCategory('عام')
-    setCustomCat(''); setShowCustom(false)
     setNotes(''); setDate(getTodayDate())
     setRecurring('none'); setRecurringDay('1')
     setShowModal(true)
   }
 
-  function handleCategoryChange(val: string) {
-    if (val === '__custom__') {
-      setShowCustom(true)
-      setCategory('')
-    } else {
-      setShowCustom(false)
-      setCategory(val)
+  function addNewCategory() {
+    const cat = prompt(locale === 'ar' ? 'اسم الفئة الجديدة:' : 'New category name:')
+    if (cat?.trim()) {
+      setExtraCats(prev => [...new Set([...prev, cat.trim()])])
     }
-  }
-
-  function confirmCustomCat() {
-    if (!customCat.trim()) return
-    setCategory(customCat.trim())
-    setExtraCats(prev => [...new Set([...prev, customCat.trim()])])
-    setShowCustom(false)
   }
 
   async function saveExpense() {
     if (!title.trim() || !amount) return
-    const finalCat = showCustom ? customCat.trim() : category
-    if (!finalCat) return
     setSaving(true)
     try {
       const session = getSession()
@@ -105,7 +87,7 @@ export default function ExpensesPage() {
         tenant_id: session.tenant_id,
         title: title.trim(),
         amount: Number(amount),
-        category: finalCat,
+        category,
         notes: notes || null,
         date,
         recurring_type: recurring,
@@ -151,6 +133,10 @@ export default function ExpensesPage() {
             <RefreshCw size={14} />
             {locale === 'ar' ? 'تحديث' : 'Refresh'}
           </button>
+          <button className="btn btn-secondary btn-sm" onClick={addNewCategory}>
+            <Plus size={14} />
+            {locale === 'ar' ? 'إضافة فئة' : 'Add Category'}
+          </button>
           <button className="btn btn-primary btn-sm" onClick={openNew}>
             <Plus size={14} />
             {t('addExpense')}
@@ -190,31 +176,9 @@ export default function ExpensesPage() {
                 <div className="form-group">
                   <label className="form-label">{t('category')}</label>
                   <select id="exp-cat" name="exp-cat" className="form-input form-select"
-                    value={showCustom ? '__custom__' : category}
-                    onChange={e => handleCategoryChange(e.target.value)}>
+                    value={category} onChange={e => setCategory(e.target.value)}>
                     {CATS.map(c => <option key={c} value={c}>{c}</option>)}
-                    <option value="__custom__">
-                      {locale === 'ar' ? '+ إضافة فئة جديدة' : '+ Add new category'}
-                    </option>
                   </select>
-
-                  {showCustom && (
-                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                      <input
-                        className="form-input"
-                        value={customCat}
-                        onChange={e => setCustomCat(e.target.value)}
-                        placeholder={locale === 'ar' ? 'اسم الفئة الجديدة' : 'New category name'}
-                        onKeyDown={e => e.key === 'Enter' && confirmCustomCat()}
-                      />
-                      <button className="btn btn-primary btn-sm" onClick={confirmCustomCat}>
-                        {locale === 'ar' ? 'إضافة' : 'Add'}
-                      </button>
-                      <button className="btn btn-secondary btn-sm" onClick={() => { setShowCustom(false); setCategory('عام') }}>
-                        <X size={13} />
-                      </button>
-                    </div>
-                  )}
                 </div>
                 <div className="form-group">
                   <label className="form-label">{t('date')}</label>
@@ -223,7 +187,6 @@ export default function ExpensesPage() {
                 </div>
               </div>
 
-              {/* التكرار */}
               <div className="form-group">
                 <label className="form-label">
                   <RepeatIcon size={13} style={{ display: 'inline', marginInlineEnd: '6px' }} />
