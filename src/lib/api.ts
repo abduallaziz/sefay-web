@@ -40,8 +40,8 @@ export const api = {
       axiosInstance.get(`/orders/range?from=${from}&to=${to}`),
     summaryByRange: (from: string, to: string) =>
       axiosInstance.get(`/orders/summary/range?from=${from}&to=${to}`),
-    refund: (id: string, body: { mode: 'full' | 'partial'; refund_amount?: number }) =>
-      axiosInstance.patch(`/orders/${id}/refund`, body),
+    refund: (id: string, body: { mode: 'full' | 'partial'; refund_amount?: number; items?: { service_name: string; price: number; qty: number }[] }) =>
+  axiosInstance.patch(`/orders/${id}/refund`, body),
   },
   services: {
     getAll: () => axiosInstance.get('/services/all'),
@@ -62,18 +62,15 @@ export const api = {
     update: (id: string, body: any) => axiosInstance.put(`/coupons/${id}`, body),
     toggle: (id: string, active: boolean) =>
       axiosInstance.put(`/coupons/${id}`, { active }),
-    delete: (id: string) => axiosInstance.delete(`/coupons/${id}`),
   },
   shifts: {
     current: () => axiosInstance.get('/shifts/current'),
   },
   expenses: {
-  getAll: (from?: string, to?: string) =>
-    axiosInstance.get(`/expenses${from && to ? `?from=${from}&to=${to}` : ''}`),
-  create: (body: any) => axiosInstance.post('/expenses', body),
-  update: (id: string, body: any) => axiosInstance.put(`/expenses/${id}`, body),
-  delete: (id: string) => axiosInstance.delete(`/expenses/${id}`),
-},
+    getAll: (from?: string, to?: string) =>
+      axiosInstance.get(`/expenses${from && to ? `?from=${from}&to=${to}` : ''}`),
+    create: (body: any) => axiosInstance.post('/expenses', body),
+  },
 }
 
 export default axiosInstance
