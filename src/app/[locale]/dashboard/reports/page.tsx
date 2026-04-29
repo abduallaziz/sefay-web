@@ -3,358 +3,708 @@
 import { useEffect, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { api } from '@/lib/api'
+import { supabase } from '@/lib/supabase'
+import { getSession } from '@/lib/auth'
 import { formatCurrency, formatNumber, getTodayDate } from '@/lib/utils'
-import { TrendingUp, ShoppingCart, Banknote, Percent, CreditCard, Download, Search } from 'lucide-react'
+import { TrendingUp, ShoppingCart, Banknote, Percent, CreditCard, Download, Search, X } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import DateRangePicker from '@/components/ui/DateRangePicker'
+import '@/styles/modals.css'
+import '@/styles/forms.css'
+
+type TabType = 'sales' | 'finance' | 'tax'
+type ReportType = 
+  | 'sales_summary' | 'sales_by_branch' | 'sales_by_employee' 
+  | 'sales_by_service' | 'sales_by_payment' | 'customers_report'
+  | 'expenses_report' | 'expenses_by_category' | 'net_profit'
+  | 'tax_report'
+
+interface ReportCard {
+  id: ReportType
+  title: string
+  desc: string
+  icon: string
+  tab: TabType
+}
 
 export default function ReportsPage() {
   const locale = useLocale()
 
-  const [summary,  setSummary]  = useState<any>(null)
-  const [orders,   setOrders]   = useState<any[]>([])
-  const [loading,  setLoading]  = useState(true)
-  const [fromDate, setFromDate] = useState(getTodayDate())
-  const [toDate,   setToDate]   = useState(getTodayDate())
-  const [search,   setSearch]   = useState('')
+  const [tab,          setTab]          = useState<TabType>('sales')
+  const [activeReport, setActiveReport] = useState<ReportType | null>(null)
+  const [search,       setSearch]       = useState('')
+  const [loading,      setLoading]      = useState(false)
+  const [reportData,   setReportData]   = useState<any>(null)
+  const [fromDate,     setFromDate]     = useState(getTodayDate())
+  const [toDate,       setToDate]       = useState(getTodayDate())
+  const [tableSearch,  setTableSearch]  = useState('')
 
-  useEffect(() => { loadData(getTodayDate(), getTodayDate()) }, [])
+  const REPORTS: ReportCard[] = [
+    // المبيعات
+    { id: 'sales_summary',      tab: 'sales',   icon: '📊', title: locale === 'ar' ? 'ملخص المبيعات'            : 'Sales Summary',        desc: locale === 'ar' ? 'إجمالي المبيعات والطلبات بفترة زمنية محددة'        : 'Total sales and orders for a period' },
+    { id: 'sales_by_branch',    tab: 'sales',   icon: '🏬', title: locale === 'ar' ? 'المبيعات لكل فرع'         : 'Sales by Branch',       desc: locale === 'ar' ? 'مقارنة أداء الفروع من حيث المبيعات والطلبات'       : 'Compare branch performance' },
+    { id: 'sales_by_employee',  tab: 'sales',   icon: '👤', title: locale === 'ar' ? 'المبيعات لكل موظف'        : 'Sales by Employee',     desc: locale === 'ar' ? 'راقب أداء موظفيك ومبيعاتهم خلال فترة محددة'       : 'Track employee sales performance' },
+    { id: 'sales_by_service',   tab: 'sales',   icon: '🔧', title: locale === 'ar' ? 'المبيعات حسب الخدمة'      : 'Sales by Service',      desc: locale === 'ar' ? 'أكثر الخدمات مبيعاً وإيراداً خلال الفترة'          : 'Top selling services' },
+    { id: 'sales_by_payment',   tab: 'sales',   icon: '💳', title: locale === 'ar' ? 'المبيعات حسب طريقة الدفع' : 'Sales by Payment',      desc: locale === 'ar' ? 'توزيع المبيعات بين النقد والبطاقة والتحويل'        : 'Payment method breakdown' },
+    { id: 'customers_report',   tab: 'sales',   icon: '👥', title: locale === 'ar' ? 'تقرير العملاء'            : 'Customers Report',      desc: locale === 'ar' ? 'أكثر العملاء شراءً وزيارةً خلال الفترة'            : 'Top customers by purchases' },
+    // المالية
+    { id: 'expenses_report',    tab: 'finance', icon: '💸', title: locale === 'ar' ? 'تقرير المصاريف'           : 'Expenses Report',       desc: locale === 'ar' ? 'جميع المصاريف المسجلة خلال الفترة الزمنية'         : 'All recorded expenses for a period' },
+    { id: 'expenses_by_category', tab: 'finance', icon: '📂', title: locale === 'ar' ? 'المصاريف حسب الفئة'    : 'Expenses by Category',  desc: locale === 'ar' ? 'توزيع المصاريف حسب الفئات المختلفة'               : 'Expense breakdown by category' },
+    { id: 'net_profit',         tab: 'finance', icon: '📈', title: locale === 'ar' ? 'صافي الربح'               : 'Net Profit',            desc: locale === 'ar' ? 'المبيعات مطروحاً منها المصاريف والضريبة والخصومات' : 'Sales minus expenses, tax and discounts' },
+    // الضريبة
+    { id: 'tax_report',         tab: 'tax',     icon: '🧾', title: locale === 'ar' ? 'الإقرار الضريبي'          : 'Tax Report',            desc: locale === 'ar' ? 'ملخص شامل للضريبة المحصلة خلال الفترة'             : 'Complete VAT tax summary' },
+  ]
 
-  async function loadData(from: string, to: string) {
+  const TABS = [
+    { id: 'sales',   labelAr: '📊 المبيعات', labelEn: '📊 Sales' },
+    { id: 'finance', labelAr: '💰 المالية',  labelEn: '💰 Finance' },
+    { id: 'tax',     labelAr: '🧾 الضريبة',  labelEn: '🧾 Tax' },
+  ]
+
+  const filteredReports = REPORTS.filter(r =>
+    r.tab === tab &&
+    (search === '' || r.title.toLowerCase().includes(search.toLowerCase()))
+  )
+
+  async function openReport(id: ReportType) {
+    setActiveReport(id)
+    setTableSearch('')
+    await loadReport(id, fromDate, toDate)
+  }
+
+  async function loadReport(id: ReportType, from: string, to: string) {
     setLoading(true)
+    setReportData(null)
     try {
-      const [summaryRes, ordersRes] = await Promise.all([
-        api.orders.summaryByRange(from, to),
-        api.orders.getByRange(from, to),
-      ])
-      setSummary(summaryRes.data)
-      setOrders(ordersRes.data || [])
+      const session = getSession()
+      if (!session) return
+
+      if (id === 'sales_summary') {
+        const [summaryRes, ordersRes] = await Promise.all([
+          api.orders.summaryByRange(from, to),
+          api.orders.getByRange(from, to),
+        ])
+        setReportData({ summary: summaryRes.data, orders: ordersRes.data || [] })
+
+      } else if (id === 'sales_by_branch') {
+        const ordersRes = await api.orders.getByRange(from, to)
+        const orders = ordersRes.data || []
+        const { data: branches } = await supabase.from('branches').select('id, name').eq('tenant_id', session.tenant_id)
+        const map: Record<string, any> = {}
+        orders.forEach((o: any) => {
+          const br = branches?.find((b: any) => b.id === o.branch_id)
+          const key = o.branch_id || 'unknown'
+          if (!map[key]) map[key] = { name: br?.name || '—', total: 0, orders: 0 }
+          map[key].total += Number(o.total)
+          map[key].orders += 1
+        })
+        setReportData({ rows: Object.values(map) })
+
+      } else if (id === 'sales_by_employee') {
+        const ordersRes = await api.orders.getByRange(from, to)
+        const orders = ordersRes.data || []
+        const { data: users } = await supabase.from('users').select('id, name').eq('tenant_id', session.tenant_id)
+        const map: Record<string, any> = {}
+        orders.forEach((o: any) => {
+          const user = users?.find((u: any) => u.id === o.cashier_id)
+          const key = o.cashier_id || 'unknown'
+          if (!map[key]) map[key] = { name: user?.name || '—', total: 0, orders: 0 }
+          map[key].total += Number(o.total)
+          map[key].orders += 1
+        })
+        setReportData({ rows: Object.values(map).sort((a, b) => b.total - a.total) })
+
+      } else if (id === 'sales_by_service') {
+        const ordersRes = await api.orders.getByRange(from, to)
+        const orders = ordersRes.data || []
+        const map: Record<string, any> = {}
+        orders.forEach((o: any) => {
+          (o.order_items || []).forEach((item: any) => {
+            const key = item.service_name || '—'
+            if (!map[key]) map[key] = { name: key, total: 0, count: 0 }
+            map[key].total += Number(item.price) * Number(item.qty)
+            map[key].count += Number(item.qty)
+          })
+        })
+        setReportData({ rows: Object.values(map).sort((a, b) => b.total - a.total) })
+
+      } else if (id === 'sales_by_payment') {
+        const summaryRes = await api.orders.summaryByRange(from, to)
+        const ordersRes  = await api.orders.getByRange(from, to)
+        const orders = ordersRes.data || []
+        const map: Record<string, any> = {}
+        orders.forEach((o: any) => {
+          const key = o.payment_method || '—'
+          if (!map[key]) map[key] = { method: key, total: 0, count: 0 }
+          map[key].total += Number(o.total)
+          map[key].count += 1
+        })
+        setReportData({ summary: summaryRes.data, rows: Object.values(map).sort((a, b) => b.total - a.total) })
+
+      } else if (id === 'customers_report') {
+        const ordersRes = await api.orders.getByRange(from, to)
+        const orders = ordersRes.data || []
+        const map: Record<string, any> = {}
+        orders.forEach((o: any) => {
+          if (!o.customer_id) return
+          const key = o.customer_id
+          if (!map[key]) map[key] = {
+            name: o.customers?.name || '—',
+            phone: o.customers?.phone || '—',
+            total: 0, visits: 0,
+          }
+          map[key].total += Number(o.total)
+          map[key].visits += 1
+        })
+        setReportData({ rows: Object.values(map).sort((a, b) => b.total - a.total) })
+
+      } else if (id === 'expenses_report') {
+        const res = await api.expenses.getAll(from, to)
+        setReportData({ expenses: res.data || [] })
+
+      } else if (id === 'expenses_by_category') {
+        const res = await api.expenses.getAll(from, to)
+        const expenses = res.data || []
+        const map: Record<string, any> = {}
+        expenses.forEach((e: any) => {
+          const key = e.category || 'عام'
+          if (!map[key]) map[key] = { category: key, total: 0, count: 0 }
+          map[key].total += Number(e.amount)
+          map[key].count += 1
+        })
+        setReportData({ rows: Object.values(map).sort((a, b) => b.total - a.total) })
+
+      } else if (id === 'net_profit') {
+        const [summaryRes, expensesRes] = await Promise.all([
+          api.orders.summaryByRange(from, to),
+          api.expenses.getAll(from, to),
+        ])
+        const summary  = summaryRes.data
+        const expenses = expensesRes.data || []
+        const totalExpenses = expenses.reduce((s: number, e: any) => s + Number(e.amount), 0)
+        const netProfit = (summary?.total_sales || 0) - totalExpenses - (summary?.total_tax || 0) - (summary?.total_discount || 0)
+        setReportData({ summary, totalExpenses, netProfit })
+
+      } else if (id === 'tax_report') {
+        const [summaryRes, ordersRes] = await Promise.all([
+          api.orders.summaryByRange(from, to),
+          api.orders.getByRange(from, to),
+        ])
+        setReportData({ summary: summaryRes.data, orders: ordersRes.data || [] })
+      }
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }
 
-  const filtered = orders.filter(o =>
-    String(o.id).slice(-8).toLowerCase().includes(search.toLowerCase()) ||
-    o.vehicles?.plate?.toLowerCase().includes(search.toLowerCase()) ||
-    o.customers?.phone?.includes(search) ||
-    o.customers?.name?.toLowerCase().includes(search.toLowerCase())
-  )
-
-  function exportCSV() {
-    const headers = ['رقم الطلب', 'اسم العميل', 'الجوال', 'اللوحة', 'المجموع قبل', 'الخصم', 'الضريبة', 'الإجمالي', 'الدفع', 'الحالة', 'التاريخ']
-    const rows = filtered.map(o => [
-      String(o.id).slice(-8).toUpperCase(),
-      o.customers?.name || '',
-      o.customers?.phone || '',
-      o.vehicles?.plate || '',
-      o.subtotal,
-      o.discount,
-      o.tax,
-      o.total,
-      o.payment_method,
-      o.status,
-      new Date(o.created_at).toLocaleDateString('ar-SA'),
-    ])
+  function exportCSV(rows: any[], headers: string[], filename: string) {
     const csv = [headers, ...rows].map(r => r.join(',')).join('\n')
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `report_${fromDate}_${toDate}.csv`
-    a.click()
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href = url; a.download = `${filename}_${fromDate}_${toDate}.csv`; a.click()
     URL.revokeObjectURL(url)
   }
 
-  function exportHTML() {
-    const rows = filtered.map(o => `
-      <tr>
-        <td>#${String(o.id).slice(-8).toUpperCase()}</td>
-        <td>${o.customers?.name || '—'}</td>
-        <td>${o.customers?.phone || '—'}</td>
-        <td>${o.vehicles?.plate || '—'}</td>
-        <td>${o.subtotal?.toFixed(2)}</td>
-        <td>${o.discount?.toFixed(2)}</td>
-        <td>${o.tax?.toFixed(2)}</td>
-        <td><strong>${o.total?.toFixed(2)}</strong></td>
-        <td>${o.payment_method}</td>
-        <td>${o.status}</td>
-        <td>${new Date(o.created_at).toLocaleDateString('ar-SA')}</td>
-      </tr>`).join('')
-
-    const html = `<!DOCTYPE html>
-<html dir="rtl" lang="ar">
-<head>
-<meta charset="UTF-8"/>
-<title>تقرير المبيعات ${fromDate} - ${toDate}</title>
-<style>
-  body { font-family: Arial, sans-serif; font-size: 12px; color: #000; padding: 20px; }
-  h1 { font-size: 18px; margin-bottom: 4px; }
-  p { color: #666; margin-bottom: 16px; }
-  .stats { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
-  .stat { border: 1px solid #ddd; border-radius: 8px; padding: 12px 20px; min-width: 140px; }
-  .stat-label { font-size: 11px; color: #888; margin-bottom: 4px; }
-  .stat-value { font-size: 18px; font-weight: bold; }
-  table { width: 100%; border-collapse: collapse; }
-  th { background: #f5f5f5; padding: 8px; text-align: right; border: 1px solid #ddd; font-size: 11px; }
-  td { padding: 7px 8px; border: 1px solid #eee; font-size: 11px; }
-  tr:nth-child(even) { background: #fafafa; }
-  .footer { margin-top: 24px; font-size: 11px; color: #888; text-align: center; }
-</style>
-</head>
-<body>
-<h1>تقرير المبيعات</h1>
-<p>الفترة: ${fromDate} — ${toDate}</p>
-<div class="stats">
-  <div class="stat"><div class="stat-label">إجمالي المبيعات</div><div class="stat-value">${summary?.total_sales?.toFixed(2)} ر.س</div></div>
-  <div class="stat"><div class="stat-label">عدد الطلبات</div><div class="stat-value">${summary?.total_orders}</div></div>
-  <div class="stat"><div class="stat-label">نقد</div><div class="stat-value">${summary?.cash?.toFixed(2)} ر.س</div></div>
-  <div class="stat"><div class="stat-label">بطاقة</div><div class="stat-value">${summary?.card?.toFixed(2)} ر.س</div></div>
-  <div class="stat"><div class="stat-label">ضريبة</div><div class="stat-value">${summary?.total_tax?.toFixed(2)} ر.س</div></div>
-  <div class="stat"><div class="stat-label">خصومات</div><div class="stat-value">${summary?.total_discount?.toFixed(2)} ر.س</div></div>
-</div>
-<table>
-  <thead><tr><th>رقم الطلب</th><th>اسم العميل</th><th>الجوال</th><th>اللوحة</th><th>المجموع</th><th>الخصم</th><th>الضريبة</th><th>الإجمالي</th><th>الدفع</th><th>الحالة</th><th>التاريخ</th></tr></thead>
-  <tbody>${rows}</tbody>
-</table>
-<div class="footer">Sefay ERP — تم الإنشاء بتاريخ ${new Date().toLocaleDateString('ar-SA')}</div>
-</body>
-</html>`
-
-    const win = window.open('', '_blank')
-    if (win) {
-      win.document.write(html + '<script>window.onload=()=>{window.print();}<\/script>')
-      win.document.close()
+  function handleExport() {
+    if (!reportData) return
+    if (activeReport === 'sales_summary') {
+      const rows = (reportData.orders || []).map((o: any) => [
+        String(o.id).slice(-8).toUpperCase(),
+        o.customers?.name || '',
+        o.customers?.phone || '',
+        o.subtotal, o.discount, o.tax, o.total,
+        o.payment_method, o.status,
+        new Date(o.created_at).toLocaleDateString('ar-SA'),
+      ])
+      exportCSV(rows, ['رقم الطلب','العميل','الجوال','المجموع','الخصم','الضريبة','الإجمالي','الدفع','الحالة','التاريخ'], 'sales_summary')
+    } else if (activeReport === 'sales_by_branch') {
+      const rows = reportData.rows.map((r: any) => [r.name, r.orders, r.total.toFixed(2)])
+      exportCSV(rows, ['الفرع','عدد الطلبات','الإجمالي'], 'sales_by_branch')
+    } else if (activeReport === 'sales_by_employee') {
+      const rows = reportData.rows.map((r: any) => [r.name, r.orders, r.total.toFixed(2)])
+      exportCSV(rows, ['الموظف','عدد الطلبات','الإجمالي'], 'sales_by_employee')
+    } else if (activeReport === 'sales_by_service') {
+      const rows = reportData.rows.map((r: any) => [r.name, r.count, r.total.toFixed(2)])
+      exportCSV(rows, ['الخدمة','الكمية','الإجمالي'], 'sales_by_service')
+    } else if (activeReport === 'sales_by_payment') {
+      const rows = reportData.rows.map((r: any) => [r.method, r.count, r.total.toFixed(2)])
+      exportCSV(rows, ['طريقة الدفع','عدد الطلبات','الإجمالي'], 'sales_by_payment')
+    } else if (activeReport === 'customers_report') {
+      const rows = reportData.rows.map((r: any) => [r.name, r.phone, r.visits, r.total.toFixed(2)])
+      exportCSV(rows, ['العميل','الجوال','الزيارات','الإجمالي'], 'customers')
+    } else if (activeReport === 'expenses_report') {
+      const rows = reportData.expenses.map((e: any) => [e.title, e.category, e.amount, e.date, e.notes || ''])
+      exportCSV(rows, ['العنوان','الفئة','المبلغ','التاريخ','ملاحظات'], 'expenses')
+    } else if (activeReport === 'expenses_by_category') {
+      const rows = reportData.rows.map((r: any) => [r.category, r.count, r.total.toFixed(2)])
+      exportCSV(rows, ['الفئة','عدد المصاريف','الإجمالي'], 'expenses_by_category')
+    } else if (activeReport === 'tax_report') {
+      const rows = (reportData.orders || []).map((o: any) => [
+        String(o.id).slice(-8).toUpperCase(),
+        o.subtotal, o.tax, o.total,
+        new Date(o.created_at).toLocaleDateString('ar-SA'),
+      ])
+      exportCSV(rows, ['رقم الطلب','المجموع قبل الضريبة','الضريبة','الإجمالي','التاريخ'], 'tax_report')
     }
   }
 
-  const stats = [
-    { label: locale === 'ar' ? 'إجمالي المبيعات' : 'Total Sales',  value: formatCurrency(summary?.total_sales || 0,    locale === 'ar' ? 'ar-SA' : 'en-US'), icon: TrendingUp,  color: 'var(--color-primary)',  bg: 'var(--color-primary-light)',  border: 'var(--color-primary-border)' },
-    { label: locale === 'ar' ? 'عدد الطلبات'     : 'Total Orders', value: formatNumber(summary?.total_orders || 0,     locale === 'ar' ? 'ar-SA' : 'en-US'), icon: ShoppingCart, color: 'var(--color-success)',  bg: 'var(--color-success-light)',  border: 'var(--color-success-border)' },
-    { label: locale === 'ar' ? 'نقد'             : 'Cash',         value: formatCurrency(summary?.cash || 0,           locale === 'ar' ? 'ar-SA' : 'en-US'), icon: Banknote,    color: 'var(--color-warning)',  bg: 'var(--color-warning-light)',  border: 'var(--color-warning-border)' },
-    { label: locale === 'ar' ? 'بطاقة'           : 'Card',         value: formatCurrency(summary?.card || 0,           locale === 'ar' ? 'ar-SA' : 'en-US'), icon: CreditCard,  color: 'var(--color-purple)',   bg: 'var(--color-purple-light)',   border: 'var(--color-purple-border)' },
-    { label: locale === 'ar' ? 'ضريبة VAT'       : 'VAT Tax',      value: formatCurrency(summary?.total_tax || 0,      locale === 'ar' ? 'ar-SA' : 'en-US'), icon: Percent,     color: 'var(--color-danger)',   bg: 'var(--color-danger-light)',   border: 'var(--color-danger-border)' },
-    { label: locale === 'ar' ? 'خصومات'          : 'Discounts',    value: formatCurrency(summary?.total_discount || 0, locale === 'ar' ? 'ar-SA' : 'en-US'), icon: TrendingUp,  color: 'var(--color-success)',  bg: 'var(--color-success-light)',  border: 'var(--color-success-border)' },
-  ]
-
-  const profit = (summary?.total_sales || 0) - (summary?.total_tax || 0) - (summary?.total_discount || 0)
-  const chartData = summary?.orders_by_day || []
+  const activeCard = REPORTS.find(r => r.id === activeReport)
 
   return (
     <div>
       <div className="dashboard-page-header">
         <div>
-          <h2 className="dashboard-page-title">
-            {locale === 'ar' ? 'التقارير' : 'Reports'}
-          </h2>
-          <p className="dashboard-page-subtitle">{fromDate} — {toDate}</p>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="btn btn-secondary btn-sm" onClick={exportCSV}>
-            <Download size={14} />
-            {locale === 'ar' ? 'تصدير CSV' : 'Export CSV'}
-          </button>
-          <button className="btn btn-primary btn-sm" onClick={exportHTML}>
-            <Download size={14} />
-            {locale === 'ar' ? 'طباعة PDF' : 'Print PDF'}
-          </button>
+          <h2 className="dashboard-page-title">{locale === 'ar' ? 'التقارير' : 'Reports'}</h2>
+          <p className="dashboard-page-subtitle">
+            {locale === 'ar' ? 'اختر تقريراً لعرض تفاصيله' : 'Select a report to view details'}
+          </p>
         </div>
       </div>
 
-      {/* Date Picker */}
-      <div style={{ marginBottom: '20px' }}>
-        <DateRangePicker
-          from={fromDate}
-          to={toDate}
-          onChange={(from, to) => {
-            setFromDate(from)
-            setToDate(to)
-            loadData(from, to)
-          }}
-        />
+      {/* تبويبات */}
+      <div className="table-filters" style={{ marginBottom: '20px' }}>
+        {TABS.map(t => (
+          <button key={t.id}
+            className={`table-filter-btn ${tab === t.id ? 'active' : ''}`}
+            onClick={() => { setTab(t.id as TabType); setActiveReport(null) }}>
+            {locale === 'ar' ? t.labelAr : t.labelEn}
+          </button>
+        ))}
+        <div className="table-search" style={{ marginRight: 'auto' }}>
+          <Search size={14} />
+          <input
+            placeholder={locale === 'ar' ? 'بحث عن تقرير...' : 'Search report...'}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
       </div>
 
-      {loading ? (
-        <div style={{ padding: '60px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-          {locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}
-        </div>
-      ) : (
-        <>
-          {/* Stats */}
-          <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', marginBottom: '16px' }}>
-            {stats.map((stat, i) => (
-              <div key={i} className="stat-card">
-                <div className="stat-card-header">
-                  <span className="stat-card-label">{stat.label}</span>
-                  <div className="stat-card-icon" style={{ backgroundColor: stat.bg, border: `1px solid ${stat.border}`, color: stat.color }}>
-                    <stat.icon size={18} />
-                  </div>
-                </div>
-                <div className="stat-card-value" style={{ color: stat.color }}>{stat.value}</div>
+      {/* بطاقات التقارير */}
+      {!activeReport && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+          {filteredReports.map(r => (
+            <div key={r.id}
+              onClick={() => openReport(r.id)}
+              style={{
+                backgroundColor: 'var(--color-bg-secondary)',
+                border: '1px solid var(--color-border)',
+                borderRadius: 'var(--radius-lg)',
+                padding: '20px', cursor: 'pointer',
+                transition: 'var(--transition)',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'var(--color-primary)'
+                e.currentTarget.style.backgroundColor = 'var(--color-primary-light)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--color-border)'
+                e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary)'
+              }}
+            >
+              <div style={{ fontSize: '32px', marginBottom: '10px' }}>{r.icon}</div>
+              <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--color-text-primary)', marginBottom: '6px' }}>
+                {r.title}
               </div>
-            ))}
-          </div>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', lineHeight: '1.6' }}>
+                {r.desc}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
-          {/* Profit */}
+      {/* تفاصيل التقرير */}
+      {activeReport && (
+        <div>
+          {/* Header */}
           <div style={{
+            display: 'flex', alignItems: 'center', gap: '12px',
+            marginBottom: '16px', padding: '16px 20px',
             backgroundColor: 'var(--color-bg-secondary)',
-            border: '2px solid var(--color-success-border)',
-            borderRadius: 'var(--radius-lg)', padding: '20px',
-            marginBottom: '16px', display: 'flex',
-            justifyContent: 'space-between', alignItems: 'center',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-lg)',
           }}>
-            <div>
-              <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
-                💰 {locale === 'ar' ? 'صافي الربح' : 'Net Profit'}
+            <button className="btn btn-secondary btn-sm" onClick={() => setActiveReport(null)}>
+              <X size={14} />
+              {locale === 'ar' ? 'رجوع' : 'Back'}
+            </button>
+            <div style={{ fontSize: '20px' }}>{activeCard?.icon}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--color-text-primary)' }}>
+                {activeCard?.title}
               </div>
-              <div style={{ fontSize: '28px', fontWeight: '900', color: 'var(--color-success)' }}>
-                {formatCurrency(profit, locale === 'ar' ? 'ar-SA' : 'en-US')}
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                {fromDate} — {toDate}
               </div>
             </div>
-            <div style={{ fontSize: '48px' }}>📈</div>
+            <button className="btn btn-secondary btn-sm" onClick={handleExport} disabled={!reportData}>
+              <Download size={14} />
+              {locale === 'ar' ? 'تصدير CSV' : 'Export CSV'}
+            </button>
           </div>
 
-          {/* Charts */}
-          <div className="charts-grid" style={{ marginBottom: '16px' }}>
-            <div className="chart-card">
-              <div className="chart-card-header">
-                <h3 className="chart-card-title">
-                  {locale === 'ar' ? 'المبيعات اليومية' : 'Daily Sales'}
-                </h3>
-              </div>
-              {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                    <XAxis dataKey="date" tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} tickFormatter={d => d.slice(5)} />
-                    <YAxis tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)' }}
-                      formatter={(v: any) => [formatCurrency(v, locale === 'ar' ? 'ar-SA' : 'en-US'), locale === 'ar' ? 'المبيعات' : 'Sales']}
-                    />
-                    <Bar dataKey="total" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-                  {locale === 'ar' ? 'لا توجد بيانات' : 'No data'}
-                </div>
-              )}
-            </div>
-
-            <div className="chart-card">
-              <div className="chart-card-header">
-                <h3 className="chart-card-title">
-                  {locale === 'ar' ? 'طرق الدفع' : 'Payment Methods'}
-                </h3>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {[
-                  { label: locale === 'ar' ? 'نقد'    : 'Cash',      value: summary?.cash || 0,           color: 'var(--color-success)' },
-                  { label: locale === 'ar' ? 'بطاقة'  : 'Card',      value: summary?.card || 0,           color: 'var(--color-primary)' },
-                  { label: locale === 'ar' ? 'ضريبة'  : 'Tax',       value: summary?.total_tax || 0,      color: 'var(--color-purple)' },
-                  { label: locale === 'ar' ? 'خصومات' : 'Discounts', value: summary?.total_discount || 0, color: 'var(--color-warning)' },
-                ].map((item, i) => (
-                  <div key={i} style={{
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '10px 14px', backgroundColor: 'var(--color-bg-tertiary)',
-                    borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)',
-                  }}>
-                    <span style={{ fontSize: '13px', color: 'var(--color-text-secondary)', fontWeight: '600' }}>{item.label}</span>
-                    <span style={{ fontSize: '14px', fontWeight: '900', color: item.color }}>
-                      {formatCurrency(item.value, locale === 'ar' ? 'ar-SA' : 'en-US')}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          {/* DateRangePicker */}
+          <div style={{ marginBottom: '16px' }}>
+            <DateRangePicker
+              from={fromDate}
+              to={toDate}
+              onChange={(from, to) => {
+                setFromDate(from); setToDate(to)
+                loadReport(activeReport, from, to)
+              }}
+            />
           </div>
 
-          {/* Orders Table */}
-          <div className="table-container">
-            <div className="table-header">
-              <h3 className="table-title">
-                {locale === 'ar' ? 'تفاصيل الطلبات' : 'Orders Details'}
-                <span style={{ marginRight: '8px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                  ({filtered.length})
-                </span>
-              </h3>
-              <div className="table-actions">
-                <div className="table-search">
-                  <Search size={14} />
-                  <input
-                    id="rep-search" name="rep-search"
-                    placeholder={locale === 'ar' ? 'بحث...' : 'Search...'}
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                  />
-                </div>
-              </div>
+          {loading ? (
+            <div style={{ padding: '60px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+              {locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}
             </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>{locale === 'ar' ? 'رقم الطلب' : 'Order #'}</th>
-                  <th>{locale === 'ar' ? 'اسم العميل' : 'Customer'}</th>
-                  <th>{locale === 'ar' ? 'الجوال' : 'Phone'}</th>
-                  <th>{locale === 'ar' ? 'اللوحة' : 'Plate'}</th>
-                  <th>{locale === 'ar' ? 'المجموع' : 'Subtotal'}</th>
-                  <th>{locale === 'ar' ? 'الخصم' : 'Discount'}</th>
-                  <th>{locale === 'ar' ? 'الضريبة' : 'Tax'}</th>
-                  <th>{locale === 'ar' ? 'الإجمالي' : 'Total'}</th>
-                  <th>{locale === 'ar' ? 'الدفع' : 'Payment'}</th>
-                  <th>{locale === 'ar' ? 'الحالة' : 'Status'}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map(order => (
-                  <tr key={order.id}>
-                    <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
-                      #{String(order.id).slice(-8).toUpperCase()}
-                    </td>
-                    <td style={{ color: 'var(--color-text-secondary)' }}>
-                      {order.customers?.name || '—'}
-                    </td>
-                    <td style={{ color: 'var(--color-text-secondary)' }}>
-                      {order.customers?.phone || '—'}
-                    </td>
-                    <td>{order.vehicles?.plate || '—'}</td>
-                    <td>{formatCurrency(order.subtotal, locale === 'ar' ? 'ar-SA' : 'en-US')}</td>
-                    <td style={{ color: 'var(--color-success)' }}>
-                      {order.discount > 0 ? `- ${formatCurrency(order.discount, locale === 'ar' ? 'ar-SA' : 'en-US')}` : '—'}
-                    </td>
-                    <td style={{ color: 'var(--color-purple)' }}>
-                      {formatCurrency(order.tax, locale === 'ar' ? 'ar-SA' : 'en-US')}
-                    </td>
-                    <td style={{ fontWeight: '700', color: 'var(--color-text-primary)' }}>
-                      {formatCurrency(order.total, locale === 'ar' ? 'ar-SA' : 'en-US')}
-                    </td>
-                    <td><span className="badge badge-primary">{order.payment_method}</span></td>
-                    <td>
-                      <span className={`badge ${
-                        order.status === 'completed' ? 'badge-success' :
-                        order.status === 'refunded'  ? 'badge-purple' :
-                        order.status === 'cancelled' ? 'badge-danger' : 'badge-warning'
-                      }`}>{order.status}</span>
-                    </td>
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={10}>
-                      <div className="table-empty">
-                        <div className="table-empty-icon">📊</div>
-                        <div className="table-empty-text">
-                          {locale === 'ar' ? 'لا توجد بيانات' : 'No data'}
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </>
+          ) : reportData ? (
+            <ReportContent
+              id={activeReport}
+              data={reportData}
+              locale={locale}
+              tableSearch={tableSearch}
+              setTableSearch={setTableSearch}
+            />
+          ) : null}
+        </div>
       )}
     </div>
   )
+}
+
+function ReportContent({ id, data, locale, tableSearch, setTableSearch }: any) {
+  const fc = (v: number) => formatCurrency(v, locale === 'ar' ? 'ar-SA' : 'en-US')
+
+  if (id === 'sales_summary') {
+    const { summary, orders } = data
+    const filtered = orders.filter((o: any) =>
+      String(o.id).slice(-8).toLowerCase().includes(tableSearch.toLowerCase()) ||
+      o.customers?.name?.toLowerCase().includes(tableSearch.toLowerCase()) ||
+      o.vehicles?.plate?.toLowerCase().includes(tableSearch.toLowerCase())
+    )
+    return (
+      <div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+          {[
+            { label: locale === 'ar' ? 'إجمالي المبيعات' : 'Total Sales',  value: fc(summary?.total_sales || 0),    color: 'var(--color-primary)' },
+            { label: locale === 'ar' ? 'عدد الطلبات'     : 'Total Orders', value: summary?.total_orders || 0,       color: 'var(--color-success)' },
+            { label: locale === 'ar' ? 'نقد'             : 'Cash',         value: fc(summary?.cash || 0),           color: 'var(--color-warning)' },
+            { label: locale === 'ar' ? 'بطاقة'           : 'Card',         value: fc(summary?.card || 0),           color: 'var(--color-purple)' },
+            { label: locale === 'ar' ? 'ضريبة'           : 'Tax',          value: fc(summary?.total_tax || 0),      color: 'var(--color-danger)' },
+            { label: locale === 'ar' ? 'خصومات'          : 'Discounts',    value: fc(summary?.total_discount || 0), color: 'var(--color-success)' },
+          ].map((s, i) => (
+            <div key={i} style={{
+              backgroundColor: 'var(--color-bg-secondary)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 'var(--radius-md)', padding: '16px',
+            }}>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>{s.label}</div>
+              <div style={{ fontSize: '20px', fontWeight: '900', color: s.color }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+        {summary?.orders_by_day?.length > 0 && (
+          <div style={{
+            backgroundColor: 'var(--color-bg-secondary)',
+            border: '1px solid var(--color-border)',
+            borderRadius: 'var(--radius-lg)', padding: '16px', marginBottom: '16px',
+          }}>
+            <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '12px', color: 'var(--color-text-primary)' }}>
+              {locale === 'ar' ? 'المبيعات اليومية' : 'Daily Sales'}
+            </div>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={summary.orders_by_day}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                <XAxis dataKey="date" tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} tickFormatter={d => d.slice(5)} />
+                <YAxis tick={{ fill: 'var(--color-text-muted)', fontSize: 10 }} />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '8px' }} />
+                <Bar dataKey="total" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+        <div className="table-container">
+          <div className="table-header">
+            <h3 className="table-title">{locale === 'ar' ? 'تفاصيل الطلبات' : 'Orders'} ({filtered.length})</h3>
+            <div className="table-search">
+              <Search size={14} />
+              <input placeholder={locale === 'ar' ? 'بحث...' : 'Search...'} value={tableSearch} onChange={e => setTableSearch(e.target.value)} />
+            </div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>{locale === 'ar' ? 'رقم الطلب' : 'Order #'}</th>
+              <th>{locale === 'ar' ? 'العميل' : 'Customer'}</th>
+              <th>{locale === 'ar' ? 'اللوحة' : 'Plate'}</th>
+              <th>{locale === 'ar' ? 'الإجمالي' : 'Total'}</th>
+              <th>{locale === 'ar' ? 'الدفع' : 'Payment'}</th>
+              <th>{locale === 'ar' ? 'التاريخ' : 'Date'}</th>
+            </tr></thead>
+            <tbody>
+              {filtered.map((o: any) => (
+                <tr key={o.id}>
+                  <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>#{String(o.id).slice(-8).toUpperCase()}</td>
+                  <td>{o.customers?.name || '—'}</td>
+                  <td>{o.vehicles?.plate || '—'}</td>
+                  <td style={{ fontWeight: '700' }}>{fc(o.total)}</td>
+                  <td><span className="badge badge-primary">{o.payment_method}</span></td>
+                  <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{new Date(o.created_at).toLocaleDateString('ar-SA')}</td>
+                </tr>
+              ))}
+              {filtered.length === 0 && <tr><td colSpan={6}><div className="table-empty"><div className="table-empty-icon">📊</div><div className="table-empty-text">{locale === 'ar' ? 'لا توجد بيانات' : 'No data'}</div></div></td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
+  if (id === 'sales_by_branch' || id === 'sales_by_employee') {
+    const label = id === 'sales_by_branch' ? (locale === 'ar' ? 'الفرع' : 'Branch') : (locale === 'ar' ? 'الموظف' : 'Employee')
+    return (
+      <div className="table-container">
+        <table>
+          <thead><tr>
+            <th>{label}</th>
+            <th>{locale === 'ar' ? 'عدد الطلبات' : 'Orders'}</th>
+            <th>{locale === 'ar' ? 'الإجمالي' : 'Total'}</th>
+          </tr></thead>
+          <tbody>
+            {data.rows.map((r: any, i: number) => (
+              <tr key={i}>
+                <td style={{ fontWeight: '700' }}>{r.name}</td>
+                <td><span className="badge badge-primary">{r.orders}</span></td>
+                <td style={{ fontWeight: '700', color: 'var(--color-success)' }}>{fc(r.total)}</td>
+              </tr>
+            ))}
+            {data.rows.length === 0 && <tr><td colSpan={3}><div className="table-empty"><div className="table-empty-icon">📊</div><div className="table-empty-text">{locale === 'ar' ? 'لا توجد بيانات' : 'No data'}</div></div></td></tr>}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  if (id === 'sales_by_service') {
+    return (
+      <div className="table-container">
+        <table>
+          <thead><tr>
+            <th>{locale === 'ar' ? 'الخدمة' : 'Service'}</th>
+            <th>{locale === 'ar' ? 'الكمية' : 'Qty'}</th>
+            <th>{locale === 'ar' ? 'الإجمالي' : 'Total'}</th>
+          </tr></thead>
+          <tbody>
+            {data.rows.map((r: any, i: number) => (
+              <tr key={i}>
+                <td style={{ fontWeight: '700' }}>{r.name}</td>
+                <td><span className="badge badge-muted">{r.count}</span></td>
+                <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>{fc(r.total)}</td>
+              </tr>
+            ))}
+            {data.rows.length === 0 && <tr><td colSpan={3}><div className="table-empty"><div className="table-empty-icon">🔧</div><div className="table-empty-text">{locale === 'ar' ? 'لا توجد بيانات' : 'No data'}</div></div></td></tr>}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  if (id === 'sales_by_payment') {
+    return (
+      <div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+          {[
+            { label: locale === 'ar' ? 'إجمالي المبيعات' : 'Total', value: fc(data.summary?.total_sales || 0), color: 'var(--color-primary)' },
+            { label: locale === 'ar' ? 'نقد'   : 'Cash', value: fc(data.summary?.cash || 0), color: 'var(--color-warning)' },
+            { label: locale === 'ar' ? 'بطاقة' : 'Card', value: fc(data.summary?.card || 0), color: 'var(--color-purple)' },
+          ].map((s, i) => (
+            <div key={i} style={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>{s.label}</div>
+              <div style={{ fontSize: '20px', fontWeight: '900', color: s.color }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+        <div className="table-container">
+          <table>
+            <thead><tr>
+              <th>{locale === 'ar' ? 'طريقة الدفع' : 'Payment Method'}</th>
+              <th>{locale === 'ar' ? 'عدد الطلبات' : 'Orders'}</th>
+              <th>{locale === 'ar' ? 'الإجمالي' : 'Total'}</th>
+            </tr></thead>
+            <tbody>
+              {data.rows.map((r: any, i: number) => (
+                <tr key={i}>
+                  <td><span className="badge badge-primary">{r.method}</span></td>
+                  <td>{r.count}</td>
+                  <td style={{ fontWeight: '700', color: 'var(--color-success)' }}>{fc(r.total)}</td>
+                </tr>
+              ))}
+              {data.rows.length === 0 && <tr><td colSpan={3}><div className="table-empty"><div className="table-empty-icon">💳</div><div className="table-empty-text">{locale === 'ar' ? 'لا توجد بيانات' : 'No data'}</div></div></td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
+  if (id === 'customers_report') {
+    return (
+      <div className="table-container">
+        <table>
+          <thead><tr>
+            <th>{locale === 'ar' ? 'العميل' : 'Customer'}</th>
+            <th>{locale === 'ar' ? 'الجوال' : 'Phone'}</th>
+            <th>{locale === 'ar' ? 'الزيارات' : 'Visits'}</th>
+            <th>{locale === 'ar' ? 'الإجمالي' : 'Total'}</th>
+          </tr></thead>
+          <tbody>
+            {data.rows.map((r: any, i: number) => (
+              <tr key={i}>
+                <td style={{ fontWeight: '700' }}>{r.name}</td>
+                <td style={{ color: 'var(--color-text-secondary)' }}>{r.phone}</td>
+                <td><span className="badge badge-primary">{r.visits}</span></td>
+                <td style={{ fontWeight: '700', color: 'var(--color-success)' }}>{fc(r.total)}</td>
+              </tr>
+            ))}
+            {data.rows.length === 0 && <tr><td colSpan={4}><div className="table-empty"><div className="table-empty-icon">👥</div><div className="table-empty-text">{locale === 'ar' ? 'لا توجد بيانات' : 'No data'}</div></div></td></tr>}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  if (id === 'expenses_report') {
+    return (
+      <div className="table-container">
+        <table>
+          <thead><tr>
+            <th>{locale === 'ar' ? 'العنوان' : 'Title'}</th>
+            <th>{locale === 'ar' ? 'الفئة' : 'Category'}</th>
+            <th>{locale === 'ar' ? 'المبلغ' : 'Amount'}</th>
+            <th>{locale === 'ar' ? 'التاريخ' : 'Date'}</th>
+            <th>{locale === 'ar' ? 'ملاحظات' : 'Notes'}</th>
+          </tr></thead>
+          <tbody>
+            {data.expenses.map((e: any) => (
+              <tr key={e.id}>
+                <td style={{ fontWeight: '700' }}>{e.title}</td>
+                <td><span className="badge badge-muted">{e.category}</span></td>
+                <td style={{ fontWeight: '700', color: 'var(--color-danger)' }}>- {fc(e.amount)}</td>
+                <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{e.date}</td>
+                <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{e.notes || '—'}</td>
+              </tr>
+            ))}
+            {data.expenses.length === 0 && <tr><td colSpan={5}><div className="table-empty"><div className="table-empty-icon">💸</div><div className="table-empty-text">{locale === 'ar' ? 'لا توجد مصاريف' : 'No expenses'}</div></div></td></tr>}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  if (id === 'expenses_by_category') {
+    return (
+      <div className="table-container">
+        <table>
+          <thead><tr>
+            <th>{locale === 'ar' ? 'الفئة' : 'Category'}</th>
+            <th>{locale === 'ar' ? 'عدد المصاريف' : 'Count'}</th>
+            <th>{locale === 'ar' ? 'الإجمالي' : 'Total'}</th>
+          </tr></thead>
+          <tbody>
+            {data.rows.map((r: any, i: number) => (
+              <tr key={i}>
+                <td><span className="badge badge-muted">{r.category}</span></td>
+                <td>{r.count}</td>
+                <td style={{ fontWeight: '700', color: 'var(--color-danger)' }}>- {fc(r.total)}</td>
+              </tr>
+            ))}
+            {data.rows.length === 0 && <tr><td colSpan={3}><div className="table-empty"><div className="table-empty-icon">📂</div><div className="table-empty-text">{locale === 'ar' ? 'لا توجد بيانات' : 'No data'}</div></div></td></tr>}
+          </tbody>
+        </table>
+      </div>
+    )
+  }
+
+  if (id === 'net_profit') {
+    const { summary, totalExpenses, netProfit } = data
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+        {[
+          { label: locale === 'ar' ? 'إجمالي المبيعات' : 'Total Sales',    value: fc(summary?.total_sales || 0),    color: 'var(--color-success)' },
+          { label: locale === 'ar' ? 'إجمالي المصاريف' : 'Total Expenses', value: fc(totalExpenses || 0),           color: 'var(--color-danger)' },
+          { label: locale === 'ar' ? 'إجمالي الضريبة'  : 'Total Tax',      value: fc(summary?.total_tax || 0),      color: 'var(--color-purple)' },
+          { label: locale === 'ar' ? 'إجمالي الخصومات' : 'Total Discounts', value: fc(summary?.total_discount || 0), color: 'var(--color-warning)' },
+        ].map((s, i) => (
+          <div key={i} style={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>{s.label}</div>
+            <div style={{ fontSize: '20px', fontWeight: '900', color: s.color }}>{s.value}</div>
+          </div>
+        ))}
+        <div style={{
+          gridColumn: '1 / -1',
+          backgroundColor: netProfit >= 0 ? 'var(--color-success-light)' : 'var(--color-danger-light)',
+          border: `2px solid ${netProfit >= 0 ? 'var(--color-success-border)' : 'var(--color-danger-border)'}`,
+          borderRadius: 'var(--radius-lg)', padding: '24px',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <div>
+            <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>
+              💰 {locale === 'ar' ? 'صافي الربح' : 'Net Profit'}
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: '900', color: netProfit >= 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
+              {fc(netProfit)}
+            </div>
+          </div>
+          <div style={{ fontSize: '56px' }}>{netProfit >= 0 ? '📈' : '📉'}</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (id === 'tax_report') {
+    const { summary, orders } = data
+    return (
+      <div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '16px' }}>
+          {[
+            { label: locale === 'ar' ? 'إجمالي المبيعات قبل الضريبة' : 'Sales before tax', value: fc((summary?.total_sales || 0) - (summary?.total_tax || 0)), color: 'var(--color-primary)' },
+            { label: locale === 'ar' ? 'إجمالي ضريبة VAT (15%)'      : 'Total VAT (15%)',  value: fc(summary?.total_tax || 0),                                  color: 'var(--color-danger)' },
+            { label: locale === 'ar' ? 'إجمالي المبيعات شامل الضريبة' : 'Total with tax',  value: fc(summary?.total_sales || 0),                               color: 'var(--color-success)' },
+          ].map((s, i) => (
+            <div key={i} style={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '6px' }}>{s.label}</div>
+              <div style={{ fontSize: '18px', fontWeight: '900', color: s.color }}>{s.value}</div>
+            </div>
+          ))}
+        </div>
+        <div className="table-container">
+          <table>
+            <thead><tr>
+              <th>{locale === 'ar' ? 'رقم الطلب' : 'Order #'}</th>
+              <th>{locale === 'ar' ? 'المجموع قبل الضريبة' : 'Subtotal'}</th>
+              <th>{locale === 'ar' ? 'الضريبة' : 'Tax'}</th>
+              <th>{locale === 'ar' ? 'الإجمالي' : 'Total'}</th>
+              <th>{locale === 'ar' ? 'التاريخ' : 'Date'}</th>
+            </tr></thead>
+            <tbody>
+              {orders.map((o: any) => (
+                <tr key={o.id}>
+                  <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>#{String(o.id).slice(-8).toUpperCase()}</td>
+                  <td>{fc(o.subtotal)}</td>
+                  <td style={{ color: 'var(--color-danger)' }}>{fc(o.tax)}</td>
+                  <td style={{ fontWeight: '700' }}>{fc(o.total)}</td>
+                  <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{new Date(o.created_at).toLocaleDateString('ar-SA')}</td>
+                </tr>
+              ))}
+              {orders.length === 0 && <tr><td colSpan={5}><div className="table-empty"><div className="table-empty-icon">🧾</div><div className="table-empty-text">{locale === 'ar' ? 'لا توجد بيانات' : 'No data'}</div></div></td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )
+  }
+
+  return null
 }
