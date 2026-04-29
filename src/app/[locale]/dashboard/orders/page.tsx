@@ -49,6 +49,19 @@ function paymentBadge(order: any, locale: string) {
   return <span className="badge badge-primary">{map[order.payment_method] || order.payment_method}</span>
 }
 
+// استخراج كل البنود المسترجعة من order_refunds
+function getRefundedItems(order: any): { service_name: string; qty: number }[] {
+  const refunds = order.order_refunds || []
+  const map: Record<string, number> = {}
+  refunds.forEach((r: any) => {
+    const items = r.items || []
+    items.forEach((i: any) => {
+      map[i.service_name] = (map[i.service_name] || 0) + (i.refundQty || i.qty || 1)
+    })
+  })
+  return Object.entries(map).map(([service_name, qty]) => ({ service_name, qty }))
+}
+
 function getYesterdayDate(): string {
   const d = new Date()
   d.setDate(d.getDate() - 1)
@@ -108,9 +121,12 @@ export default function OrdersPage() {
   }
 
   function printOrder(order: any) {
-    const rows = (order.order_items || []).map((i: any) =>
-      `<tr><td>${i.service_name}</td><td style="text-align:center">${i.qty}</td><td style="text-align:left">${(i.price * i.qty).toFixed(0)}</td></tr>`
-    ).join('')
+    const refundedItems = getRefundedItems(order)
+    const rows = (order.order_items || []).map((i: any) => {
+      const refunded = refundedItems.find(r => r.service_name === i.service_name)
+      const tag = refunded ? `<span style="color:red;font-size:10px"> (مسترجع)</span>` : ''
+      return `<tr><td>${i.service_name}${tag}</td><td style="text-align:center">${i.qty}</td><td style="text-align:left">${(i.price * i.qty).toFixed(0)}</td></tr>`
+    }).join('')
 
     const isMixed = Number(order.cash_amount) > 0 && Number(order.card_amount) > 0
     const paymentLine = isMixed
@@ -150,7 +166,7 @@ export default function OrdersPage() {
     <div class="dashed"></div>
     <div class="total-box">
       <div class="row"><span>المجموع:</span><span>${Number(order.subtotal).toFixed(2)} ر.س</span></div>
-      ${order.discount > 0 ? `<div class="row"><span>خصم:</span><span>- ${Number(order.discount).toFixed(2)} ر.س</span></div>` : ''}
+      ${Number(order.discount) > 0 ? `<div class="row"><span>خصم:</span><span>- ${Number(order.discount).toFixed(2)} ر.س</span></div>` : ''}
       <div class="row"><span>ضريبة:</span><span>${Number(order.tax).toFixed(2)} ر.س</span></div>
       ${paymentLine}${refundLine}
       <div class="dashed"></div>
@@ -179,17 +195,17 @@ export default function OrdersPage() {
       showToast(locale === 'ar' ? '✅ تم الاسترجاع الكامل' : '✅ Full refund done')
       loadOrders()
     } catch (e: any) {
-      showToast(`❌ ${e?.message || 'Error'}`)
+      showToast(`❌ ${e?.response?.data?.message || e?.message || 'Error'}`)
     } finally { setRefunding(null) }
   }
 
   function openPartialRefund(order: any) {
     const items: RefundItem[] = (order.order_items || []).map((i: any) => ({
       service_name: i.service_name,
-      price: i.price,
-      qty: i.qty,
-      selected: false,
-      refundQty: i.qty,
+      price:        i.price,
+      qty:          i.qty,
+      selected:     false,
+      refundQty:    i.qty,
     }))
     setRefundModal({ order, items, mode: 'items', customAmount: '', loading: false })
   }
@@ -199,6 +215,7 @@ export default function OrdersPage() {
     const { order, items, mode, customAmount } = refundModal
 
     let refundAmount = 0
+    let refundItems: any[] | undefined
 
     if (mode === 'items') {
       const selectedItems = items.filter(i => i.selected)
@@ -209,6 +226,11 @@ export default function OrdersPage() {
       const sub     = selectedItems.reduce((s, i) => s + i.price * i.refundQty, 0)
       const taxRate = Number(order.subtotal) > 0 ? Number(order.tax) / Number(order.subtotal) : 0
       refundAmount  = sub * (1 + taxRate)
+      refundItems   = selectedItems.map(i => ({
+        service_name: i.service_name,
+        price:        i.price,
+        qty:          i.refundQty,
+      }))
     } else {
       refundAmount = parseFloat(customAmount)
       if (isNaN(refundAmount) || refundAmount <= 0) {
@@ -224,12 +246,16 @@ export default function OrdersPage() {
 
     setRefundModal(prev => prev ? { ...prev, loading: true } : null)
     try {
-      await api.orders.refund(order.id, { mode: 'partial', refund_amount: refundAmount })
+      await api.orders.refund(order.id, {
+        mode: 'partial',
+        refund_amount: refundAmount,
+        items: refundItems,
+      })
       showToast(locale === 'ar' ? `✅ تم استرجاع ${refundAmount.toFixed(2)} ر.س` : `✅ Refunded ${refundAmount.toFixed(2)} SAR`)
       setRefundModal(null)
       loadOrders()
     } catch (e: any) {
-      showToast(`❌ ${e?.message || 'Error'}`)
+      showToast(`❌ ${e?.response?.data?.message || e?.message || 'Error'}`)
     } finally {
       setRefundModal(prev => prev ? { ...prev, loading: false } : null)
     }
@@ -272,7 +298,6 @@ export default function OrdersPage() {
 
   return (
     <div>
-      {/* Toast */}
       {toast && (
         <div style={{
           position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
@@ -285,7 +310,6 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Header */}
       <div className="dashboard-page-header">
         <div>
           <h2 className="dashboard-page-title">{t('title')}</h2>
@@ -300,7 +324,6 @@ export default function OrdersPage() {
         </button>
       </div>
 
-      {/* Branch filter */}
       {branches.length > 1 && (
         <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
           <GitBranch size={14} style={{ color: 'var(--color-text-muted)' }} />
@@ -315,7 +338,6 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Table */}
       <div className="table-container">
         <div className="table-header">
           <h3 className="table-title">{t('title')}</h3>
@@ -358,130 +380,157 @@ export default function OrdersPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map(order => (
-                <>
-                  <tr key={order.id} style={{ cursor: 'pointer' }} onClick={() => setExpanded(expanded === order.id ? null : order.id)}>
-                    <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
-                      #{String(order.id).slice(-8).toUpperCase()}
-                    </td>
-                    <td>{order.vehicles?.plate || '—'}</td>
-                    <td>{order.customers?.phone || '—'}</td>
-                    <td style={{ fontWeight: '700' }}>
-                      <div>{formatCurrency(Number(order.total) - (Number(order.refunded_amount) || 0), locale === 'ar' ? 'ar-SA' : 'en-US')}</div>
-                      {Number(order.refunded_amount) > 0 && (
-                        <div style={{ fontSize: '11px', color: 'var(--color-danger)', fontWeight: '600' }}>
-                          {locale === 'ar' ? '↩ مُسترجع:' : '↩ Refunded:'}{' '}
-                          {formatCurrency(Number(order.refunded_amount), locale === 'ar' ? 'ar-SA' : 'en-US')}
-                        </div>
-                      )}
-                    </td>
-                    <td>{paymentBadge(order, locale)}</td>
-                    <td>
-                      <span className={`badge ${
-                        order.status === 'completed'          ? 'badge-success'   :
-                        order.status === 'partially_refunded' ? 'badge-warning'   :
-                        order.status === 'refunded'           ? 'badge-purple'    :
-                        order.status === 'cancelled'          ? 'badge-danger'    : 'badge-secondary'
-                      }`}>
-                        {order.status === 'partially_refunded'
-                          ? (locale === 'ar' ? 'مسترجع جزئي' : 'Partial Refund')
-                          : t(`statuses.${order.status}` as any)}
-                      </span>
-                    </td>
-                    <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                      {formatDateTime(order.created_at, locale === 'ar' ? 'ar-SA' : 'en-US')}
-                    </td>
-                    <td onClick={e => e.stopPropagation()}>
-                      <div style={{ display: 'flex', gap: '6px' }}>
-                        <button className="action-btn" title={locale === 'ar' ? 'طباعة' : 'Print'} onClick={() => printOrder(order)}>
-                          <Printer size={14} />
-                        </button>
-                        {['completed','partially_refunded'].includes(order.status) && (
-                          <>
-                            <button
-                              className="action-btn"
-                              style={{ color: 'var(--color-warning)' }}
-                              title={locale === 'ar' ? 'استرجاع جزئي' : 'Partial Refund'}
-                              onClick={() => openPartialRefund(order)}
-                            >
-                              <RotateCcw size={13} />
-                            </button>
-                            <button
-                              className="action-btn danger"
-                              title={locale === 'ar' ? 'استرجاع كامل' : 'Full Refund'}
-                              onClick={() => refundFull(order)}
-                              disabled={refunding === order.id}
-                            >
-                              <AlertTriangle size={13} />
-                            </button>
-                          </>
+              {filtered.map(order => {
+                const refundedItems = getRefundedItems(order)
+                return (
+                  <>
+                    <tr key={order.id} style={{ cursor: 'pointer' }} onClick={() => setExpanded(expanded === order.id ? null : order.id)}>
+                      <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
+                        #{String(order.id).slice(-8).toUpperCase()}
+                      </td>
+                      <td>{order.vehicles?.plate || '—'}</td>
+                      <td>{order.customers?.phone || '—'}</td>
+                      <td style={{ fontWeight: '700' }}>
+                        <div>{formatCurrency(Number(order.total) - (Number(order.refunded_amount) || 0), locale === 'ar' ? 'ar-SA' : 'en-US')}</div>
+                        {Number(order.refunded_amount) > 0 && (
+                          <div style={{ fontSize: '11px', color: 'var(--color-danger)', fontWeight: '600' }}>
+                            ↩ {formatCurrency(Number(order.refunded_amount), locale === 'ar' ? 'ar-SA' : 'en-US')}
+                          </div>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-
-                  {expanded === order.id && (
-                    <tr key={`${order.id}-exp`}>
-                      <td colSpan={8} style={{ padding: 0 }}>
-                        <div style={{ padding: '16px 20px', backgroundColor: 'var(--color-bg-tertiary)', borderTop: '1px solid var(--color-border)' }}>
-                          {/* Payment breakdown */}
-                          {(Number(order.cash_amount) > 0 || Number(order.card_amount) > 0) && (
-                            <div style={{ marginBottom: '12px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                              {Number(order.cash_amount) > 0 && (
-                                <span style={{ padding: '4px 12px', borderRadius: '20px', backgroundColor: 'var(--color-warning-light)', border: '1px solid var(--color-warning-border)', fontSize: '12px', fontWeight: '700', color: 'var(--color-warning)' }}>
-                                  💵 {locale === 'ar' ? 'نقد' : 'Cash'}: {formatCurrency(Number(order.cash_amount), locale === 'ar' ? 'ar-SA' : 'en-US')}
-                                </span>
-                              )}
-                              {Number(order.card_amount) > 0 && (
-                                <span style={{ padding: '4px 12px', borderRadius: '20px', backgroundColor: 'var(--color-primary-light)', border: '1px solid var(--color-primary-border)', fontSize: '12px', fontWeight: '700', color: 'var(--color-primary)' }}>
-                                  💳 {locale === 'ar' ? 'بطاقة' : 'Card'}: {formatCurrency(Number(order.card_amount), locale === 'ar' ? 'ar-SA' : 'en-US')}
-                                </span>
-                              )}
-                            </div>
+                      </td>
+                      <td>{paymentBadge(order, locale)}</td>
+                      <td>
+                        <span className={`badge ${
+                          order.status === 'completed'          ? 'badge-success' :
+                          order.status === 'partially_refunded' ? 'badge-warning' :
+                          order.status === 'refunded'           ? 'badge-purple'  :
+                          order.status === 'cancelled'          ? 'badge-danger'  : 'badge-secondary'
+                        }`}>
+                          {order.status === 'partially_refunded'
+                            ? (locale === 'ar' ? 'مسترجع جزئي' : 'Partial Refund')
+                            : t(`statuses.${order.status}` as any)}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                        {formatDateTime(order.created_at, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                      </td>
+                      <td onClick={e => e.stopPropagation()}>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button className="action-btn" title={locale === 'ar' ? 'طباعة' : 'Print'} onClick={() => printOrder(order)}>
+                            <Printer size={14} />
+                          </button>
+                          {['completed','partially_refunded'].includes(order.status) && (
+                            <>
+                              <button
+                                className="action-btn"
+                                style={{ color: 'var(--color-warning)' }}
+                                title={locale === 'ar' ? 'استرجاع جزئي' : 'Partial Refund'}
+                                onClick={() => openPartialRefund(order)}
+                              >
+                                <RotateCcw size={13} />
+                              </button>
+                              <button
+                                className="action-btn danger"
+                                title={locale === 'ar' ? 'استرجاع كامل' : 'Full Refund'}
+                                onClick={() => refundFull(order)}
+                                disabled={refunding === order.id}
+                              >
+                                <AlertTriangle size={13} />
+                              </button>
+                            </>
                           )}
-
-                          {/* Items */}
-                          <div style={{ marginBottom: '8px', fontWeight: '700', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
-                            {locale === 'ar' ? 'الخدمات' : 'Services'}
-                          </div>
-                          {(order.order_items || []).map((item: any, i: number) => (
-                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--color-border)', fontSize: '13px' }}>
-                              <span style={{ color: 'var(--color-text-primary)' }}>{item.service_name} ×{item.qty}</span>
-                              <span style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
-                                {formatCurrency(item.price * item.qty, locale === 'ar' ? 'ar-SA' : 'en-US')}
-                              </span>
-                            </div>
-                          ))}
-
-                          {/* Totals */}
-                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '24px', marginTop: '12px', fontSize: '13px', flexWrap: 'wrap' }}>
-                            <span style={{ color: 'var(--color-text-muted)' }}>
-                              {locale === 'ar' ? 'المجموع:' : 'Sub:'} <strong>{formatCurrency(Number(order.subtotal), locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
-                            </span>
-                            {Number(order.discount) > 0 && (
-                              <span style={{ color: 'var(--color-success)' }}>
-                                {locale === 'ar' ? 'خصم:' : 'Disc:'} <strong>-{formatCurrency(Number(order.discount), locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
-                              </span>
-                            )}
-                            <span style={{ color: 'var(--color-text-muted)' }}>
-                              {locale === 'ar' ? 'ضريبة:' : 'Tax:'} <strong>{formatCurrency(Number(order.tax), locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
-                            </span>
-                            {Number(order.refunded_amount) > 0 && (
-                              <span style={{ color: 'var(--color-danger)' }}>
-                                {locale === 'ar' ? 'مُسترجع:' : 'Refunded:'} <strong>-{formatCurrency(Number(order.refunded_amount), locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
-                              </span>
-                            )}
-                            <span style={{ color: 'var(--color-primary)', fontWeight: '900', fontSize: '15px' }}>
-                              {locale === 'ar' ? 'الصافي:' : 'Net:'}{' '}
-                              {formatCurrency(Number(order.total) - (Number(order.refunded_amount) || 0), locale === 'ar' ? 'ar-SA' : 'en-US')}
-                            </span>
-                          </div>
                         </div>
                       </td>
                     </tr>
-                  )}
-                </>
-              ))}
+
+                    {expanded === order.id && (
+                      <tr key={`${order.id}-exp`}>
+                        <td colSpan={8} style={{ padding: 0 }}>
+                          <div style={{ padding: '16px 20px', backgroundColor: 'var(--color-bg-tertiary)', borderTop: '1px solid var(--color-border)' }}>
+
+                            {/* Payment breakdown */}
+                            {(Number(order.cash_amount) > 0 || Number(order.card_amount) > 0) && (
+                              <div style={{ marginBottom: '12px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                                {Number(order.cash_amount) > 0 && (
+                                  <span style={{ padding: '4px 12px', borderRadius: '20px', backgroundColor: 'var(--color-warning-light)', border: '1px solid var(--color-warning-border)', fontSize: '12px', fontWeight: '700', color: 'var(--color-warning)' }}>
+                                    💵 {locale === 'ar' ? 'نقد' : 'Cash'}: {formatCurrency(Number(order.cash_amount), locale === 'ar' ? 'ar-SA' : 'en-US')}
+                                  </span>
+                                )}
+                                {Number(order.card_amount) > 0 && (
+                                  <span style={{ padding: '4px 12px', borderRadius: '20px', backgroundColor: 'var(--color-primary-light)', border: '1px solid var(--color-primary-border)', fontSize: '12px', fontWeight: '700', color: 'var(--color-primary)' }}>
+                                    💳 {locale === 'ar' ? 'بطاقة' : 'Card'}: {formatCurrency(Number(order.card_amount), locale === 'ar' ? 'ar-SA' : 'en-US')}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Items */}
+                            <div style={{ marginBottom: '8px', fontWeight: '700', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                              {locale === 'ar' ? 'الخدمات' : 'Services'}
+                            </div>
+                            {(order.order_items || []).map((item: any, i: number) => {
+                              const refunded = refundedItems.find(r => r.service_name === item.service_name)
+                              return (
+                                <div key={i} style={{
+                                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                  padding: '8px 0', borderBottom: '1px solid var(--color-border)', fontSize: '13px',
+                                  opacity: refunded ? 0.7 : 1,
+                                }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{
+                                      color: refunded ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
+                                      textDecoration: refunded ? 'line-through' : 'none',
+                                    }}>
+                                      {item.service_name} ×{item.qty}
+                                    </span>
+                                    {refunded && (
+                                      <span style={{
+                                        fontSize: '10px', fontWeight: '700', color: 'var(--color-danger)',
+                                        backgroundColor: 'var(--color-danger-light)',
+                                        border: '1px solid var(--color-danger-border)',
+                                        borderRadius: '4px', padding: '1px 6px',
+                                      }}>
+                                        ↩ {locale === 'ar' ? 'مسترجع' : 'Refunded'}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span style={{ fontWeight: '700', color: refunded ? 'var(--color-text-muted)' : 'var(--color-primary)' }}>
+                                    {formatCurrency(item.price * item.qty, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                                  </span>
+                                </div>
+                              )
+                            })}
+
+                            {/* Totals */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '24px', marginTop: '12px', fontSize: '13px', flexWrap: 'wrap' }}>
+                              <span style={{ color: 'var(--color-text-muted)' }}>
+                                {locale === 'ar' ? 'المجموع:' : 'Sub:'} <strong>{formatCurrency(Number(order.subtotal), locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
+                              </span>
+                              {Number(order.discount) > 0 && (
+                                <span style={{ color: 'var(--color-success)' }}>
+                                  {locale === 'ar' ? 'خصم:' : 'Disc:'} <strong>-{formatCurrency(Number(order.discount), locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
+                                </span>
+                              )}
+                              <span style={{ color: 'var(--color-text-muted)' }}>
+                                {locale === 'ar' ? 'ضريبة:' : 'Tax:'} <strong>{formatCurrency(Number(order.tax), locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
+                              </span>
+                              {Number(order.refunded_amount) > 0 && (
+                                <span style={{ color: 'var(--color-danger)' }}>
+                                  {locale === 'ar' ? 'مُسترجع:' : 'Refunded:'} <strong>-{formatCurrency(Number(order.refunded_amount), locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
+                                </span>
+                              )}
+                              <span style={{ color: 'var(--color-primary)', fontWeight: '900', fontSize: '15px' }}>
+                                {locale === 'ar' ? 'الصافي:' : 'Net:'}{' '}
+                                {formatCurrency(Number(order.total) - (Number(order.refunded_amount) || 0), locale === 'ar' ? 'ar-SA' : 'en-US')}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                )
+              })}
               {filtered.length === 0 && (
                 <tr>
                   <td colSpan={8}>
@@ -512,7 +561,6 @@ export default function OrdersPage() {
             </div>
 
             <div className="modal-body">
-              {/* Mode tabs */}
               <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
                 <button className={`table-filter-btn ${refundModal.mode === 'items' ? 'active' : ''}`} onClick={() => setRefundModal(p => p ? { ...p, mode: 'items' } : null)}>
                   {locale === 'ar' ? '📋 حسب البنود' : '📋 By Items'}
@@ -522,13 +570,12 @@ export default function OrdersPage() {
                 </button>
               </div>
 
-              {/* Items mode */}
               {refundModal.mode === 'items' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {refundModal.items.map((item, idx) => (
                     <div key={idx} style={{
-                      display: 'flex', alignItems: 'center', gap: '12px',
-                      padding: '12px', borderRadius: 'var(--radius-sm)',
+                      display: 'flex', alignItems: 'center', gap: '12px', padding: '12px',
+                      borderRadius: 'var(--radius-sm)',
                       border: `1px solid ${item.selected ? 'var(--color-primary-border)' : 'var(--color-border)'}`,
                       backgroundColor: item.selected ? 'var(--color-primary-light)' : 'var(--color-bg-secondary)',
                       transition: 'var(--transition)',
@@ -565,7 +612,6 @@ export default function OrdersPage() {
                 </div>
               )}
 
-              {/* Amount mode */}
               {refundModal.mode === 'amount' && (
                 <div className="form-group">
                   <label className="form-label">{locale === 'ar' ? 'مبلغ الاسترجاع (ر.س)' : 'Refund Amount (SAR)'}</label>
@@ -581,7 +627,6 @@ export default function OrdersPage() {
                 </div>
               )}
 
-              {/* Summary */}
               <div style={{ marginTop: '20px', padding: '14px 16px', backgroundColor: 'var(--color-danger-light)', border: '1px solid var(--color-danger-border)', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: '700', color: 'var(--color-danger)', fontSize: '14px' }}>
                   {locale === 'ar' ? 'إجمالي الاسترجاع:' : 'Total to Refund:'}
@@ -591,7 +636,6 @@ export default function OrdersPage() {
                 </span>
               </div>
 
-              {/* Mixed payment warning */}
               {Number(refundModal.order.cash_amount) > 0 && Number(refundModal.order.card_amount) > 0 && (
                 <div style={{ marginTop: '10px', padding: '10px 14px', fontSize: '12px', backgroundColor: 'var(--color-warning-light)', border: '1px solid var(--color-warning-border)', borderRadius: 'var(--radius-sm)', color: 'var(--color-warning)' }}>
                   ⚠ {locale === 'ar'
