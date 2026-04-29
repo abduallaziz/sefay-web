@@ -22,17 +22,17 @@ export default function EmployeesPage() {
   const [saving,    setSaving]    = useState(false)
 
   const [name,     setName]     = useState('')
-  const [username, setUsername] = useState('')
+  const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
   const [role,     setRole]     = useState('cashier')
   const [branchId, setBranchId] = useState('')
 
   const ROLES = [
-    { id: 'superadmin', labelAr: 'سوبر ادمن',   labelEn: 'Super Admin' },
-    { id: 'owner',      labelAr: 'مالك',          labelEn: 'Owner' },
-    { id: 'manager',    labelAr: 'مدير',          labelEn: 'Manager' },
-    { id: 'cashier',    labelAr: 'كاشير',         labelEn: 'Cashier' },
-    { id: 'worker',     labelAr: 'موظف',          labelEn: 'Worker' },
+    { id: 'superadmin', labelAr: 'سوبر ادمن', labelEn: 'Super Admin' },
+    { id: 'owner',      labelAr: 'مالك',       labelEn: 'Owner' },
+    { id: 'manager',    labelAr: 'مدير',       labelEn: 'Manager' },
+    { id: 'cashier',    labelAr: 'كاشير',      labelEn: 'Cashier' },
+    { id: 'worker',     labelAr: 'موظف',       labelEn: 'Worker' },
   ]
 
   const roleColors: Record<string, string> = {
@@ -62,15 +62,15 @@ export default function EmployeesPage() {
 
   function openNew() {
     setSelected(null)
-    setName(''); setUsername(''); setPassword('')
+    setName(''); setEmail(''); setPassword('')
     setRole('cashier'); setBranchId('')
     setShowModal(true)
   }
 
- function openEdit(emp: User) {
+  function openEdit(emp: User) {
     setSelected(emp)
     setName(emp.name || '')
-    setUsername((emp as any).email || '')
+    setEmail((emp as any).email || '')
     setPassword('')
     setRole(emp.role)
     setBranchId(emp.branch_id || '')
@@ -78,7 +78,7 @@ export default function EmployeesPage() {
   }
 
   async function saveEmployee() {
-    if (!name.trim() || !username.trim()) return
+    if (!name.trim() || !email.trim()) return
     if (!selected && !password.trim()) return
     setSaving(true)
     try {
@@ -86,11 +86,11 @@ export default function EmployeesPage() {
       if (!session) return
 
       if (selected) {
-        const body: any = { 
-          name: name.trim(), 
-          email: username.trim(), 
-          role, 
-          branch_id: branchId || null 
+        const body: any = {
+          name: name.trim(),
+          email: email.trim(),
+          role,
+          branch_id: branchId || null,
         }
         if (password.trim()) body.password_hash = password.trim()
         await supabase.from('users').update(body).eq('id', selected.id)
@@ -98,7 +98,7 @@ export default function EmployeesPage() {
         await supabase.from('users').insert({
           tenant_id: session.tenant_id,
           name: name.trim(),
-          email: username.trim(),
+          email: email.trim(),
           password_hash: password.trim(),
           role,
           branch_id: branchId || null,
@@ -120,7 +120,7 @@ export default function EmployeesPage() {
 
   const filtered = employees.filter(e =>
     e.name?.toLowerCase().includes(search.toLowerCase()) ||
-    (e as any).username?.toLowerCase().includes(search.toLowerCase())
+    (e as any).email?.toLowerCase().includes(search.toLowerCase())
   )
 
   return (
@@ -144,7 +144,6 @@ export default function EmployeesPage() {
         </div>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal modal-md">
@@ -168,19 +167,21 @@ export default function EmployeesPage() {
                     placeholder={locale === 'ar' ? 'الاسم الكامل' : 'Full name'} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">{locale === 'ar' ? 'اسم المستخدم' : 'Username'} <span>*</span></label>
-                  <input id="emp-username" name="emp-username" className="form-input"
-                    value={username} onChange={e => setUsername(e.target.value)}
-                    placeholder={locale === 'ar' ? 'اسم الدخول' : 'Login username'} />
+                  <label className="form-label">{locale === 'ar' ? 'الإيميل' : 'Email'} <span>*</span></label>
+                  <input id="emp-email" name="emp-email" type="email" className="form-input"
+                    value={email} onChange={e => setEmail(e.target.value)}
+                    placeholder="example@email.com" />
                 </div>
               </div>
 
               <div className="form-group">
                 <label className="form-label">
                   {locale === 'ar' ? 'كلمة المرور' : 'Password'}
-                  {selected && <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginRight: '6px' }}>
-                    ({locale === 'ar' ? 'اتركها فارغة للإبقاء على القديمة' : 'Leave blank to keep current'})
-                  </span>}
+                  {selected && (
+                    <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginRight: '6px' }}>
+                      ({locale === 'ar' ? 'اتركها فارغة للإبقاء على القديمة' : 'Leave blank to keep current'})
+                    </span>
+                  )}
                   {!selected && <span>*</span>}
                 </label>
                 <input id="emp-password" name="emp-password" type="password" className="form-input"
@@ -255,7 +256,7 @@ export default function EmployeesPage() {
             <thead>
               <tr>
                 <th>{t('employeeName')}</th>
-                <th>{locale === 'ar' ? 'اسم المستخدم' : 'Username'}</th>
+                <th>{locale === 'ar' ? 'الإيميل' : 'Email'}</th>
                 <th>{t('role')}</th>
                 <th>{locale === 'ar' ? 'الفرع' : 'Branch'}</th>
                 <th>{locale === 'ar' ? 'الحالة' : 'Status'}</th>
@@ -282,7 +283,7 @@ export default function EmployeesPage() {
                     </div>
                   </td>
                   <td style={{ color: 'var(--color-text-secondary)' }}>
-                    {(emp as any).username || '—'}
+                    {(emp as any).email || '—'}
                   </td>
                   <td>
                     <span className={`badge ${roleColors[emp.role] || 'badge-muted'}`}>
@@ -294,7 +295,9 @@ export default function EmployeesPage() {
                   </td>
                   <td>
                     <span className={`badge ${(emp as any).is_active ? 'badge-success' : 'badge-danger'}`}>
-                      {(emp as any).is_active ? (locale === 'ar' ? 'مفعّل' : 'Active') : (locale === 'ar' ? 'معطّل' : 'Inactive')}
+                      {(emp as any).is_active
+                        ? (locale === 'ar' ? 'مفعّل' : 'Active')
+                        : (locale === 'ar' ? 'معطّل' : 'Inactive')}
                     </span>
                   </td>
                   <td>
