@@ -21,7 +21,7 @@ export default function ExpensesPage() {
   const [showModal, setShowModal] = useState(false)
   const [saving,    setSaving]    = useState(false)
   const [tab,       setTab]       = useState<'all' | 'recurring' | 'vat'>('all')
-
+  const [selected, setSelected] = useState<any>(null)
   const [title,        setTitle]        = useState('')
   const [amount,       setAmount]       = useState('')
   const [category,     setCategory]     = useState('عام')
@@ -59,12 +59,28 @@ export default function ExpensesPage() {
   }
 
   function openNew() {
-    setTitle(''); setAmount(''); setCategory('عام')
-    setNotes(''); setDate(getTodayDate())
-    setRecurring('none'); setRecurringDay('1')
-    setHasVat(false)
-    setShowModal(true)
-  }
+  setSelected(null)
+  setTitle(''); setAmount(''); setCategory('عام')
+  setNotes(''); setDate(getTodayDate())
+  setRecurring('none'); setRecurringDay('1')
+  setHasVat(false)
+  setShowModal(true)
+}
+
+
+  function openEdit(exp: any) {
+  setSelected(exp)
+  setTitle(exp.title)
+  setAmount(String(exp.amount))
+  setCategory(exp.category || 'عام')
+  setNotes(exp.notes || '')
+  setDate(exp.date)
+  setRecurring((exp.recurring_type || 'none') as RecurringType)
+  setRecurringDay(String(exp.recurring_day || '1'))
+  setHasVat(exp.has_vat || false)
+  setShowModal(true)
+}
+
 
   function addNewCategory() {
     const cat = prompt(locale === 'ar' ? 'اسم الفئة الجديدة:' : 'New category name:')
@@ -74,24 +90,29 @@ export default function ExpensesPage() {
   }
 
   async function saveExpense() {
-    if (!title.trim() || !amount) return
-    setSaving(true)
-    try {
-      await api.expenses.create({
-        title: title.trim(),
-        amount: Number(amount),
-        category,
-        notes: notes || null,
-        date,
-        recurring_type: recurring,
-        recurring_day: recurring === 'monthly' ? Number(recurringDay) : null,
-        has_vat: hasVat,
-      })
-      setShowModal(false)
-      loadExpenses()
-    } catch (e) { console.error(e) }
-    finally { setSaving(false) }
-  }
+  if (!title.trim() || !amount) return
+  setSaving(true)
+  try {
+    const body = {
+      title: title.trim(),
+      amount: Number(amount),
+      category,
+      notes: notes || null,
+      date,
+      recurring_type: recurring,
+      recurring_day: recurring === 'monthly' ? Number(recurringDay) : null,
+      has_vat: hasVat,
+    }
+    if (selected) {
+      await api.expenses.update(selected.id, body)
+    } else {
+      await api.expenses.create(body)
+    }
+    setShowModal(false)
+    loadExpenses()
+  } catch (e) { console.error(e) }
+  finally { setSaving(false) }
+}
 
   async function deleteExpense(id: string) {
     if (!confirm(locale === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure?')) return
@@ -146,8 +167,10 @@ export default function ExpensesPage() {
           <div className="modal modal-md">
             <div className="modal-header">
               <h3 className="modal-title">
-                {locale === 'ar' ? '➕ إضافة مصروف' : '➕ Add Expense'}
-              </h3>
+                {selected
+                  ? (locale === 'ar' ? '✏️ تعديل مصروف' : '✏️ Edit Expense')
+                  : (locale === 'ar' ? '➕ إضافة مصروف' : '➕ Add Expense')}
+                </h3>
               <button className="modal-close" onClick={() => setShowModal(false)}>
                 <X size={14} />
               </button>
@@ -385,10 +408,14 @@ export default function ExpensesPage() {
                     {formatDate(e.date, locale === 'ar' ? 'ar-SA' : 'en-US')}
                   </td>
                   <td>
-                    <button className="action-btn danger" onClick={() => deleteExpense(e.id)}
-                      title={locale === 'ar' ? 'حذف' : 'Delete'}>
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="btn-group">
+                      <button className="action-btn" onClick={() => openEdit(e)}
+                        title={locale === 'ar' ? 'تعديل' : 'Edit'}>✏️</button>
+                      <button className="action-btn danger" onClick={() => deleteExpense(e.id)}
+                        title={locale === 'ar' ? 'حذف' : 'Delete'}>
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
