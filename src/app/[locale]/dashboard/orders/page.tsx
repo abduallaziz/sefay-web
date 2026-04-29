@@ -6,132 +6,331 @@ import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 import { formatCurrency, formatDateTime, getTodayDate } from '@/lib/utils'
+import { RefreshCw, Search, Printer, RotateCcw, GitBranch, X, AlertTriangle } from 'lucide-react'
 import { Order } from '@/types'
-import { Search, RefreshCw, Printer, RotateCcw } from 'lucide-react'
+import '@/styles/forms.css'
+import '@/styles/modals.css'
 
+// ──────────────────────────────────────────────
+// Types
+// ──────────────────────────────────────────────
+interface RefundItem {
+  service_name: string
+  price: number
+  qty: number
+  selected: boolean
+  refundQty: number
+}
+
+interface PartialRefundState {
+  order: any
+  items: RefundItem[]
+  mode: 'items' | 'amount'       // استرجاع بنود أو مبلغ محدد
+  customAmount: string
+  loading: boolean
+}
+
+// ──────────────────────────────────────────────
+// Helpers
+// ──────────────────────────────────────────────
+function paymentBadge(order: any, locale: string) {
+  const isMixed = order.cash_amount > 0 && order.card_amount > 0
+  if (isMixed) {
+    return (
+      <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <span className="badge badge-warning" style={{ fontSize: '10px' }}>
+          {locale === 'ar' ? 'مختلط' : 'Mixed'}
+        </span>
+        <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
+          {locale === 'ar'
+            ? `ن:${order.cash_amount?.toFixed(0)} ب:${order.card_amount?.toFixed(0)}`
+            : `C:${order.cash_amount?.toFixed(0)} K:${order.card_amount?.toFixed(0)}`}
+        </span>
+      </span>
+    )
+  }
+  const map: Record<string, string> = {
+    cash: locale === 'ar' ? 'نقد' : 'Cash',
+    mada: 'Mada',
+    visa: 'Visa',
+    mastercard: 'Mastercard',
+  }
+  return (
+    <span className="badge badge-primary">
+      {map[order.payment_method] || order.payment_method}
+    </span>
+  )
+}
+
+// ──────────────────────────────────────────────
+// Main Component
+// ──────────────────────────────────────────────
 export default function OrdersPage() {
-  const t = useTranslations('orders')
+  const t      = useTranslations('orders')
   const locale = useLocale()
 
-  const [orders,    setOrders]    = useState<Order[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [search,    setSearch]    = useState('')
+  const [orders,    setOrders]    = useState<any[]>([])
+  const [branches,  setBranches]  = useState<any[]>([])
+  const [selBranch, setSelBranch] = useState<string>('all')
   const [filter,    setFilter]    = useState('today')
+  const [search,    setSearch]    = useState('')
   const [expanded,  setExpanded]  = useState<string | null>(null)
+  const [loading,   setLoading]   = useState(true)
   const [refunding, setRefunding] = useState<string | null>(null)
+  const [toast,     setToast]     = useState('')
 
-  useEffect(() => { loadOrders() }, [filter])
+  // Partial Refund Modal
+  const [refundModal, setRefundModal] = useState<PartialRefundState | null>(null)
+
+  // ── Load ──────────────────────────────────────
+  useEffect(() => {
+    loadBranches()
+    loadOrders()
+  }, [filter])
+
+  async function loadBranches() {
+    try {
+      const session = getSession()
+      if (!session) return
+      const { data } = await supabase
+        .from('branches')
+        .select('id, name')
+        .eq('tenant_id', session.tenant_id)
+        .eq('active', true)
+      setBranches(data || [])
+    } catch (e) { console.error(e) }
+  }
 
   async function loadOrders() {
     setLoading(true)
     try {
-      const date = filter === 'today' ? getTodayDate() : undefined
+      const date = filter === 'today'     ? getTodayDate()
+                 : filter === 'yesterday' ? getYesterdayDate()
+                 : filter === 'week'      ? getWeekStartDate()
+                 : undefined
       const res = await api.orders.getAll(date)
       setOrders(res.data || [])
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setLoading(false)
+    } catch (e) { console.error(e) }
+    finally { setLoading(false) }
+  }
+
+  // ── Print ─────────────────────────────────────
+  function printOrder(order: any) {
+    const rows = (order.order_items || []).map((i: any) =>
+      `<tr><td>${i.service_name}</td><td style="text-align:center">${i.qty}</td><td style="text-align:left">${(i.price * i.qty).toFixed(0)}</td></tr>`
+    ).join('')
+
+    const isMixed = order.cash_amount > 0 && order.card_amount > 0
+    const paymentLine = isMixed
+      ? `<div class="row"><span>نقد:</span><span>${order.cash_amount?.toFixed(2)} ر.س</span></div>
+         <div class="row"><span>بطاقة:</span><span>${order.card_amount?.toFixed(2)} ر.س</span></div>`
+      : `<div class="row"><span>طريقة الدفع:</span><span>${order.payment_method}</span></div>`
+
+    const refundLine = order.refunded_amount > 0
+      ? `<div class="row" style="color:red"><span>مُسترجع:</span><span>- ${order.refunded_amount?.toFixed(2)} ر.س</span></div>`
+      : ''
+
+    const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"/>
+    <style>
+      @page { margin: 10mm; }
+      body { font-family: Arial, sans-serif; font-size: 13px; color: #000; }
+      .center { text-align: center; }
+      .bold { font-weight: bold; }
+      .dashed { border-top: 1px dashed #000; margin: 8px 0; }
+      .row { display: flex; justify-content: space-between; margin: 4px 0; }
+      table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+      th { border-bottom: 1px solid #000; padding: 4px; text-align: right; }
+      td { padding: 4px; text-align: right; }
+      td:last-child { text-align: left; }
+      .total-box { border: 1px solid #000; padding: 8px; margin: 8px 0; }
+      .grand { font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; }
+    </style></head><body>
+    <div class="center bold" style="font-size:18px">فاتورة ضريبية مبسطة</div>
+    ${order.status === 'refunded' ? '<div class="center" style="color:red;font-weight:bold;font-size:14px">⚠ مسترجع</div>' : ''}
+    <div class="dashed"></div>
+    <div class="row"><span>رقم الطلب:</span><span class="bold">#${String(order.id).slice(-8).toUpperCase()}</span></div>
+    <div class="row"><span>التاريخ:</span><span>${new Date(order.created_at).toLocaleString('ar-SA')}</span></div>
+    <div class="row"><span>اللوحة:</span><span class="bold">${order.vehicles?.plate || '—'}</span></div>
+    <div class="row"><span>الجوال:</span><span>${order.customers?.phone || '—'}</span></div>
+    <div class="dashed"></div>
+    <table>
+      <thead><tr><th>الخدمة</th><th>ك</th><th>المبلغ</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="dashed"></div>
+    <div class="total-box">
+      <div class="row"><span>المجموع:</span><span>${order.subtotal?.toFixed(2)} ر.س</span></div>
+      ${order.discount > 0 ? `<div class="row"><span>خصم:</span><span>- ${order.discount?.toFixed(2)} ر.س</span></div>` : ''}
+      <div class="row"><span>ضريبة:</span><span>${order.tax?.toFixed(2)} ر.س</span></div>
+      ${paymentLine}
+      ${refundLine}
+      <div class="dashed"></div>
+      <div class="grand"><span>الإجمالي</span><span>${order.total?.toFixed(2)} ر.س</span></div>
+    </div>
+    <div class="dashed"></div>
+    <div class="center" style="font-size:11px">شكراً لزيارتكم</div>
+    </body></html>`
+
+    const win = window.open('', '_blank', 'width=400,height=600')
+    if (win) {
+      win.document.write(html + '<script>window.onload=()=>{window.print();window.close();}<\/script>')
+      win.document.close()
     }
   }
 
-
-
-  async function printOrder(order: any) {
-  const rows = (order.order_items || []).map((i: any) =>
-    `<tr><td>${i.service_name}</td><td style="text-align:center">${i.qty}</td><td style="text-align:left">${(i.price * i.qty).toFixed(0)}</td></tr>`
-  ).join('')
-
-  const html = `<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"/>
-  <style>
-    @page { margin: 10mm; }
-    body { font-family: Arial, sans-serif; font-size: 13px; color: #000; }
-    .center { text-align: center; }
-    .bold { font-weight: bold; }
-    .dashed { border-top: 1px dashed #000; margin: 8px 0; }
-    .row { display: flex; justify-content: space-between; margin: 4px 0; }
-    table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-    th { border-bottom: 1px solid #000; padding: 4px; text-align: right; }
-    td { padding: 4px; text-align: right; }
-    td:last-child { text-align: left; }
-    .total-box { border: 1px solid #000; padding: 8px; margin: 8px 0; }
-    .grand { font-size: 16px; font-weight: bold; display: flex; justify-content: space-between; }
-  </style></head><body>
-  <div class="center bold" style="font-size:18px">فاتورة ضريبية مبسطة</div>
-  <div class="dashed"></div>
-  <div class="row"><span>رقم الطلب:</span><span class="bold">#${String(order.id).slice(-8).toUpperCase()}</span></div>
-  <div class="row"><span>التاريخ:</span><span>${new Date(order.created_at).toLocaleString('ar-SA')}</span></div>
-  <div class="row"><span>اللوحة:</span><span class="bold">${order.vehicles?.plate || '—'}</span></div>
-  <div class="row"><span>الجوال:</span><span>${order.customers?.phone || '—'}</span></div>
-  <div class="dashed"></div>
-  <table>
-    <thead><tr><th>الخدمة</th><th>ك</th><th>المبلغ</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
-  <div class="dashed"></div>
-  <div class="total-box">
-    <div class="row"><span>المجموع:</span><span>${order.subtotal?.toFixed(2)} ر.س</span></div>
-    ${order.discount > 0 ? `<div class="row"><span>خصم:</span><span>- ${order.discount?.toFixed(2)} ر.س</span></div>` : ''}
-    <div class="row"><span>ضريبة:</span><span>${order.tax?.toFixed(2)} ر.س</span></div>
-    <div class="dashed"></div>
-    <div class="grand"><span>الإجمالي</span><span>${order.total?.toFixed(2)} ر.س</span></div>
-  </div>
-  <div class="dashed"></div>
-  <div class="center" style="font-size:11px">شكراً لزيارتكم</div>
-  </body></html>`
-
-  const win = window.open('', '_blank', 'width=400,height=600')
-  if (win) {
-    win.document.write(html + '<script>window.onload=()=>{window.print();window.close();}<\/script>')
-    win.document.close()
-  }
-}
-
-
-
-  async function refundOrder(order: Order) {
+  // ── Full Refund ───────────────────────────────
+  async function refundFull(order: any) {
     if (!confirm(
       locale === 'ar'
-        ? `هل أنت متأكد من إرجاع الطلب #${String(order.id).slice(-8).toUpperCase()}؟`
-        : `Are you sure you want to refund order #${String(order.id).slice(-8).toUpperCase()}?`
+        ? `هل أنت متأكد من إرجاع الطلب #${String(order.id).slice(-8).toUpperCase()} بالكامل؟`
+        : `Full refund for order #${String(order.id).slice(-8).toUpperCase()}?`
     )) return
     setRefunding(order.id)
     try {
-      await supabase
-        .from('orders')
-        .update({ status: 'refunded' })
-        .eq('id', order.id)
+      await supabase.from('orders').update({
+        status: 'refunded',
+        refunded_amount: order.total,
+        refunded_at: new Date().toISOString(),
+      }).eq('id', order.id)
+      showToast(locale === 'ar' ? '✅ تم الاسترجاع الكامل' : '✅ Full refund done')
+      loadOrders()
+    } catch (e) { console.error(e) }
+    finally { setRefunding(null) }
+  }
+
+  // ── Open Partial Refund Modal ─────────────────
+  function openPartialRefund(order: any) {
+    const items: RefundItem[] = (order.order_items || []).map((i: any) => ({
+      service_name: i.service_name,
+      price: i.price,
+      qty: i.qty,
+      selected: false,
+      refundQty: i.qty,
+    }))
+    setRefundModal({
+      order,
+      items,
+      mode: 'items',
+      customAmount: '',
+      loading: false,
+    })
+  }
+
+  // ── Execute Partial Refund ────────────────────
+  async function executePartialRefund() {
+    if (!refundModal) return
+    const { order, items, mode, customAmount } = refundModal
+
+    let refundAmount = 0
+    if (mode === 'items') {
+      const selectedItems = items.filter(i => i.selected)
+      if (selectedItems.length === 0) {
+        showToast(locale === 'ar' ? '⚠ اختر خدمة واحدة على الأقل' : '⚠ Select at least one item')
+        return
+      }
+      refundAmount = selectedItems.reduce((s, i) => s + i.price * i.refundQty, 0)
+      // Add proportional tax
+      const taxRate = order.total > 0 ? order.tax / order.subtotal : 0
+      refundAmount = refundAmount * (1 + taxRate)
+    } else {
+      refundAmount = parseFloat(customAmount)
+      if (isNaN(refundAmount) || refundAmount <= 0) {
+        showToast(locale === 'ar' ? '⚠ أدخل مبلغاً صحيحاً' : '⚠ Enter a valid amount')
+        return
+      }
+      if (refundAmount > order.total) {
+        showToast(locale === 'ar' ? '⚠ المبلغ أكبر من إجمالي الطلب' : '⚠ Amount exceeds order total')
+        return
+      }
+    }
+
+    setRefundModal(prev => prev ? { ...prev, loading: true } : null)
+    try {
+      const alreadyRefunded = order.refunded_amount || 0
+      const newRefunded = alreadyRefunded + refundAmount
+      const isFullRefund = newRefunded >= order.total - 0.01
+
+      await supabase.from('orders').update({
+        status: isFullRefund ? 'refunded' : 'partially_refunded',
+        refunded_amount: newRefunded,
+        refunded_at: new Date().toISOString(),
+      }).eq('id', order.id)
+
+      showToast(
+        locale === 'ar'
+          ? `✅ تم استرجاع ${refundAmount.toFixed(2)} ر.س`
+          : `✅ Refunded ${refundAmount.toFixed(2)} SAR`
+      )
+      setRefundModal(null)
       loadOrders()
     } catch (e) {
       console.error(e)
+      showToast(locale === 'ar' ? '❌ حدث خطأ' : '❌ Error occurred')
     } finally {
-      setRefunding(null)
+      setRefundModal(prev => prev ? { ...prev, loading: false } : null)
     }
   }
 
-  const filtered = orders.filter(o =>
-    String(o.id).slice(-8).toLowerCase().includes(search.toLowerCase()) ||
-    (o as any).vehicles?.plate?.toLowerCase().includes(search.toLowerCase()) ||
-    (o as any).customers?.phone?.includes(search)
-  )
+  // ── Toast ─────────────────────────────────────
+  function showToast(msg: string) {
+    setToast(msg)
+    setTimeout(() => setToast(''), 3500)
+  }
 
-  const totalRevenue = orders.filter(o => o.status === 'completed').reduce((s, o) => s + o.total, 0)
-  const totalOrders  = orders.filter(o => o.status === 'completed').length
+  // ── Computed ──────────────────────────────────
+  const filtered = orders
+    .filter(o => selBranch === 'all' || o.branch_id === selBranch)
+    .filter(o =>
+      String(o.id).slice(-8).toLowerCase().includes(search.toLowerCase()) ||
+      (o.vehicles?.plate || '').toLowerCase().includes(search.toLowerCase()) ||
+      (o.customers?.phone || '').includes(search)
+    )
 
-  const filters = [
+  const totalRevenue = filtered.filter(o => o.status === 'completed' || o.status === 'partially_refunded')
+    .reduce((s, o) => s + o.total - (o.refunded_amount || 0), 0)
+  const totalOrders = filtered.filter(o => o.status === 'completed').length
+
+  // ── Partial Refund: computed total ────────────
+  const partialRefundTotal = refundModal?.mode === 'items'
+    ? (() => {
+        const sel = (refundModal.items || []).filter(i => i.selected)
+        const sub = sel.reduce((s, i) => s + i.price * i.refundQty, 0)
+        const taxRate = refundModal.order?.total > 0
+          ? (refundModal.order?.tax || 0) / (refundModal.order?.subtotal || 1)
+          : 0
+        return sub * (1 + taxRate)
+      })()
+    : parseFloat(refundModal?.customAmount || '0') || 0
+
+  const filterBtns = [
     { id: 'today',     label: t('filters.today') },
     { id: 'yesterday', label: t('filters.yesterday') },
     { id: 'week',      label: t('filters.week') },
     { id: 'all',       label: t('filters.all') },
   ]
 
+  // ── JSX ───────────────────────────────────────
   return (
     <div>
+      {/* Toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)',
+          backgroundColor: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-lg)', padding: '12px 24px',
+          boxShadow: 'var(--shadow-lg)', zIndex: 9999,
+          color: 'var(--color-text-primary)', fontWeight: '700', fontSize: '14px',
+        }}>
+          {toast}
+        </div>
+      )}
+
+      {/* Header */}
       <div className="dashboard-page-header">
         <div>
           <h2 className="dashboard-page-title">{t('title')}</h2>
           <p className="dashboard-page-subtitle">
-            {totalOrders} {locale === 'ar' ? 'طلب مكتمل' : 'completed orders'} —{' '}
+            {totalOrders} {locale === 'ar' ? 'طلب مكتمل' : 'completed'} —{' '}
             {formatCurrency(totalRevenue, locale === 'ar' ? 'ar-SA' : 'en-US')}
           </p>
         </div>
@@ -141,6 +340,29 @@ export default function OrdersPage() {
         </button>
       </div>
 
+      {/* Branch filter */}
+      {branches.length > 1 && (
+        <div style={{ marginBottom: '12px', display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <GitBranch size={14} style={{ color: 'var(--color-text-muted)' }} />
+          <button
+            className={`table-filter-btn ${selBranch === 'all' ? 'active' : ''}`}
+            onClick={() => setSelBranch('all')}
+          >
+            {locale === 'ar' ? 'كل الفروع' : 'All Branches'}
+          </button>
+          {branches.map(b => (
+            <button
+              key={b.id}
+              className={`table-filter-btn ${selBranch === b.id ? 'active' : ''}`}
+              onClick={() => setSelBranch(b.id)}
+            >
+              {b.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Main table */}
       <div className="table-container">
         <div className="table-header">
           <h3 className="table-title">{t('title')}</h3>
@@ -148,7 +370,7 @@ export default function OrdersPage() {
             <div className="table-search">
               <Search size={14} />
               <input
-                placeholder={locale === 'ar' ? 'بحث...' : 'Search...'}
+                placeholder={locale === 'ar' ? 'بحث رقم / لوحة / جوال...' : 'Search #, plate, phone...'}
                 value={search}
                 onChange={e => setSearch(e.target.value)}
               />
@@ -157,7 +379,7 @@ export default function OrdersPage() {
         </div>
 
         <div className="table-filters">
-          {filters.map(f => (
+          {filterBtns.map(f => (
             <button
               key={f.id}
               className={`table-filter-btn ${filter === f.id ? 'active' : ''}`}
@@ -197,23 +419,29 @@ export default function OrdersPage() {
                     <td style={{ fontWeight: '700', color: 'var(--color-primary)' }}>
                       #{String(order.id).slice(-8).toUpperCase()}
                     </td>
-                    <td>{(order as any).vehicles?.plate || '—'}</td>
-                    <td>{(order as any).customers?.phone || '—'}</td>
+                    <td>{order.vehicles?.plate || '—'}</td>
+                    <td>{order.customers?.phone || '—'}</td>
                     <td style={{ fontWeight: '700' }}>
-                      {formatCurrency(order.total, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                      <div>{formatCurrency(order.total, locale === 'ar' ? 'ar-SA' : 'en-US')}</div>
+                      {(order.refunded_amount > 0) && (
+                        <div style={{ fontSize: '11px', color: 'var(--color-danger)', fontWeight: '600' }}>
+                          {locale === 'ar' ? '↩ مُسترجع:' : '↩ Refunded:'}{' '}
+                          {formatCurrency(order.refunded_amount, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                        </div>
+                      )}
                     </td>
-                    <td>
-                      <span className="badge badge-primary">
-                        {t(`paymentMethods.${order.payment_method}` as any)}
-                      </span>
-                    </td>
+                    <td>{paymentBadge(order, locale)}</td>
                     <td>
                       <span className={`badge ${
-                        order.status === 'completed' ? 'badge-success' :
-                        order.status === 'refunded'  ? 'badge-purple' :
-                        order.status === 'cancelled' ? 'badge-danger' : 'badge-warning'
+                        order.status === 'completed'           ? 'badge-success' :
+                        order.status === 'partially_refunded'  ? 'badge-warning' :
+                        order.status === 'refunded'            ? 'badge-purple'  :
+                        order.status === 'cancelled'           ? 'badge-danger'  : 'badge-secondary'
                       }`}>
-                        {t(`statuses.${order.status}` as any)}
+                        {order.status === 'partially_refunded'
+                          ? (locale === 'ar' ? 'مسترجع جزئي' : 'Partial Refund')
+                          : t(`statuses.${order.status}` as any)
+                        }
                       </span>
                     </td>
                     <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
@@ -225,39 +453,78 @@ export default function OrdersPage() {
                           className="action-btn"
                           title={locale === 'ar' ? 'طباعة' : 'Print'}
                           onClick={() => printOrder(order)}
-                          >
+                        >
                           <Printer size={14} />
                         </button>
-                        {order.status === 'completed' && (
-                          <button
-                            className="action-btn danger"
-                            title={locale === 'ar' ? 'إرجاع' : 'Refund'}
-                            onClick={() => refundOrder(order)}
-                            disabled={refunding === order.id}
-                          >
-                            <RotateCcw size={14} />
-                          </button>
+                        {(order.status === 'completed' || order.status === 'partially_refunded') && (
+                          <>
+                            {/* Partial Refund */}
+                            <button
+                              className="action-btn"
+                              style={{ color: 'var(--color-warning)' }}
+                              title={locale === 'ar' ? 'استرجاع جزئي' : 'Partial Refund'}
+                              onClick={() => openPartialRefund(order)}
+                            >
+                              <RotateCcw size={13} />
+                            </button>
+                            {/* Full Refund */}
+                            <button
+                              className="action-btn danger"
+                              title={locale === 'ar' ? 'استرجاع كامل' : 'Full Refund'}
+                              onClick={() => refundFull(order)}
+                              disabled={refunding === order.id}
+                            >
+                              <AlertTriangle size={13} />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
                   </tr>
+
+                  {/* Expanded row */}
                   {expanded === order.id && (
-                    <tr key={`${order.id}-expanded`}>
-                      <td colSpan={8} style={{ padding: '0' }}>
+                    <tr key={`${order.id}-exp`}>
+                      <td colSpan={8} style={{ padding: 0 }}>
                         <div style={{
                           padding: '16px 20px',
                           backgroundColor: 'var(--color-bg-tertiary)',
                           borderTop: '1px solid var(--color-border)',
                         }}>
-                          <div style={{ marginBottom: '12px', fontWeight: '700', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
+                          {/* Payment breakdown */}
+                          {(order.cash_amount > 0 || order.card_amount > 0) && (
+                            <div style={{ marginBottom: '12px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                              {order.cash_amount > 0 && (
+                                <span style={{
+                                  padding: '4px 12px', borderRadius: '20px',
+                                  backgroundColor: 'var(--color-warning-light)',
+                                  border: '1px solid var(--color-warning-border)',
+                                  fontSize: '12px', fontWeight: '700', color: 'var(--color-warning)',
+                                }}>
+                                  💵 {locale === 'ar' ? 'نقد' : 'Cash'}: {formatCurrency(order.cash_amount, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                                </span>
+                              )}
+                              {order.card_amount > 0 && (
+                                <span style={{
+                                  padding: '4px 12px', borderRadius: '20px',
+                                  backgroundColor: 'var(--color-primary-light)',
+                                  border: '1px solid var(--color-primary-border)',
+                                  fontSize: '12px', fontWeight: '700', color: 'var(--color-primary)',
+                                }}>
+                                  💳 {locale === 'ar' ? 'بطاقة' : 'Card'}: {formatCurrency(order.card_amount, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                                </span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Items */}
+                          <div style={{ marginBottom: '8px', fontWeight: '700', fontSize: '13px', color: 'var(--color-text-secondary)' }}>
                             {locale === 'ar' ? 'الخدمات' : 'Services'}
                           </div>
-                          {((order as any).order_items || []).map((item: any, i: number) => (
+                          {((order.order_items) || []).map((item: any, i: number) => (
                             <div key={i} style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              padding: '8px 0',
-                              borderBottom: '1px solid var(--color-border)',
+                              display: 'flex', justifyContent: 'space-between',
+                              padding: '8px 0', borderBottom: '1px solid var(--color-border)',
                               fontSize: '13px',
                             }}>
                               <span style={{ color: 'var(--color-text-primary)' }}>
@@ -268,34 +535,32 @@ export default function OrdersPage() {
                               </span>
                             </div>
                           ))}
-                          <div style={{
-                            display: 'flex',
-                            justifyContent: 'flex-end',
-                            gap: '32px',
-                            marginTop: '12px',
-                            fontSize: '13px',
-                          }}>
+
+                          {/* Totals */}
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '24px', marginTop: '12px', fontSize: '13px' }}>
                             <span style={{ color: 'var(--color-text-muted)' }}>
-                              {locale === 'ar' ? 'المجموع:' : 'Subtotal:'}{' '}
-                              <strong style={{ color: 'var(--color-text-primary)' }}>
-                                {formatCurrency(order.subtotal, locale === 'ar' ? 'ar-SA' : 'en-US')}
-                              </strong>
+                              {locale === 'ar' ? 'المجموع:' : 'Sub:'}{' '}
+                              <strong>{formatCurrency(order.subtotal, locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
                             </span>
                             {order.discount > 0 && (
                               <span style={{ color: 'var(--color-success)' }}>
-                                {locale === 'ar' ? 'خصم:' : 'Discount:'}{' '}
-                                <strong>- {formatCurrency(order.discount, locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
+                                {locale === 'ar' ? 'خصم:' : 'Disc:'}{' '}
+                                <strong>-{formatCurrency(order.discount, locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
                               </span>
                             )}
                             <span style={{ color: 'var(--color-text-muted)' }}>
                               {locale === 'ar' ? 'ضريبة:' : 'Tax:'}{' '}
-                              <strong style={{ color: 'var(--color-text-primary)' }}>
-                                {formatCurrency(order.tax, locale === 'ar' ? 'ar-SA' : 'en-US')}
-                              </strong>
+                              <strong>{formatCurrency(order.tax, locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
                             </span>
+                            {(order.refunded_amount > 0) && (
+                              <span style={{ color: 'var(--color-danger)' }}>
+                                {locale === 'ar' ? 'مُسترجع:' : 'Refunded:'}{' '}
+                                <strong>-{formatCurrency(order.refunded_amount, locale === 'ar' ? 'ar-SA' : 'en-US')}</strong>
+                              </span>
+                            )}
                             <span style={{ color: 'var(--color-primary)', fontWeight: '900', fontSize: '15px' }}>
                               {locale === 'ar' ? 'الإجمالي:' : 'Total:'}{' '}
-                              {formatCurrency(order.total, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                              {formatCurrency(order.total - (order.refunded_amount || 0), locale === 'ar' ? 'ar-SA' : 'en-US')}
                             </span>
                           </div>
                         </div>
@@ -320,6 +585,219 @@ export default function OrdersPage() {
           </table>
         )}
       </div>
+
+      {/* ═══════════════════════════════════════════════
+          Partial Refund Modal
+      ═══════════════════════════════════════════════ */}
+      {refundModal && (
+        <div className="modal-overlay" onClick={() => setRefundModal(null)}>
+          <div className="modal" style={{ maxWidth: '520px', width: '95%' }} onClick={e => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="modal-header">
+              <h3 className="modal-title">
+                ↩ {locale === 'ar' ? 'استرجاع جزئي' : 'Partial Refund'}
+                <span style={{ marginRight: '8px', fontSize: '13px', color: 'var(--color-text-muted)', fontWeight: '400' }}>
+                  #{String(refundModal.order.id).slice(-8).toUpperCase()}
+                </span>
+              </h3>
+              <button className="modal-close" onClick={() => setRefundModal(null)}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              {/* Mode tabs */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                <button
+                  className={`table-filter-btn ${refundModal.mode === 'items' ? 'active' : ''}`}
+                  onClick={() => setRefundModal(p => p ? { ...p, mode: 'items' } : null)}
+                >
+                  {locale === 'ar' ? '📋 حسب البنود' : '📋 By Items'}
+                </button>
+                <button
+                  className={`table-filter-btn ${refundModal.mode === 'amount' ? 'active' : ''}`}
+                  onClick={() => setRefundModal(p => p ? { ...p, mode: 'amount' } : null)}
+                >
+                  {locale === 'ar' ? '💰 مبلغ محدد' : '💰 Custom Amount'}
+                </button>
+              </div>
+
+              {/* Items mode */}
+              {refundModal.mode === 'items' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {refundModal.items.map((item, idx) => (
+                    <div key={idx} style={{
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '12px', borderRadius: 'var(--radius-sm)',
+                      border: `1px solid ${item.selected ? 'var(--color-primary-border)' : 'var(--color-border)'}`,
+                      backgroundColor: item.selected ? 'var(--color-primary-light)' : 'var(--color-bg-secondary)',
+                      transition: 'var(--transition)',
+                    }}>
+                      {/* Checkbox */}
+                      <input
+                        type="checkbox"
+                        checked={item.selected}
+                        onChange={e => {
+                          setRefundModal(p => {
+                            if (!p) return null
+                            const items = [...p.items]
+                            items[idx] = { ...items[idx], selected: e.target.checked }
+                            return { ...p, items }
+                          })
+                        }}
+                        style={{ width: '16px', height: '16px', accentColor: 'var(--color-primary)', cursor: 'pointer' }}
+                      />
+
+                      {/* Name */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--color-text-primary)' }}>
+                          {item.service_name}
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                          {formatCurrency(item.price, locale === 'ar' ? 'ar-SA' : 'en-US')} × {item.qty}
+                        </div>
+                      </div>
+
+                      {/* Qty selector */}
+                      {item.selected && item.qty > 1 && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <button
+                            style={{
+                              width: '24px', height: '24px', borderRadius: '50%',
+                              border: '1px solid var(--color-border)',
+                              backgroundColor: 'var(--color-bg-primary)',
+                              cursor: 'pointer', fontSize: '16px', lineHeight: 1,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                            onClick={() => setRefundModal(p => {
+                              if (!p) return null
+                              const items = [...p.items]
+                              items[idx] = { ...items[idx], refundQty: Math.max(1, items[idx].refundQty - 1) }
+                              return { ...p, items }
+                            })}
+                          >−</button>
+                          <span style={{ fontWeight: '700', minWidth: '20px', textAlign: 'center' }}>
+                            {item.refundQty}
+                          </span>
+                          <button
+                            style={{
+                              width: '24px', height: '24px', borderRadius: '50%',
+                              border: '1px solid var(--color-border)',
+                              backgroundColor: 'var(--color-bg-primary)',
+                              cursor: 'pointer', fontSize: '16px', lineHeight: 1,
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}
+                            onClick={() => setRefundModal(p => {
+                              if (!p) return null
+                              const items = [...p.items]
+                              items[idx] = { ...items[idx], refundQty: Math.min(item.qty, items[idx].refundQty + 1) }
+                              return { ...p, items }
+                            })}
+                          >+</button>
+                        </div>
+                      )}
+
+                      {/* Item total */}
+                      <div style={{ fontWeight: '800', fontSize: '14px', color: 'var(--color-primary)', minWidth: '70px', textAlign: 'end' }}>
+                        {formatCurrency(item.price * (item.selected ? item.refundQty : item.qty), locale === 'ar' ? 'ar-SA' : 'en-US')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Custom amount mode */}
+              {refundModal.mode === 'amount' && (
+                <div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      {locale === 'ar' ? 'مبلغ الاسترجاع (ر.س)' : 'Refund Amount (SAR)'}
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      placeholder="0.00"
+                      min="0"
+                      max={refundModal.order.total}
+                      step="0.01"
+                      value={refundModal.customAmount}
+                      onChange={e => setRefundModal(p => p ? { ...p, customAmount: e.target.value } : null)}
+                    />
+                    <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
+                      {locale === 'ar' ? 'الحد الأقصى:' : 'Max:'}{' '}
+                      {formatCurrency(refundModal.order.total - (refundModal.order.refunded_amount || 0), locale === 'ar' ? 'ar-SA' : 'en-US')}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Summary box */}
+              <div style={{
+                marginTop: '20px',
+                padding: '14px 16px',
+                backgroundColor: 'var(--color-danger-light)',
+                border: '1px solid var(--color-danger-border)',
+                borderRadius: 'var(--radius-sm)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <span style={{ fontWeight: '700', color: 'var(--color-danger)', fontSize: '14px' }}>
+                  {locale === 'ar' ? 'إجمالي الاسترجاع:' : 'Total to Refund:'}
+                </span>
+                <span style={{ fontWeight: '900', fontSize: '18px', color: 'var(--color-danger)' }}>
+                  {formatCurrency(partialRefundTotal, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                </span>
+              </div>
+
+              {/* Payment split info */}
+              {refundModal.order.cash_amount > 0 && refundModal.order.card_amount > 0 && (
+                <div style={{
+                  marginTop: '10px', padding: '10px 14px', fontSize: '12px',
+                  backgroundColor: 'var(--color-warning-light)',
+                  border: '1px solid var(--color-warning-border)',
+                  borderRadius: 'var(--radius-sm)', color: 'var(--color-warning)',
+                }}>
+                  ⚠ {locale === 'ar'
+                    ? `الطلب مدفوع باستخدام نقد (${formatCurrency(refundModal.order.cash_amount, 'ar-SA')}) وبطاقة (${formatCurrency(refundModal.order.card_amount, 'ar-SA')}) — قم بمعالجة الاسترجاع يدوياً`
+                    : `Order paid with Cash (${formatCurrency(refundModal.order.cash_amount, 'en-US')}) + Card (${formatCurrency(refundModal.order.card_amount, 'en-US')}) — handle each method manually`
+                  }
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setRefundModal(null)}>
+                {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={executePartialRefund}
+                disabled={refundModal.loading || partialRefundTotal <= 0}
+              >
+                {refundModal.loading
+                  ? (locale === 'ar' ? 'جاري...' : 'Processing...')
+                  : `↩ ${locale === 'ar' ? 'تأكيد الاسترجاع' : 'Confirm Refund'}`
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
+}
+
+// ──────────────────────────────────────────────
+// Date Helpers
+// ──────────────────────────────────────────────
+function getYesterdayDate(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' })
+}
+
+function getWeekStartDate(): string {
+  const d = new Date()
+  d.setDate(d.getDate() - 6)
+  return d.toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' })
 }
