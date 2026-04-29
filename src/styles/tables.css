@@ -277,3 +277,56 @@ tbody td {
   border-color: var(--color-success-border);
   color: var(--color-success);
 }
+/* ═══════════════════════════════════════
+   Tables — Mobile Responsive
+═══════════════════════════════════════ */
+@media (max-width: 768px) {
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table-container table {
+    min-width: 580px;
+  }
+
+  .table-header {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  .table-search input {
+    width: 130px;
+  }
+
+  .table-filters {
+    padding: 8px 14px;
+    gap: 4px;
+  }
+
+  thead th {
+    padding: 10px 12px;
+    font-size: 10px;
+  }
+
+  tbody td {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+
+  .action-btn {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .table-search input {
+    width: 100px;
+  }
+
+  .badge {
+    font-size: 10px;
+    padding: 2px 7px;
+  }
+}
