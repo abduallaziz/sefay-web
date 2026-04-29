@@ -11,13 +11,25 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children, session }: DashboardLayoutProps) {
-  const [collapsed,   setCollapsed]   = useState(false)
-  const [mobileOpen,  setMobileOpen]  = useState(false)
+  const [collapsed,  setCollapsed]  = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const [isMobile,   setIsMobile]   = useState(false)
 
-  // إغلاق الـ sidebar لما يتغير الـ route على الموبايل
   useEffect(() => {
-    setMobileOpen(false)
+    function checkMobile() {
+      setIsMobile(window.innerWidth <= 768)
+      if (window.innerWidth > 768) setMobileOpen(false)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  const mainMargin = isMobile
+    ? '0'
+    : collapsed
+    ? '70px'
+    : 'var(--sidebar-width)'
 
   return (
     <div className="dashboard-layout">
@@ -31,7 +43,7 @@ export default function DashboardLayout({ children, session }: DashboardLayoutPr
 
       <main
         className={`dashboard-main ${collapsed ? 'collapsed' : ''}`}
-        style={{ marginInlineStart: 'var(--sidebar-width)' }}
+        style={{ marginInlineStart: mainMargin }}
       >
         <Header
           session={session}
