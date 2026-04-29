@@ -1,7 +1,7 @@
 .sidebar {
   width: var(--sidebar-width);
   height: 100vh;
-  max-height: 100vh;;
+  max-height: 100vh;
   background-color: var(--color-bg-secondary);
   border-inline-end: 1px solid var(--color-border);
   display: flex;
@@ -9,12 +9,41 @@
   position: fixed;
   top: 0;
   inset-inline-start: 0;
-  z-index: 100;
+  z-index: 200;
   transition: var(--transition);
 }
 
 .sidebar.collapsed {
   width: 70px;
+}
+
+/* Mobile: مخفي افتراضياً */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(100%);
+    width: var(--sidebar-width) !important;
+  }
+
+  [dir="ltr"] .sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+}
+
+/* Overlay للموبايل */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 199;
+}
+
+.sidebar-overlay.active {
+  display: block;
 }
 
 .sidebar-header {
@@ -83,6 +112,13 @@
 .sidebar-collapse-btn:hover {
   border-color: var(--color-primary-border);
   color: var(--color-primary);
+}
+
+/* على الموبايل نخفي زر الـ collapse */
+@media (max-width: 768px) {
+  .sidebar-collapse-btn {
+    display: none;
+  }
 }
 
 .sidebar-nav {
@@ -220,3 +256,7 @@
 .sidebar.collapsed .sidebar-user-info {
   display: none;
 }
+
+/* ═══════════════════════════════════════
+   Dashboard Main — Mobile responsive
+═══════════════════════════════════════ */

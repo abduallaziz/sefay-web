@@ -7,7 +7,7 @@ import { clearSession } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import {
   LayoutDashboard, ShoppingCart, Users, Wrench,
-  BarChart3, GitBranch, UserCog, Receipt,
+  BarChart3, GitBranch, UserCog,
   Tag, Settings, LogOut, ChevronLeft, ChevronRight,
   DollarSign, RefreshCw,
 } from 'lucide-react'
@@ -17,9 +17,11 @@ interface SidebarProps {
   collapsed: boolean
   setCollapsed: (v: boolean) => void
   session: any
+  mobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
-export default function Sidebar({ collapsed, setCollapsed, session }: SidebarProps) {
+export default function Sidebar({ collapsed, setCollapsed, session, mobileOpen, onMobileClose }: SidebarProps) {
   const t = useTranslations('nav')
   const locale = useLocale()
   const pathname = usePathname()
@@ -51,62 +53,67 @@ export default function Sidebar({ collapsed, setCollapsed, session }: SidebarPro
   }
 
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
-      <div className="sidebar-header">
-        <div className="sidebar-logo">
-          <span>S</span>
-        </div>
-        {!collapsed && (
-          <div className="sidebar-brand">
-            <h2>Sefay</h2>
-            <p>{session?.tenant_name || 'ERP System'}</p>
-          </div>
-        )}
-        <button
-          className="sidebar-collapse-btn"
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          {locale === 'ar'
-            ? (collapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />)
-            : (collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />)
-          }
-        </button>
-      </div>
+    <>
+      {/* Overlay للموبايل */}
+      {mobileOpen && (
+        <div className="sidebar-overlay active" onClick={onMobileClose} />
+      )}
 
-      <nav className="sidebar-nav">
-        {!collapsed && (
-          <span className="sidebar-section-title">
-            {locale === 'ar' ? 'القائمة' : 'MENU'}
-          </span>
-        )}
-        {navItems.map(item => (
-          <Link
-            key={item.href}
-            href={item.href as any}
-            className={`sidebar-item ${isActive(item.href) ? 'active' : ''}`}
-          >
-            <item.icon className="sidebar-item-icon" size={18} />
-            {!collapsed && (
-              <span className="sidebar-item-label">{item.label}</span>
-            )}
-          </Link>
-        ))}
-      </nav>
-
-      <div className="sidebar-footer">
-        <div className="sidebar-user" onClick={handleLogout}>
-          <div className="sidebar-user-avatar">
-            {session?.user?.name?.charAt(0)?.toUpperCase() || 'U'}
+      <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
+        <div className="sidebar-header">
+          <div className="sidebar-logo">
+            <span>S</span>
           </div>
           {!collapsed && (
-            <div className="sidebar-user-info">
-              <div className="sidebar-user-name">{session?.user?.name}</div>
-              <div className="sidebar-user-role">{session?.user?.role}</div>
+            <div className="sidebar-brand">
+              <h2>Sefay</h2>
+              <p>{session?.tenant_name || 'ERP System'}</p>
             </div>
           )}
-          {!collapsed && <LogOut size={16} color="var(--color-text-muted)" />}
+          <button className="sidebar-collapse-btn" onClick={() => setCollapsed(!collapsed)}>
+            {locale === 'ar'
+              ? (collapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />)
+              : (collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />)
+            }
+          </button>
         </div>
-      </div>
-    </aside>
+
+        <nav className="sidebar-nav">
+          {!collapsed && (
+            <span className="sidebar-section-title">
+              {locale === 'ar' ? 'القائمة' : 'MENU'}
+            </span>
+          )}
+          {navItems.map(item => (
+            <Link
+              key={item.href}
+              href={item.href as any}
+              className={`sidebar-item ${isActive(item.href) ? 'active' : ''}`}
+              onClick={onMobileClose}
+            >
+              <item.icon className="sidebar-item-icon" size={18} />
+              {!collapsed && (
+                <span className="sidebar-item-label">{item.label}</span>
+              )}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-user" onClick={handleLogout}>
+            <div className="sidebar-user-avatar">
+              {session?.user?.name?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+            {!collapsed && (
+              <div className="sidebar-user-info">
+                <div className="sidebar-user-name">{session?.user?.name}</div>
+                <div className="sidebar-user-role">{session?.user?.role}</div>
+              </div>
+            )}
+            {!collapsed && <LogOut size={16} color="var(--color-text-muted)" />}
+          </div>
+        </div>
+      </aside>
+    </>
   )
 }

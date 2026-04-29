@@ -242,3 +242,67 @@
   border-color: var(--color-primary-border);
   color: var(--color-primary);
 }
+/* أضف هذا في نهاية dashboard.css */
+/* Mobile dashboard.css */
+
+@media (max-width: 768px) {
+  .dashboard-main {
+    margin-inline-start: 0 !important;
+  }
+
+  .dashboard-page {
+    padding: 16px 12px;
+  }
+
+  .dashboard-page-header {
+    margin-bottom: 16px;
+  }
+
+  .dashboard-page-title {
+    font-size: 16px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px;
+  }
+
+  .stat-card-value {
+    font-size: 18px;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .table-container table {
+    min-width: 600px;
+  }
+
+  .dashboard-header {
+    padding: 0 12px;
+  }
+
+  .header-user-info {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 14px 12px;
+  }
+
+  .stat-card-value {
+    font-size: 16px;
+  }
+}
