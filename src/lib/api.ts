@@ -40,6 +40,8 @@ export const api = {
       axiosInstance.get(`/orders/range?from=${from}&to=${to}`),
     summaryByRange: (from: string, to: string) =>
       axiosInstance.get(`/orders/summary/range?from=${from}&to=${to}`),
+    refund: (id: string, body: { mode: 'full' | 'partial'; refund_amount?: number }) =>
+      axiosInstance.patch(`/orders/${id}/refund`, body),
   },
   services: {
     getAll: () => axiosInstance.get('/services/all'),
