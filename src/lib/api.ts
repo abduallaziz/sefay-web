@@ -67,10 +67,12 @@ export const api = {
     current: () => axiosInstance.get('/shifts/current'),
   },
   expenses: {
-    getAll: (from?: string, to?: string) =>
-      axiosInstance.get(`/expenses${from && to ? `?from=${from}&to=${to}` : ''}`),
-    create: (body: any) => axiosInstance.post('/expenses', body),
-  },
+  getAll: (from?: string, to?: string) =>
+    axiosInstance.get(`/expenses${from && to ? `?from=${from}&to=${to}` : ''}`),
+  create: (body: any) => axiosInstance.post('/expenses', body),
+  update: (id: string, body: any) => axiosInstance.put(`/expenses/${id}`, body),
+  delete: (id: string) => axiosInstance.delete(`/expenses/${id}`),
+},
 }
 
 export default axiosInstance
