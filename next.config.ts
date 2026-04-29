@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
         hostname: 'hlarjiahlbnxvabomkvu.supabase.co',
       },
     ],
+    formats: ['image/avif', 'image/webp'],
+  },
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'recharts'],
+  },
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
   },
 }
 
