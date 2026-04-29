@@ -60,6 +60,7 @@ export const api = {
     update: (id: string, body: any) => axiosInstance.put(`/coupons/${id}`, body),
     toggle: (id: string, active: boolean) =>
       axiosInstance.put(`/coupons/${id}`, { active }),
+    delete: (id: string) => axiosInstance.delete(`/coupons/${id}`),
   },
   shifts: {
     current: () => axiosInstance.get('/shifts/current'),
@@ -68,6 +69,7 @@ export const api = {
     getAll: (from?: string, to?: string) =>
       axiosInstance.get(`/expenses${from && to ? `?from=${from}&to=${to}` : ''}`),
     create: (body: any) => axiosInstance.post('/expenses', body),
+    delete: (id: string) => axiosInstance.delete(`/expenses/${id}`),
   },
 }
 

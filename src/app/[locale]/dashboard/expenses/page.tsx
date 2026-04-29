@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
-import { supabase } from '@/lib/supabase'
-import { getSession } from '@/lib/auth'
+import { api } from '@/lib/api'
 import { formatCurrency, formatDate, getTodayDate } from '@/lib/utils'
 import { Expense } from '@/types'
 import { Search, RefreshCw, Plus, X, Save, Trash2, RepeatIcon } from 'lucide-react'
@@ -47,15 +46,10 @@ export default function ExpensesPage() {
   async function loadExpenses() {
     setLoading(true)
     try {
-      const session = getSession()
-      if (!session) return
-      const { data } = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('tenant_id', session.tenant_id)
-        .order('date', { ascending: false })
-      setExpenses(data || [])
-      const cats = (data || [])
+      const res = await api.expenses.getAll()
+      const data = res.data || []
+      setExpenses(data)
+      const cats = data
         .map((e: any) => e.category)
         .filter((c: string) => c && !DEFAULT_CATS.includes(c))
       setExtraCats([...new Set(cats)] as string[])
@@ -81,10 +75,7 @@ export default function ExpensesPage() {
     if (!title.trim() || !amount) return
     setSaving(true)
     try {
-      const session = getSession()
-      if (!session) return
-      await supabase.from('expenses').insert({
-        tenant_id: session.tenant_id,
+      await api.expenses.create({
         title: title.trim(),
         amount: Number(amount),
         category,
@@ -102,7 +93,7 @@ export default function ExpensesPage() {
   async function deleteExpense(id: string) {
     if (!confirm(locale === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure?')) return
     try {
-      await supabase.from('expenses').delete().eq('id', id)
+      await api.expenses.delete(id)
       loadExpenses()
     } catch (e) { console.error(e) }
   }
