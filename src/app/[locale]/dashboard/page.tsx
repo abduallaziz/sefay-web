@@ -276,7 +276,7 @@ export default function DashboardPage() {
                       contentStyle={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-text-primary)' }}
                       formatter={(v: any) => [formatCurrency(v, locale === 'ar' ? 'ar-SA' : 'en-US'), locale === 'ar' ? 'الصافي' : 'Net']}
                     />
-                    <Bar dataKey="total" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="total" fill="#10b981" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
