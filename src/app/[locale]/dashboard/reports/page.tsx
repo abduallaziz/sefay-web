@@ -182,14 +182,19 @@ export default function ReportsPage() {
 
       } else if (id === 'tax_report') {
         const [summaryRes, ordersRes, expensesRes] = await Promise.all([
-          api.orders.summaryByRange(from, to),
-          api.orders.getByRange(from, to),
-          api.expenses.getAll(from, to),
-        ])
-        const expenses = expensesRes.data || []
-        const totalExpenses = expenses.reduce((s: number, e: any) => s + Number(e.amount), 0)
-        setReportData({ summary: summaryRes.data, orders: ordersRes.data || [], totalExpenses })
-      }
+        api.orders.summaryByRange(from, to),
+        api.orders.getByRange(from, to),
+        api.expenses.getAll(from, to),
+      ])
+  const expenses = expensesRes.data || []
+  const vatExpenses = expenses.filter((e: any) => e.has_vat === true)
+  const totalVatExpenses = vatExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0)
+  setReportData({ 
+    summary: summaryRes.data, 
+    orders: ordersRes.data || [],
+    totalExpenses: totalVatExpenses,
+  })
+}
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
   }

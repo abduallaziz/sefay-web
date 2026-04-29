@@ -20,7 +20,7 @@ export default function ExpensesPage() {
   const [search,    setSearch]    = useState('')
   const [showModal, setShowModal] = useState(false)
   const [saving,    setSaving]    = useState(false)
-  const [tab,       setTab]       = useState<'all' | 'recurring'>('all')
+  const [tab,       setTab]       = useState<'all' | 'recurring' | 'vat'>('all')
 
   const [title,        setTitle]        = useState('')
   const [amount,       setAmount]       = useState('')
@@ -29,6 +29,7 @@ export default function ExpensesPage() {
   const [date,         setDate]         = useState(getTodayDate())
   const [recurring,    setRecurring]    = useState<RecurringType>('none')
   const [recurringDay, setRecurringDay] = useState('1')
+  const [hasVat,       setHasVat]       = useState(false)
 
   const DEFAULT_CATS = ['عام','رواتب','إيجار','كهرباء','ماء','صيانة','مشتريات','تأمين','ضرائب','أخرى']
   const [extraCats, setExtraCats] = useState<string[]>([])
@@ -61,6 +62,7 @@ export default function ExpensesPage() {
     setTitle(''); setAmount(''); setCategory('عام')
     setNotes(''); setDate(getTodayDate())
     setRecurring('none'); setRecurringDay('1')
+    setHasVat(false)
     setShowModal(true)
   }
 
@@ -83,6 +85,7 @@ export default function ExpensesPage() {
         date,
         recurring_type: recurring,
         recurring_day: recurring === 'monthly' ? Number(recurringDay) : null,
+        has_vat: hasVat,
       })
       setShowModal(false)
       loadExpenses()
@@ -106,8 +109,11 @@ export default function ExpensesPage() {
   const recurringExpenses = expenses.filter(e =>
     (e as any).recurring_type && (e as any).recurring_type !== 'none'
   )
-  const filtered = tab === 'recurring' ? recurringExpenses : allFiltered
-  const total = allFiltered.reduce((s, e) => s + e.amount, 0)
+  const vatExpenses = expenses.filter(e => (e as any).has_vat === true)
+
+  const filtered = tab === 'recurring' ? recurringExpenses : tab === 'vat' ? vatExpenses : allFiltered
+  const total    = allFiltered.reduce((s, e) => s + e.amount, 0)
+  const vatTotal = vatExpenses.reduce((s, e) => s + e.amount, 0)
 
   return (
     <div>
@@ -178,6 +184,48 @@ export default function ExpensesPage() {
                 </div>
               </div>
 
+              {/* ضريبة القيمة المضافة */}
+              <div className="form-group">
+                <div className="form-switch" onClick={() => setHasVat(!hasVat)}>
+                  <div>
+                    <div className="form-switch-label">
+                      🧾 {locale === 'ar' ? 'يوجد فاتورة ضريبية (VAT 15%)' : 'Has VAT invoice (15%)'}
+                    </div>
+                    <div className="form-switch-desc">
+                      {locale === 'ar'
+                        ? 'فعّل هذا إذا كان المصروف مصحوباً بفاتورة ضريبية رسمية'
+                        : 'Enable if this expense has an official VAT invoice'}
+                    </div>
+                  </div>
+                  <div style={{
+                    width: '40px', height: '22px', borderRadius: '11px',
+                    backgroundColor: hasVat ? 'var(--color-primary)' : 'var(--color-border)',
+                    position: 'relative', transition: 'var(--transition)', flexShrink: 0,
+                  }}>
+                    <div style={{
+                      width: '16px', height: '16px', borderRadius: '50%',
+                      backgroundColor: '#fff', position: 'absolute',
+                      top: '3px', transition: 'var(--transition)',
+                      left: hasVat ? '21px' : '3px',
+                    }} />
+                  </div>
+                </div>
+                {hasVat && (
+                  <div style={{
+                    marginTop: '8px', padding: '8px 12px',
+                    backgroundColor: 'var(--color-primary-light)',
+                    border: '1px solid var(--color-primary-border)',
+                    borderRadius: 'var(--radius-sm)', fontSize: '12px',
+                    color: 'var(--color-primary)',
+                  }}>
+                    🧾 {locale === 'ar'
+                      ? `ضريبة مدخلات مقدرة: ${formatCurrency(Number(amount || 0) * 15 / 115, locale === 'ar' ? 'ar-SA' : 'en-US')}`
+                      : `Estimated input VAT: ${formatCurrency(Number(amount || 0) * 15 / 115, 'en-US')}`}
+                  </div>
+                )}
+              </div>
+
+              {/* التكرار */}
               <div className="form-group">
                 <label className="form-label">
                   <RepeatIcon size={13} style={{ display: 'inline', marginInlineEnd: '6px' }} />
@@ -271,6 +319,22 @@ export default function ExpensesPage() {
             onClick={() => setTab('recurring')}>
             🔁 {locale === 'ar' ? 'التلقائية' : 'Recurring'}
           </button>
+          <button className={`table-filter-btn ${tab === 'vat' ? 'active' : ''}`}
+            onClick={() => setTab('vat')}>
+            🧾 {locale === 'ar' ? `فواتير ضريبية (${vatExpenses.length})` : `VAT Invoices (${vatExpenses.length})`}
+          </button>
+          {tab === 'vat' && vatExpenses.length > 0 && (
+            <div style={{
+              marginRight: 'auto', padding: '6px 12px',
+              backgroundColor: 'var(--color-primary-light)',
+              border: '1px solid var(--color-primary-border)',
+              borderRadius: 'var(--radius-sm)', fontSize: '12px',
+              color: 'var(--color-primary)', fontWeight: '700',
+            }}>
+              🧾 {locale === 'ar' ? 'ضريبة مدخلات:' : 'Input VAT:'}{' '}
+              {formatCurrency(vatTotal * 15 / 115, locale === 'ar' ? 'ar-SA' : 'en-US')}
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -284,9 +348,9 @@ export default function ExpensesPage() {
                 <th>{t('expenseTitle')}</th>
                 <th>{t('category')}</th>
                 <th>{t('amount')}</th>
+                <th>{locale === 'ar' ? 'ضريبة' : 'VAT'}</th>
                 <th>{locale === 'ar' ? 'التكرار' : 'Recurring'}</th>
                 <th>{t('date')}</th>
-                <th>{t('notes')}</th>
                 <th>{locale === 'ar' ? 'إجراءات' : 'Actions'}</th>
               </tr>
             </thead>
@@ -297,6 +361,13 @@ export default function ExpensesPage() {
                   <td><span className="badge badge-muted">{e.category}</span></td>
                   <td style={{ fontWeight: '700', color: 'var(--color-danger)' }}>
                     - {formatCurrency(e.amount, locale === 'ar' ? 'ar-SA' : 'en-US')}
+                  </td>
+                  <td>
+                    {(e as any).has_vat ? (
+                      <span className="badge badge-primary">🧾 VAT</span>
+                    ) : (
+                      <span style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>—</span>
+                    )}
                   </td>
                   <td>
                     {(e as any).recurring_type && (e as any).recurring_type !== 'none' ? (
@@ -313,7 +384,6 @@ export default function ExpensesPage() {
                   <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>
                     {formatDate(e.date, locale === 'ar' ? 'ar-SA' : 'en-US')}
                   </td>
-                  <td style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>{e.notes || '—'}</td>
                   <td>
                     <button className="action-btn danger" onClick={() => deleteExpense(e.id)}
                       title={locale === 'ar' ? 'حذف' : 'Delete'}>
