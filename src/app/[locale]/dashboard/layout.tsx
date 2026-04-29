@@ -72,9 +72,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           mobileOpen={mobileOpen}
           setMobileOpen={setMobileOpen}
         />
-        <div className="dashboard-page">
+        <main className="dashboard-page">
           {children}
-        </div>
+        </main>
       </div>
     </div>
   )

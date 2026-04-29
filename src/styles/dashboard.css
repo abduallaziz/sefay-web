@@ -11,6 +11,10 @@
   min-width: 0;
 }
 
+main.dashboard-page {
+  display: block;
+}
+
 .dashboard-main.collapsed {
   margin-inline-start: 70px;
 }
