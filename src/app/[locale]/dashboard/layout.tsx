@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import { useLocale } from 'next-intl'
 import { getSession } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/layout/Sidebar'
 import Header from '@/components/layout/Header'
 import '@/styles/dashboard.css'
@@ -13,7 +15,9 @@ import '@/styles/modals.css'
 import '@/styles/reports.css'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
+  const router   = useRouter()
+  const locale   = useLocale()
+
   const [collapsed,  setCollapsed]  = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [isMobile,   setIsMobile]   = useState(false)
@@ -22,9 +26,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     const s = getSession()
-    if (!s) { router.push('/login'); return }
+    if (!s) { router.push(`/${locale}/login`); return }
     setSession(s)
-    setLoading(false)
+    checkOnboarding(s.tenant_id)
   }, [])
 
   useEffect(() => {
@@ -37,6 +41,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  async function checkOnboarding(tenantId: string) {
+    try {
+      const { data } = await supabase
+        .from('tenants')
+        .select('onboarded')
+        .eq('id', tenantId)
+        .single()
+
+      if (data && !data.onboarded) {
+        router.replace(`/${locale}/onboarding`)
+        return
+      }
+    } catch (e) {
+      console.error('Onboarding check failed:', e)
+      // فشل التحقق → نسمح بالدخول (fail open)
+    }
+    setLoading(false)
+  }
 
   if (loading) {
     return (
