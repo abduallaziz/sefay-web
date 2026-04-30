@@ -156,22 +156,22 @@ export default function OnboardingWizard() {
 
   if (state === 'RECOVERY') {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: 'var(--color-bg-primary)' }}>
+      <div style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", justifyContent: 'center', minHeight: '100vh', backgroundColor: 'var(--color-bg-primary)' }}>
         <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-primary)' }} />
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--color-bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-      <div style={{ width: '100%', maxWidth: '580px', backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-xl)', overflow: 'hidden' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--color-bg-primary)', display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", justifyContent: 'center', padding: '20px' }}>
+      <div style={{ width: '100%', maxWidth: '580px', backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-xl)', overflow: "visible" }}>
 
         {/* Progress */}
         <div style={{ padding: '28px 28px 0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
+          <div style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", justifyContent: 'space-between', marginBottom: '28px' }}>
             {STEPS.map((s, i) => (
-              <div key={s.num} style={{ display: 'flex', alignItems: 'center', flex: i < STEPS.length - 1 ? 1 : 'none' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: step > s.num ? 'var(--color-success)' : step === s.num ? 'var(--color-primary)' : 'var(--color-bg-tertiary)', border: `2px solid ${step > s.num ? 'var(--color-success)' : step === s.num ? 'var(--color-primary)' : 'var(--color-border)'}`, transition: 'all 0.3s' }}>
+              <div key={s.num} style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", flex: i < STEPS.length - 1 ? 1 : 'none' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", justifyContent: 'center', backgroundColor: step > s.num ? 'var(--color-success)' : step === s.num ? 'var(--color-primary)' : 'var(--color-bg-tertiary)', border: `2px solid ${step > s.num ? 'var(--color-success)' : step === s.num ? 'var(--color-primary)' : 'var(--color-border)'}`, transition: 'all 0.3s' }}>
                   {step > s.num ? <CheckCircle size={18} color="#000" /> : <s.icon size={17} color={step === s.num ? '#000' : 'var(--color-text-muted)'} />}
                 </div>
                 {i < STEPS.length - 1 && <div style={{ flex: 1, height: '2px', margin: '0 6px', backgroundColor: step > s.num ? 'var(--color-success)' : 'var(--color-border)', transition: 'all 0.3s' }} />}
@@ -267,7 +267,7 @@ export default function OnboardingWizard() {
                 { ar: `الاسم: ${shopName}`, en: `Name: ${shopName}` },
                 { ar: `الخدمات: ${services.filter(s => s.name).length || 1} خدمة`, en: `Services: ${services.filter(s => s.name).length || 1} service(s)` },
               ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', backgroundColor: 'var(--color-success-light)', border: '1px solid var(--color-success-border)', borderRadius: 'var(--radius-sm)', marginBottom: '8px', textAlign: 'start' }}>
+                <div key={i} style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", gap: '10px', padding: '10px 14px', backgroundColor: 'var(--color-success-light)', border: '1px solid var(--color-success-border)', borderRadius: 'var(--radius-sm)', marginBottom: '8px', textAlign: 'start' }}>
                   <CheckCircle size={16} color="var(--color-success)" style={{ flexShrink: 0 }} />
                   <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-success)' }}>{isAr ? item.ar : item.en}</span>
                 </div>
@@ -287,20 +287,20 @@ export default function OnboardingWizard() {
         {/* Footer */}
         <div style={{ padding: '16px 28px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button onClick={() => setStep(s => (s - 1) as Step)} disabled={step === 1 || state === 'COMPLETING' || state === 'RETRY'}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 20px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', backgroundColor: 'transparent', color: 'var(--color-text-primary)', cursor: step === 1 ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: '600', opacity: step === 1 ? 0.3 : 1 }}>
+            style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", gap: '6px', padding: '10px 20px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', backgroundColor: 'transparent', color: 'var(--color-text-primary)', cursor: step === 1 ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: '600', opacity: step === 1 ? 0.3 : 1 }}>
             {isAr ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             {isAr ? 'السابق' : 'Back'}
           </button>
 
           {step < 4 ? (
-            <button onClick={() => setStep(s => (s + 1) as Step)} disabled={!canNext} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: !canNext ? 0.4 : 1 }}>
+            <button onClick={() => setStep(s => (s + 1) as Step)} disabled={!canNext} className="btn btn-primary" style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", gap: '6px', opacity: !canNext ? 0.4 : 1 }}>
               {isAr ? 'التالي' : 'Next'}
               {isAr ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
             </button>
           ) : (
             <button onClick={() => complete(1)} disabled={state === 'COMPLETING' || state === 'RETRY' || state === 'COMPLETE'}
               className="btn btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 28px', fontSize: '15px', fontWeight: '900' }}>
+              style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", gap: '8px', padding: '12px 28px', fontSize: '15px', fontWeight: '900' }}>
               {(state === 'COMPLETING' || state === 'RETRY') && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />}
               {state === 'COMPLETING' && (isAr ? 'جاري الحفظ...' : 'Saving...')}
               {state === 'RETRY'      && (isAr ? `محاولة ${retryCount + 1}...` : `Retry ${retryCount + 1}...`)}
