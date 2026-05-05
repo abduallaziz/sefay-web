@@ -39,7 +39,7 @@
   "nav": {
     "dashboard": "Dashboard",
     "orders": "Orders",
-    "services": "Services",
+    "items": "Items",
     "customers": "Customers",
     "reports": "Reports",
     "branches": "Branches",
@@ -88,14 +88,14 @@
       "all": "All"
     }
   },
-  "services": {
-    "title": "Services",
-    "addService": "Add Service",
-    "serviceName": "Service Name",
+"items": {
+    "title": "Items",
+    "addService": "Add Item",
+    "serviceName": "Item Name",
     "price": "Price",
     "category": "Category",
     "type": "Type",
-    "single": "Single Service",
+    "single": "Single Item",
     "bundle": "Bundle",
     "image": "Image",
     "icon": "Icon",

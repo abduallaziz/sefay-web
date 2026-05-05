@@ -43,13 +43,14 @@ export const api = {
     refund: (id: string, body: { mode: 'full' | 'partial'; refund_amount?: number; items?: { service_name: string; price: number; qty: number }[] }) =>
   axiosInstance.patch(`/orders/${id}/refund`, body),
   },
-  services: {
-    getAll: () => axiosInstance.get('/services/all'),
-    getActive: () => axiosInstance.get('/services'),
-    create: (body: any) => axiosInstance.post('/services', body),
-    update: (id: string, body: any) => axiosInstance.put(`/services/${id}`, body),
-    delete: (id: string) => axiosInstance.delete(`/services/${id}`),
-    hardDelete: (id: string) => axiosInstance.delete(`/services/${id}/hard`),
+  // حط هذا بدله
+items: {
+    getAll: () => axiosInstance.get('/items/all'),
+    getActive: () => axiosInstance.get('/items'),
+    create: (body: any) => axiosInstance.post('/items', body),
+    update: (id: string, body: any) => axiosInstance.put(`/items/${id}`, body),
+    delete: (id: string) => axiosInstance.delete(`/items/${id}`),
+    hardDelete: (id: string) => axiosInstance.delete(`/items/${id}/hard`),
   },
   customers: {
     getAll: () => axiosInstance.get('/customers'),

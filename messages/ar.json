@@ -39,7 +39,7 @@
   "nav": {
     "dashboard": "الرئيسية",
     "orders": "الطلبات",
-    "services": "الخدمات",
+    "items": "العناصر",
     "customers": "العملاء",
     "reports": "التقارير",
     "branches": "الفروع",
@@ -90,14 +90,14 @@
       "all": "الكل"
     }
   },
-  "services": {
-    "title": "الخدمات",
-    "addService": "إضافة خدمة",
-    "serviceName": "اسم الخدمة",
+"items": {
+    "title": "المنتجات",
+    "addService": "إضافة منتج",
+    "serviceName": "اسم المنتج",
     "price": "السعر",
     "category": "الفئة",
     "type": "النوع",
-    "single": "خدمة عادية",
+    "single": "منتج عادي",
     "bundle": "باقة",
     "image": "الصورة",
     "icon": "الأيقونة",

@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 import { formatCurrency } from '@/lib/utils'
-import { Service } from '@/types'
+import { Item } from '@/types'
 import { Search, RefreshCw, Trash2, ToggleLeft, ToggleRight, Plus, X, Save, Upload } from 'lucide-react'
 import '@/styles/modals.css'
 import '@/styles/forms.css'
@@ -18,15 +18,15 @@ interface BundleItem {
   custom_price: boolean
 }
 
-export default function ServicesPage() {
-  const t = useTranslations('services')
+export default function ItemsPage() {
+  const t = useTranslations('items')
   const locale = useLocale()
 
-  const [services,  setServices]  = useState<Service[]>([])
+  const [services,  setServices]  = useState<Item[]>([])
   const [loading,   setLoading]   = useState(true)
   const [search,    setSearch]    = useState('')
   const [showModal, setShowModal] = useState(false)
-  const [selected,  setSelected]  = useState<Service | null>(null)
+  const [selected,  setSelected]  = useState<Item | null>(null)
   const [saving,    setSaving]    = useState(false)
   const [uploading, setUploading] = useState(false)
 
@@ -51,7 +51,7 @@ export default function ServicesPage() {
   async function loadServices() {
     setLoading(true)
     try {
-      const res = await api.services.getAll()
+      const res = await api.items.getAll()
       setServices(res.data || [])
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
@@ -65,7 +65,7 @@ export default function ServicesPage() {
     setShowModal(true)
   }
 
-  function openEdit(svc: Service) {
+function openEdit(svc: Item) {
     setSelected(svc)
     setName(svc.name)
     setPrice(String(svc.price))
@@ -95,7 +95,7 @@ export default function ServicesPage() {
     finally { setUploading(false) }
   }
 
-  function addBundleItem(svc: Service) {
+  function addBundleItem(svc: Item) {
     if (bundleItems.find(i => i.service_id === svc.id)) return
     setBundleItems([...bundleItems, {
       service_id: svc.id,
@@ -146,27 +146,27 @@ export default function ServicesPage() {
       }
 
       if (selected) {
-        await api.services.update(selected.id, body)
-      } else {
-        await api.services.create(body)
-      }
+      await api.items.update(selected.id, body)
+    } else {
+      await api.items.create(body)
+    }
       setShowModal(false)
       loadServices()
     } catch (e) { console.error(e) }
     finally { setSaving(false) }
   }
 
-  async function toggleActive(svc: Service) {
+  async function toggleActive(svc: Item) {
     try {
-      await api.services.update(svc.id, { active: !svc.active })
+      await api.items.update(svc.id, { active: !svc.active })
       loadServices()
     } catch (e) { console.error(e) }
   }
 
-  async function deleteService(svc: Service) {
+  async function deleteService(svc: Item) {
     if (!confirm(locale === 'ar' ? 'هل أنت متأكد من الحذف النهائي؟' : 'Are you sure?')) return
     try {
-      await api.services.hardDelete(svc.id)
+      await api.items.hardDelete(svc.id)
       loadServices()
     } catch (e) { console.error(e) }
   }
@@ -191,7 +191,7 @@ export default function ServicesPage() {
         <div>
           <h2 className="dashboard-page-title">{t('title')}</h2>
           <p className="dashboard-page-subtitle">
-            {services.length} {locale === 'ar' ? 'خدمة' : 'services'}
+            {services.length} {locale === 'ar' ? 'منتج' : 'items'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -595,8 +595,7 @@ export default function ServicesPage() {
                     <div className="table-empty">
                       <div className="table-empty-icon">⚙️</div>
                       <div className="table-empty-text">
-                        {locale === 'ar' ? 'لا توجد خدمات' : 'No services found'}
-                      </div>
+                        {locale === 'ar' ? 'لا توجد منتجات' : 'No items found'}                      </div>
                     </div>
                   </td>
                 </tr>

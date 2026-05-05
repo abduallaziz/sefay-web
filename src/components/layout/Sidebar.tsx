@@ -30,7 +30,7 @@ export default function Sidebar({ collapsed, setCollapsed, session, mobileOpen, 
   const navItems = [
     { href: '/dashboard',           icon: LayoutDashboard, label: t('dashboard') },
     { href: '/dashboard/orders',    icon: ShoppingCart,    label: t('orders') },
-    { href: '/dashboard/services',  icon: Wrench,          label: t('services') },
+    { href: '/dashboard/items',     icon: Wrench,          label: t('items') },
     { href: '/dashboard/customers', icon: Users,           label: t('customers') },
     { href: '/dashboard/reports',   icon: BarChart3,       label: t('reports') },
     { href: '/dashboard/branches',  icon: GitBranch,       label: t('branches') },

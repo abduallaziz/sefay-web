@@ -39,7 +39,7 @@ export interface Branch {
   active: boolean
 }
 
-export interface Service {
+export interface Item {
   id: string
   tenant_id: string
   name: string
