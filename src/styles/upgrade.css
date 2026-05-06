@@ -1,0 +1,132 @@
+.upgrade-page {
+  padding: 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.upgrade-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+
+.upgrade-subtitle {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 32px;
+}
+
+.upgrade-subtitle span {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.upgrade-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  direction: rtl;
+}
+
+@media (max-width: 900px) {
+  .upgrade-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .upgrade-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.upgrade-card {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: var(--transition);
+}
+
+.upgrade-card:hover {
+  border-color: var(--color-primary-border);
+}
+
+.upgrade-card.current {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+.upgrade-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.upgrade-card-price {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.upgrade-card-period {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.upgrade-card-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.upgrade-card-features li {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.upgrade-card-features li::before {
+  content: '✓';
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.upgrade-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  border: none;
+}
+
+.upgrade-btn.current {
+  background-color: var(--color-primary);
+  color: #fff;
+  cursor: default;
+}
+
+.upgrade-btn.select {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.upgrade-btn.select:hover {
+  border-color: var(--color-primary-border);
+  color: var(--color-primary);
+}

@@ -176,8 +176,7 @@
       "cashier": "Cashier",
       "worker": "Worker"
     }
-  }
-  ,
+  },
 "upgrade": {
   "sync": "Sync",
   "title": "Upgrade Plan",
@@ -191,5 +190,14 @@
   "currentBadge": "Current Plan",
   "loading": "Loading...",
   "upgrading": "Processing..."
+},
+"features": {
+  "pos": "Point of Sale",
+  "reports": "Reports",
+  "items": "Items",
+  "customers": "Customers",
+  "expenses": "Expenses",
+  "coupons": "Coupons",
+  "all": "All Features"
 }
 }

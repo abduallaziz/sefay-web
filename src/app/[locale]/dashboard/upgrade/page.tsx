@@ -83,7 +83,7 @@ export default function UpgradePage() {
         </span>
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+<     div className="grid grid-cols-1 md:grid-cols-4 gap-4" dir="rtl">
         {plans.map((plan) => {
           const isCurrent = currentPlan?.plan === plan.id;
           return (
@@ -117,8 +117,8 @@ export default function UpgradePage() {
                     : `${plan.max_users} ${t('users')}`}
                 </li>
                 {plan.features.map((f, i) => (
-                  <li key={i}>✓ {f}</li>
-                ))}
+                  <li key={i}>{t(`features.${f}`)}</li>
+              ))}
               </ul>
 
               <button
