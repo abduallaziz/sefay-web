@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import '@/styles/upgrade.css';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -71,64 +72,50 @@ export default function UpgradePage() {
     setUpgrading(null);
   };
 
-  if (loading) return <div className="p-8 text-center">{t('loading')}</div>;
+  if (loading) return <div className="upgrade-page">{t('loading')}</div>;
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold mb-2">{t('title')}</h1>
-      <p className="text-gray-500 mb-8">
-        {t('currentPlan')}:{' '}
-        <span className="font-semibold text-blue-600">
-          {currentPlan?.planDetails?.name}
-        </span>
+    <div className="upgrade-page">
+      <h1 className="upgrade-title">{t('title')}</h1>
+      <p className="upgrade-subtitle">
+        {t('currentPlan')}: <span>{currentPlan?.planDetails?.name}</span>
       </p>
 
-<     div className="grid grid-cols-1 md:grid-cols-4 gap-4" dir="rtl">
+      <div className="upgrade-grid">
         {plans.map((plan) => {
           const isCurrent = currentPlan?.plan === plan.id;
           return (
-            <div
-              key={plan.id}
-              className={`border rounded-xl p-6 flex flex-col gap-4 ${
-                isCurrent ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-              }`}
-            >
+            <div key={plan.id} className={`upgrade-card ${isCurrent ? 'current' : ''}`}>
               <div>
-                <h2 className="text-lg font-bold">{plan.name}</h2>
-                <p className="text-3xl font-bold mt-2">
+                <div className="upgrade-card-name">{plan.name}</div>
+                <div className="upgrade-card-price">
                   {plan.price === 0 ? t('free') : `${plan.price} ${plan.currency}`}
-                </p>
+                </div>
                 {plan.price > 0 && (
-                  <p className="text-sm text-gray-400">{t('month')}</p>
+                  <div className="upgrade-card-period">{t('month')}</div>
                 )}
               </div>
 
-              <ul className="text-sm text-gray-600 flex flex-col gap-1 flex-1">
+              <ul className="upgrade-card-features">
                 <li>
-                  ✓{' '}
                   {plan.max_branches === 999
                     ? `${t('unlimited')} ${t('branches')}`
                     : `${plan.max_branches} ${t('branches')}`}
                 </li>
                 <li>
-                  ✓{' '}
                   {plan.max_users === 999
                     ? `${t('unlimited')} ${t('users')}`
                     : `${plan.max_users} ${t('users')}`}
                 </li>
                 {plan.features.map((f, i) => (
-                  <li key={i}>{t(`features.${f}`)}</li>
-              ))}
+                  <li key={i}>{t(`feature_${f}`)}</li>
+                ))}
               </ul>
 
               <button
                 onClick={() => !isCurrent && handleUpgrade(plan.id)}
                 disabled={isCurrent || upgrading === plan.id}
-                className={`w-full py-2 rounded-lg font-semibold transition ${
-                  isCurrent
-                    ? 'bg-blue-500 text-white cursor-default'
-                    : 'bg-gray-900 text-white hover:bg-gray-700'
-                }`}
+                className={`upgrade-btn ${isCurrent ? 'current' : 'select'}`}
               >
                 {isCurrent
                   ? t('currentBadge')
