@@ -13,6 +13,8 @@ import '@/styles/buttons.css'
 import '@/styles/forms.css'
 import '@/styles/modals.css'
 import '@/styles/reports.css'
+import { TrialBanner } from '@/components/TrialBanner'
+
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
@@ -96,6 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setMobileOpen={setMobileOpen}
         />
         <main className="dashboard-page">
+          <TrialBanner />
           {children}
         </main>
       </div>

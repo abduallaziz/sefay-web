@@ -12,6 +12,7 @@ import {
   DollarSign, RefreshCw,
 } from 'lucide-react'
 import '@/styles/sidebar.css'
+import { useBusinessConfig } from '@/hooks/useBusinessConfig'
 
 interface SidebarProps {
   collapsed: boolean
@@ -27,19 +28,20 @@ export default function Sidebar({ collapsed, setCollapsed, session, mobileOpen, 
   const pathname = usePathname()
   const router = useRouter()
 
+const { hasCapability } = useBusinessConfig()
   const navItems = [
-    { href: '/dashboard',           icon: LayoutDashboard, label: t('dashboard') },
-    { href: '/dashboard/orders',    icon: ShoppingCart,    label: t('orders') },
-    { href: '/dashboard/items',     icon: Wrench,          label: t('items') },
-    { href: '/dashboard/customers', icon: Users,           label: t('customers') },
-    { href: '/dashboard/reports',   icon: BarChart3,       label: t('reports') },
-    { href: '/dashboard/branches',  icon: GitBranch,       label: t('branches') },
-    { href: '/dashboard/employees', icon: UserCog,         label: t('employees') },
-    { href: '/dashboard/expenses',  icon: DollarSign,      label: t('expenses') },
-    { href: '/dashboard/coupons',   icon: Tag,             label: t('coupons') },
-    { href: '/dashboard/sync',      icon: RefreshCw,       label: t('sync') },
-    { href: '/dashboard/settings',  icon: Settings,        label: t('settings') },
-  ]
+  { href: '/dashboard',           icon: LayoutDashboard, label: t('dashboard'),  cap: null },
+  { href: '/dashboard/orders',    icon: ShoppingCart,    label: t('orders'),     cap: null },
+  { href: '/dashboard/items',     icon: Wrench,          label: t('items'),      cap: null },
+  { href: '/dashboard/customers', icon: Users,           label: t('customers'),  cap: null },
+  { href: '/dashboard/reports',   icon: BarChart3,       label: t('reports'),    cap: null },
+  { href: '/dashboard/branches',  icon: GitBranch,       label: t('branches'),   cap: null },
+  { href: '/dashboard/employees', icon: UserCog,         label: t('employees'),  cap: null },
+  { href: '/dashboard/expenses',  icon: DollarSign,      label: t('expenses'),   cap: null },
+  { href: '/dashboard/coupons',   icon: Tag,             label: t('coupons'),    cap: null },
+  { href: '/dashboard/sync',      icon: RefreshCw,       label: t('sync'),       cap: null },
+  { href: '/dashboard/settings',  icon: Settings,        label: t('settings'),   cap: null },
+].filter(item => item.cap === null || hasCapability(item.cap))
 
   function handleLogout() {
     clearSession()
