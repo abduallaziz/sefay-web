@@ -33,17 +33,25 @@ export default function UpgradePage() {
   }, []);
 
   const fetchData = async () => {
-    const token = localStorage.getItem('token');
-    const headers = { Authorization: `Bearer ${token}` };
+    try {
+      const token = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
 
-    const [plansRes, currentRes] = await Promise.all([
-      fetch(`${API_URL}/business/plans`, { headers }),
-      fetch(`${API_URL}/business/current-plan`, { headers }),
-    ]);
+      const [plansRes, currentRes] = await Promise.all([
+        fetch(`${API_URL}/business/plans`, { headers }),
+        fetch(`${API_URL}/business/current-plan`, { headers }),
+      ]);
 
-    setPlans(await plansRes.json());
-    setCurrentPlan(await currentRes.json());
-    setLoading(false);
+      const plansData = await plansRes.json();
+      const currentData = await currentRes.json();
+
+      setPlans(Array.isArray(plansData) ? plansData : []);
+      setCurrentPlan(currentData);
+    } catch (error) {
+      console.error('fetchData error:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleUpgrade = async (planId: string) => {

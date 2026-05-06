@@ -46,8 +46,9 @@
     "employees": "Employees",
     "expenses": "Expenses",
     "coupons": "Coupons",
-    "settings": "Settings",
-    "upgrade": "Upgrade"
+    "sync": "Sync",
+    "upgrade": "Upgrade",
+    "settings": "Settings"
   },
   "dashboard": {
     "title": "Dashboard",
