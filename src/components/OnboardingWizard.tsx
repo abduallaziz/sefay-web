@@ -6,13 +6,14 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 import { CheckCircle, ChevronRight, ChevronLeft, Building2, Wrench, FileText, Rocket, AlertCircle, Loader2 } from 'lucide-react'
+import Step3Router, { type Step3Item } from './onboarding/step3'
 
 type Step = 1 | 2 | 3 | 4
 type State = 'RECOVERY' | 'ACTIVE' | 'COMPLETING' | 'RETRY' | 'COMPLETE' | 'ERROR'
 
 interface OnboardingProgress {
   tenant_id: string; step: Step; business_type: string
-  shop_name: string; phone: string; services: { name: string; price: string }[]; expires_at: number
+  shop_name: string; phone: string; services: Step3Item[]; expires_at: number
 }
 
 const STORAGE_KEY = 'onboarding_progress'
@@ -23,29 +24,19 @@ const BUSINESS_TYPES = [
   { id: 'cafe',        emoji: '☕', ar: 'كافيه',        en: 'Café' },
   { id: 'restaurant',  emoji: '🍽️', ar: 'مطعم',        en: 'Restaurant' },
   { id: 'supermarket', emoji: '🛒', ar: 'سوبرماركت',   en: 'Supermarket' },
-  { id: 'tailor',      emoji: '✂️', ar: 'خياطة',       en: 'Tailor' },
+  { id: 'tailor',      emoji: '🧵', ar: 'خياطة',       en: 'Tailor' },
   { id: 'workshop',    emoji: '🔧', ar: 'ورشة',        en: 'Workshop' },
-  { id: 'other',       emoji: '🏢', ar: 'أخرى',        en: 'Other' },
+  { id: 'other',       emoji: '🏪', ar: 'أخرى',        en: 'Other' },
 ]
 
-const DEFAULT_SERVICES: Record<string, { ar: string; en: string; price: number }> = {
-  car_wash:    { ar: 'غسيل سيارة',   en: 'Car Wash',   price: 30  },
-  cafe:        { ar: 'قهوة',         en: 'Coffee',     price: 15  },
-  restaurant:  { ar: 'وجبة رئيسية', en: 'Main Meal',  price: 45  },
-  supermarket: { ar: 'منتج',         en: 'Product',    price: 10  },
-  tailor:      { ar: 'خياطة',        en: 'Tailoring',  price: 100 },
-  workshop:    { ar: 'تغيير زيت',    en: 'Oil Change', price: 80  },
-  other:       { ar: 'خدمة',         en: 'Service',    price: 50  },
-}
-
-const DEFAULT_SERVICES_LIST: Record<string, { ar: string; en: string; price: number }[]> = {
-  car_wash:    [{ ar: 'غسيل خارجي', en: 'Exterior Wash', price: 30 }, { ar: 'غسيل داخلي', en: 'Interior Clean', price: 50 }, { ar: 'تلميع', en: 'Polish', price: 80 }],
-  cafe:        [{ ar: 'قهوة', en: 'Coffee', price: 15 }, { ar: 'شاي', en: 'Tea', price: 10 }, { ar: 'عصير', en: 'Juice', price: 20 }],
-  restaurant:  [{ ar: 'وجبة رئيسية', en: 'Main Meal', price: 45 }, { ar: 'مقبلات', en: 'Appetizer', price: 25 }],
-  supermarket: [{ ar: 'منتج 1', en: 'Product 1', price: 10 }, { ar: 'منتج 2', en: 'Product 2', price: 20 }],
-  tailor:      [{ ar: 'خياطة ثوب', en: 'Thobe', price: 150 }, { ar: 'تعديل', en: 'Alteration', price: 50 }],
-  workshop:    [{ ar: 'تغيير زيت', en: 'Oil Change', price: 80 }, { ar: 'فحص', en: 'Inspection', price: 50 }],
-  other:       [{ ar: 'خدمة 1', en: 'Service 1', price: 50 }],
+const DEFAULTS_BY_TYPE: Record<string, Step3Item[]> = {
+  car_wash:    [{ name: 'غسيل خارجي', price: '30', duration: '20' }, { name: 'غسيل داخلي', price: '50', duration: '30' }, { name: 'بخار كامل', price: '80', duration: '45' }],
+  cafe:        [{ name: 'قهوة', price: '15', category: 'مشروبات ساخنة' }, { name: 'شاي', price: '10', category: 'مشروبات ساخنة' }, { name: 'عصير', price: '20', category: 'مشروبات باردة' }],
+  restaurant:  [{ name: 'وجبة رئيسية', price: '45', category: 'وجبات' }, { name: 'مقبلات', price: '25', category: 'مقبلات' }],
+  supermarket: [{ name: 'منتج 1', price: '10', quantity: '100', sku: '' }, { name: 'منتج 2', price: '25', quantity: '50', sku: '' }],
+  tailor:      [{ name: 'خياطة ثوب', price: '150', type: 'ثوب' }, { name: 'تعديل بنطلون', price: '50', type: 'بنطلون' }],
+  workshop:    [{ name: 'تغيير زيت', price: '80', duration: '30' }, { name: 'فحص', price: '50', duration: '20' }],
+  other:       [{ name: 'خدمة 1', price: '50' }],
 }
 
 function saveProgress(data: Omit<OnboardingProgress, 'expires_at'>) {
@@ -77,7 +68,7 @@ export default function OnboardingWizard() {
   const [businessType, setBusinessType] = useState('')
   const [shopName,     setShopName]     = useState('')
   const [phone,        setPhone]        = useState('')
-  const [services,     setServices]     = useState<{ name: string; price: string }[]>([])
+  const [services,     setServices]     = useState<Step3Item[]>([])
   const [retryCount,   setRetryCount]   = useState(0)
   const [errorMsg,     setErrorMsg]     = useState('')
 
@@ -103,8 +94,7 @@ export default function OnboardingWizard() {
 
   function selectBusiness(type: string) {
     setBusinessType(type)
-    const defaults = DEFAULT_SERVICES_LIST[type] || DEFAULT_SERVICES_LIST.other
-    setServices(defaults.map(s => ({ name: isAr ? s.ar : s.en, price: String(s.price) })))
+    setServices(DEFAULTS_BY_TYPE[type] || DEFAULTS_BY_TYPE.other)
   }
 
   const complete = useCallback(async (attempt = 1) => {
@@ -123,10 +113,20 @@ export default function OnboardingWizard() {
       const validServices = services.filter(s => s.name.trim() && Number(s.price) > 0)
       const toInsert = validServices.length > 0
         ? validServices
-        : [{ name: isAr ? DEFAULT_SERVICES[businessType]?.ar : DEFAULT_SERVICES[businessType]?.en || 'Service', price: String(DEFAULT_SERVICES[businessType]?.price || 50) }]
+        : [DEFAULTS_BY_TYPE[businessType]?.[0] || { name: 'Service', price: '50' }]
 
       await supabase.from('services').insert(
-        toInsert.map(s => ({ tenant_id: session.tenant_id, branch_id: session.branch_id, name: s.name.trim(), price: Number(s.price), active: true, is_default: validServices.length === 0 }))
+        toInsert.map(s => ({
+          tenant_id: session.tenant_id,
+          branch_id: session.branch_id,
+          name: s.name.trim(),
+          price: Number(s.price),
+          active: true,
+          is_default: validServices.length === 0,
+          ...(s.duration ? { duration: Number(s.duration) } : {}),
+          ...(s.category ? { category: s.category } : {}),
+          ...(s.type ? { service_type: s.type } : {}),
+        }))
       )
 
       clearProgress()
@@ -156,22 +156,22 @@ export default function OnboardingWizard() {
 
   if (state === 'RECOVERY') {
     return (
-      <div style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", justifyContent: 'center', minHeight: '100vh', backgroundColor: 'var(--color-bg-primary)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: 'var(--color-bg-primary)' }}>
         <Loader2 size={32} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-primary)' }} />
       </div>
     )
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: 'var(--color-bg-primary)', display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", justifyContent: 'center', padding: '20px' }}>
-      <div style={{ width: '100%', maxWidth: '580px', backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-xl)', overflow: "visible" }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--color-bg-primary)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '20px' }}>
+      <div style={{ width: '100%', maxWidth: '580px', backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-xl)' }}>
 
         {/* Progress */}
         <div style={{ padding: '28px 28px 0' }}>
-          <div style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", justifyContent: 'space-between', marginBottom: '28px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '28px' }}>
             {STEPS.map((s, i) => (
-              <div key={s.num} style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", flex: i < STEPS.length - 1 ? 1 : 'none' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", justifyContent: 'center', backgroundColor: step > s.num ? 'var(--color-success)' : step === s.num ? 'var(--color-primary)' : 'var(--color-bg-tertiary)', border: `2px solid ${step > s.num ? 'var(--color-success)' : step === s.num ? 'var(--color-primary)' : 'var(--color-border)'}`, transition: 'all 0.3s' }}>
+              <div key={s.num} style={{ display: 'flex', alignItems: 'center', flex: i < STEPS.length - 1 ? 1 : 'none' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: step > s.num ? 'var(--color-success)' : step === s.num ? 'var(--color-primary)' : 'var(--color-bg-tertiary)', border: `2px solid ${step > s.num ? 'var(--color-success)' : step === s.num ? 'var(--color-primary)' : 'var(--color-border)'}`, transition: 'all 0.3s' }}>
                   {step > s.num ? <CheckCircle size={18} color="#000" /> : <s.icon size={17} color={step === s.num ? '#000' : 'var(--color-text-muted)'} />}
                 </div>
                 {i < STEPS.length - 1 && <div style={{ flex: 1, height: '2px', margin: '0 6px', backgroundColor: step > s.num ? 'var(--color-success)' : 'var(--color-border)', transition: 'all 0.3s' }} />}
@@ -183,14 +183,14 @@ export default function OnboardingWizard() {
           </div>
           <h2 style={{ fontSize: '22px', fontWeight: '900', color: 'var(--color-text-primary)', marginBottom: '4px' }}>
             {step === 1 && (isAr ? '👋 مرحباً! ما نوع نشاطك؟' : '👋 Welcome! What\'s your business?')}
-            {step === 2 && (isAr ? '🏢 معلومات النشاط' : '🏢 Business Info')}
-            {step === 3 && (isAr ? '🛠️ أضف خدماتك' : '🛠️ Add Your Services')}
+            {step === 2 && (isAr ? '🏪 معلومات النشاط' : '🏪 Business Info')}
+            {step === 3 && (isAr ? `⚙️ إعداد ${BUSINESS_TYPES.find(b => b.id === businessType)?.[isAr ? 'ar' : 'en'] || ''}` : `⚙️ Setup ${BUSINESS_TYPES.find(b => b.id === businessType)?.en || ''}`)}
             {step === 4 && (isAr ? '🎉 كل شيء جاهز!' : '🎉 You\'re All Set!')}
           </h2>
           <p style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '24px' }}>
             {step === 1 && (isAr ? 'اختر نوع نشاطك التجاري' : 'Choose your business type')}
             {step === 2 && (isAr ? 'أدخل معلومات أساسية عن نشاطك' : 'Basic info about your business')}
-            {step === 3 && (isAr ? 'يمكن تعديلها لاحقاً من صفحة الخدمات' : 'You can edit these later from Services')}
+            {step === 3 && (isAr ? 'يمكن تعديلها لاحقاً من صفحة المنتجات' : 'You can edit these later from Items')}
             {step === 4 && (isAr ? 'ابدأ في استخدام النظام الآن' : 'Start using the system now')}
           </p>
         </div>
@@ -202,7 +202,8 @@ export default function OnboardingWizard() {
           {step === 1 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px' }}>
               {BUSINESS_TYPES.map(bt => (
-                <div key={bt.id} onClick={() => selectBusiness(bt.id)} style={{ padding: '16px 12px', borderRadius: 'var(--radius-md)', textAlign: 'center', border: `2px solid ${businessType === bt.id ? 'var(--color-primary)' : 'var(--color-border)'}`, backgroundColor: businessType === bt.id ? 'var(--color-primary-light)' : 'var(--color-bg-tertiary)', cursor: 'pointer', transition: 'all 0.2s' }}>
+                <div key={bt.id} onClick={() => selectBusiness(bt.id)}
+                  style={{ padding: '16px 12px', borderRadius: 'var(--radius-md)', textAlign: 'center', border: `2px solid ${businessType === bt.id ? 'var(--color-primary)' : 'var(--color-border)'}`, backgroundColor: businessType === bt.id ? 'var(--color-primary-light)' : 'var(--color-bg-tertiary)', cursor: 'pointer', transition: 'all 0.2s' }}>
                   <div style={{ fontSize: '28px', marginBottom: '8px' }}>{bt.emoji}</div>
                   <div style={{ fontSize: '13px', fontWeight: '700', color: businessType === bt.id ? 'var(--color-primary)' : 'var(--color-text-primary)' }}>{isAr ? bt.ar : bt.en}</div>
                 </div>
@@ -224,23 +225,16 @@ export default function OnboardingWizard() {
             </div>
           )}
 
-          {/* Step 3 */}
+          {/* Step 3 — Dynamic */}
           {step === 3 && (
             <div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                {services.map((s, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <input className="form-input" value={s.name} onChange={e => setServices(prev => prev.map((sv, idx) => idx === i ? { ...sv, name: e.target.value } : sv))} placeholder={isAr ? 'اسم الخدمة' : 'Service name'} style={{ flex: 2 }} />
-                    <input className="form-input" type="number" value={s.price} onChange={e => setServices(prev => prev.map((sv, idx) => idx === i ? { ...sv, price: e.target.value } : sv))} placeholder={isAr ? 'السعر' : 'Price'} style={{ flex: 1 }} />
-                    <button onClick={() => setServices(prev => prev.filter((_, idx) => idx !== i))} style={{ padding: '8px 10px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-danger-border)', backgroundColor: 'var(--color-danger-light)', color: 'var(--color-danger)', cursor: 'pointer', flexShrink: 0, fontWeight: '700' }}>✕</button>
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => setServices(prev => [...prev, { name: '', price: '' }])} style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--color-border)', backgroundColor: 'transparent', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
-                + {isAr ? 'إضافة خدمة' : 'Add Service'}
-              </button>
+              <Step3Router
+                businessType={businessType}
+                items={services}
+                onChange={setServices}
+              />
               <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--color-text-muted)' }}>
-                {isAr ? '💡 إذا تخطيت هذه الخطوة سيتم إنشاء خدمة افتراضية تلقائياً' : '💡 Skip this step to auto-create a default service'}
+                💡 {isAr ? 'إذا تخطيت هذه الخطوة سيتم إنشاء خدمة افتراضية تلقائياً' : 'Skip this step to auto-create a default service'}
               </div>
             </div>
           )}
@@ -262,12 +256,13 @@ export default function OnboardingWizard() {
               <div style={{ fontSize: '13px', color: 'var(--color-text-muted)', marginBottom: '20px' }}>
                 {isAr ? 'يمكنك الآن إنشاء طلبات وعرض التقارير' : 'You can now create orders and view reports'}
               </div>
+
               {[
-                { ar: `نوع النشاط: ${BUSINESS_TYPES.find(b => b.id === businessType)?.[isAr ? 'ar' : 'en']}`, en: `Business: ${BUSINESS_TYPES.find(b => b.id === businessType)?.en}` },
+                { ar: `نوع النشاط: ${BUSINESS_TYPES.find(b => b.id === businessType)?.ar}`, en: `Business: ${BUSINESS_TYPES.find(b => b.id === businessType)?.en}` },
                 { ar: `الاسم: ${shopName}`, en: `Name: ${shopName}` },
-                { ar: `الخدمات: ${services.filter(s => s.name).length || 1} خدمة`, en: `Services: ${services.filter(s => s.name).length || 1} service(s)` },
+                { ar: `العناصر: ${services.filter(s => s.name).length || 1}`, en: `Items: ${services.filter(s => s.name).length || 1}` },
               ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", gap: '10px', padding: '10px 14px', backgroundColor: 'var(--color-success-light)', border: '1px solid var(--color-success-border)', borderRadius: 'var(--radius-sm)', marginBottom: '8px', textAlign: 'start' }}>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', backgroundColor: 'var(--color-success-light)', border: '1px solid var(--color-success-border)', borderRadius: 'var(--radius-sm)', marginBottom: '8px', textAlign: 'start' }}>
                   <CheckCircle size={16} color="var(--color-success)" style={{ flexShrink: 0 }} />
                   <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-success)' }}>{isAr ? item.ar : item.en}</span>
                 </div>
@@ -287,20 +282,21 @@ export default function OnboardingWizard() {
         {/* Footer */}
         <div style={{ padding: '16px 28px', borderTop: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button onClick={() => setStep(s => (s - 1) as Step)} disabled={step === 1 || state === 'COMPLETING' || state === 'RETRY'}
-            style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", gap: '6px', padding: '10px 20px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', backgroundColor: 'transparent', color: 'var(--color-text-primary)', cursor: step === 1 ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: '600', opacity: step === 1 ? 0.3 : 1 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 20px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', backgroundColor: 'transparent', color: 'var(--color-text-primary)', cursor: step === 1 ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: '600', opacity: step === 1 ? 0.3 : 1 }}>
             {isAr ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             {isAr ? 'السابق' : 'Back'}
           </button>
 
           {step < 4 ? (
-            <button onClick={() => setStep(s => (s + 1) as Step)} disabled={!canNext} className="btn btn-primary" style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", gap: '6px', opacity: !canNext ? 0.4 : 1 }}>
+            <button onClick={() => setStep(s => (s + 1) as Step)} disabled={!canNext} className="btn btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: !canNext ? 0.4 : 1 }}>
               {isAr ? 'التالي' : 'Next'}
               {isAr ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
             </button>
           ) : (
             <button onClick={() => complete(1)} disabled={state === 'COMPLETING' || state === 'RETRY' || state === 'COMPLETE'}
               className="btn btn-primary"
-              style={{ display: 'flex', alignItems: "flex-start", paddingTop: "20px", paddingBottom: "20px", gap: '8px', padding: '12px 28px', fontSize: '15px', fontWeight: '900' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 28px', fontSize: '15px', fontWeight: '900' }}>
               {(state === 'COMPLETING' || state === 'RETRY') && <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />}
               {state === 'COMPLETING' && (isAr ? 'جاري الحفظ...' : 'Saving...')}
               {state === 'RETRY'      && (isAr ? `محاولة ${retryCount + 1}...` : `Retry ${retryCount + 1}...`)}

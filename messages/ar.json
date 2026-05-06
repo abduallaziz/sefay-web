@@ -188,6 +188,7 @@
     "currentBadge": "خطتك الحالية",
     "loading": "جاري التحميل...",
     "upgrading": "جاري...",
+    "adminOnly": "للسوبر أدمن فقط",
     "feature_pos": "نقاط البيع",
     "feature_reports": "التقارير",
     "feature_items": "المنتجات",
@@ -195,6 +196,77 @@
     "feature_expenses": "المصاريف",
     "feature_coupons": "الكوبونات",
     "feature_all": "كل المميزات"
-    
+  },
+  "onboarding": {
+  "step1Title": "مرحباً! ما نوع نشاطك؟",
+  "step2Title": "معلومات النشاط",
+  "step3Title": "إعداد الخدمات",
+  "step4Title": "كل شيء جاهز!",
+  "step1Sub": "اختر نوع نشاطك التجاري",
+  "step2Sub": "معلومات أساسية عن نشاطك",
+  "step3Sub": "يمكن تعديلها لاحقاً",
+  "step4Sub": "ابدأ في استخدام النظام الآن",
+  "stepOf": "خطوة {step} من {total}",
+  "businessName": "اسم النشاط *",
+  "phoneNumber": "رقم الجوال",
+  "addItem": "إضافة",
+  "itemName": "الاسم",
+  "price": "السعر",
+  "duration": "المدة (دقيقة)",
+  "quantity": "الكمية",
+  "sku": "الرمز",
+  "category": "الفئة",
+  "pricingModel": "نموذج التسعير",
+  "skipHint": "يمكن تخطي هذه الخطوة وإضافتها لاحقاً",
+  "getStarted": "ابدأ الآن",
+  "saving": "جاري الحفظ...",
+  "retrying": "محاولة {n}...",
+  "tryAgain": "حاول مجدداً",
+  "done": "تم!",
+  "saveError": "فشل الحفظ. تحقق من الإنترنت وحاول مجدداً.",
+  "complete": "تم الإعداد بنجاح! جاري التوجيه...",
+  "reviewBusiness": "النشاط",
+  "reviewName": "الاسم",
+  "reviewItems": "العناصر",
+  "carWash": {
+    "title": "خدمات الغسيل",
+    "namePlaceholder": "مثال: غسيل خارجي",
+    "defaults": [
+      { "name": "غسيل خارجي", "price": "30", "duration": "20" },
+      { "name": "غسيل داخلي", "price": "50", "duration": "30" },
+      { "name": "بخار كامل", "price": "80", "duration": "45" },
+      { "name": "تلميع", "price": "120", "duration": "60" }
+    ]
+  },
+  "cafe": {
+    "title": "قائمة الكافيه",
+    "categoryPlaceholder": "مثال: مشروبات ساخنة",
+    "namePlaceholder": "مثال: قهوة عربية",
+    "defaults": [
+      { "name": "قهوة", "price": "15", "category": "مشروبات ساخنة" },
+      { "name": "شاي", "price": "10", "category": "مشروبات ساخنة" },
+      { "name": "عصير", "price": "20", "category": "مشروبات باردة" },
+      { "name": "كيك", "price": "25", "category": "حلويات" }
+    ]
+  },
+  "market": {
+    "title": "المنتجات",
+    "namePlaceholder": "مثال: مياه معدنية",
+    "skuPlaceholder": "مثال: SKU-001",
+    "defaults": [
+      { "name": "منتج 1", "price": "10", "quantity": "100", "sku": "" },
+      { "name": "منتج 2", "price": "25", "quantity": "50", "sku": "" }
+    ]
+  },
+  "tailor": {
+    "title": "خدمات الخياطة",
+    "namePlaceholder": "مثال: خياطة ثوب",
+    "typePlaceholder": "مثال: ثوب",
+    "defaults": [
+      { "name": "خياطة ثوب", "price": "150", "type": "ثوب" },
+      { "name": "تعديل بنطلون", "price": "50", "type": "بنطلون" },
+      { "name": "خياطة عباية", "price": "200", "type": "عباية" }
+    ]
   }
+}
 }

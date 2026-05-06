@@ -28,8 +28,11 @@ export default function UpgradePage() {
   const [currentPlan, setCurrentPlan] = useState<CurrentPlan | null>(null);
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>('');
 
   useEffect(() => {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    setUserRole(user.role || '');
     fetchData();
   }, []);
 
@@ -56,6 +59,7 @@ export default function UpgradePage() {
   };
 
   const handleUpgrade = async (planId: string) => {
+    if (userRole !== 'superadmin') return;
     setUpgrading(planId);
     const token = localStorage.getItem('token');
 
@@ -114,13 +118,16 @@ export default function UpgradePage() {
 
               <button
                 onClick={() => !isCurrent && handleUpgrade(plan.id)}
-                disabled={isCurrent || upgrading === plan.id}
-                className={`upgrade-btn ${isCurrent ? 'current' : 'select'}`}
+                disabled={isCurrent || upgrading === plan.id || userRole !== 'superadmin'}
+                className={`upgrade-btn ${isCurrent ? 'current' : userRole !== 'superadmin' ? 'disabled' : 'select'}`}
+                title={userRole !== 'superadmin' ? t('adminOnly') : ''}
               >
                 {isCurrent
                   ? t('currentBadge')
                   : upgrading === plan.id
                   ? t('upgrading')
+                  : userRole !== 'superadmin'
+                  ? t('adminOnly')
                   : t('selectPlan')}
               </button>
             </div>

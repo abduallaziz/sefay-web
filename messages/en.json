@@ -90,7 +90,7 @@
       "all": "All"
     }
   },
-"items": {
+  "items": {
     "title": "Items",
     "addService": "Add Item",
     "serviceName": "Item Name",
@@ -172,30 +172,101 @@
     "roles": {
       "owner": "Owner",
       "manager": "Manager",
-      "sync": "Sync",
       "cashier": "Cashier",
       "worker": "Worker"
     }
   },
-"upgrade": {
-  "sync": "Sync",
-  "title": "Upgrade Plan",
-  "currentPlan": "Your Current Plan",
-  "month": "/ month",
-  "free": "Free",
-  "unlimited": "Unlimited",
-  "branches": "branch",
-  "users": "users",
-  "selectPlan": "Select Plan",
-  "currentBadge": "Current Plan",
-  "loading": "Loading...",
-  "upgrading": "Processing...",
-  "feature_pos": "Point of Sale",
-  "feature_reports": "Reports",
-  "feature_items": "Items",
-  "feature_customers": "Customers",
-  "feature_expenses": "Expenses",
-  "feature_coupons": "Coupons",
-  "feature_all": "All Features"
+  "upgrade": {
+    "title": "Upgrade Plan",
+    "currentPlan": "Your Current Plan",
+    "month": "/ month",
+    "free": "Free",
+    "unlimited": "Unlimited",
+    "branches": "branch",
+    "users": "users",
+    "selectPlan": "Select Plan",
+    "currentBadge": "Current Plan",
+    "loading": "Loading...",
+    "upgrading": "Processing...",
+    "adminOnly": "Super Admin Only",
+    "feature_pos": "Point of Sale",
+    "feature_reports": "Reports",
+    "feature_items": "Items",
+    "feature_customers": "Customers",
+    "feature_expenses": "Expenses",
+    "feature_coupons": "Coupons",
+    "feature_all": "All Features"
+  },
+  "onboarding": {
+  "step1Title": "Welcome! What's your business?",
+  "step2Title": "Business Info",
+  "step3Title": "Setup Your Offerings",
+  "step4Title": "You're All Set!",
+  "step1Sub": "Choose your business type",
+  "step2Sub": "Basic info about your business",
+  "step3Sub": "You can edit these later",
+  "step4Sub": "Start using the system now",
+  "stepOf": "Step {step} of {total}",
+  "businessName": "Business Name *",
+  "phoneNumber": "Phone Number",
+  "addItem": "Add",
+  "itemName": "Name",
+  "price": "Price",
+  "duration": "Duration (min)",
+  "quantity": "Quantity",
+  "sku": "SKU",
+  "category": "Category",
+  "pricingModel": "Pricing Model",
+  "skipHint": "You can skip this step and add later",
+  "getStarted": "Get Started",
+  "saving": "Saving...",
+  "retrying": "Retry {n}...",
+  "tryAgain": "Try Again",
+  "done": "Done!",
+  "saveError": "Save failed. Check your connection and try again.",
+  "complete": "Setup complete! Redirecting...",
+  "reviewBusiness": "Business",
+  "reviewName": "Name",
+  "reviewItems": "Items",
+  "carWash": {
+    "title": "Wash Services",
+    "namePlaceholder": "e.g. Exterior Wash",
+    "defaults": [
+      { "name": "Exterior Wash", "price": "30", "duration": "20" },
+      { "name": "Interior Clean", "price": "50", "duration": "30" },
+      { "name": "Full Steam", "price": "80", "duration": "45" },
+      { "name": "Polish", "price": "120", "duration": "60" }
+    ]
+  },
+  "cafe": {
+    "title": "Cafe Menu",
+    "categoryPlaceholder": "e.g. Hot Drinks",
+    "namePlaceholder": "e.g. Espresso",
+    "defaults": [
+      { "name": "Coffee", "price": "15", "category": "Hot Drinks" },
+      { "name": "Tea", "price": "10", "category": "Hot Drinks" },
+      { "name": "Juice", "price": "20", "category": "Cold Drinks" },
+      { "name": "Cake", "price": "25", "category": "Desserts" }
+    ]
+  },
+  "market": {
+    "title": "Products",
+    "namePlaceholder": "e.g. Mineral Water",
+    "skuPlaceholder": "e.g. SKU-001",
+    "defaults": [
+      { "name": "Product 1", "price": "10", "quantity": "100", "sku": "" },
+      { "name": "Product 2", "price": "25", "quantity": "50", "sku": "" }
+    ]
+  },
+  "tailor": {
+    "title": "Tailoring Services",
+    "namePlaceholder": "e.g. Thobe Tailoring",
+    "typePlaceholder": "e.g. Thobe",
+    "defaults": [
+      { "name": "Thobe Tailoring", "price": "150", "type": "Thobe" },
+      { "name": "Pants Alteration", "price": "50", "type": "Pants" },
+      { "name": "Abaya Tailoring", "price": "200", "type": "Abaya" }
+    ]
+  }
 }
 }
