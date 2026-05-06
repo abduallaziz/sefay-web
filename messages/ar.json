@@ -47,8 +47,8 @@
     "expenses": "المصاريف",
     "coupons": "الكوبونات",
     "sync": "المزامنة",
-    "settings": "الإعدادات"
-    
+    "settings": "الإعدادات",
+    "upgrade": "ترقية الخطة"
   },
   "dashboard": {
     "title": "لوحة التحكم",
@@ -90,7 +90,7 @@
       "all": "الكل"
     }
   },
-"items": {
+  "items": {
     "title": "المنتجات",
     "addService": "إضافة منتج",
     "serviceName": "اسم المنتج",
@@ -175,5 +175,18 @@
       "cashier": "كاشير",
       "worker": "عامل"
     }
+  },
+  "upgrade": {
+    "title": "ترقية الخطة",
+    "currentPlan": "خطتك الحالية",
+    "month": "/ شهر",
+    "free": "مجاني",
+    "unlimited": "غير محدود",
+    "branches": "فرع",
+    "users": "مستخدمين",
+    "selectPlan": "اختر هذه الخطة",
+    "currentBadge": "خطتك الحالية",
+    "loading": "جاري التحميل...",
+    "upgrading": "جاري..."
   }
 }

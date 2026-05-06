@@ -46,7 +46,8 @@
     "employees": "Employees",
     "expenses": "Expenses",
     "coupons": "Coupons",
-    "settings": "Settings"
+    "settings": "Settings",
+    "upgrade": "Upgrade"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -175,4 +176,19 @@
       "worker": "Worker"
     }
   }
+  ,
+"upgrade": {
+  "sync": "Sync",
+  "title": "Upgrade Plan",
+  "currentPlan": "Your Current Plan",
+  "month": "/ month",
+  "free": "Free",
+  "unlimited": "Unlimited",
+  "branches": "branch",
+  "users": "users",
+  "selectPlan": "Select Plan",
+  "currentBadge": "Current Plan",
+  "loading": "Loading...",
+  "upgrading": "Processing..."
+}
 }
