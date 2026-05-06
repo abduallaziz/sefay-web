@@ -116,19 +116,17 @@ export default function OnboardingWizard() {
         ? validServices
         : [DEFAULTS_BY_TYPE[businessType]?.[0] || { name: 'Service', price: '50' }]
 
-      await supabase.from('items').insert(
+      const { error: insertErr } = await supabase.from('items').insert(
         toInsert.map(s => ({
           tenant_id: session.tenant_id,
-          branch_id: session.branch_id,
           name: s.name.trim(),
           price: Number(s.price),
           active: true,
           is_default: validServices.length === 0,
-          ...(s.duration ? { duration: Number(s.duration) } : {}),
           ...(s.category ? { category: s.category } : {}),
-          ...(s.type ? { service_type: s.type } : {}),
         }))
       )
+      if (insertErr) throw insertErr
 
       clearProgress()
       setState('COMPLETE')
