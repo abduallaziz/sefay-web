@@ -72,25 +72,27 @@ export default function OnboardingWizard() {
   const [retryCount,   setRetryCount]   = useState(0)
   const [errorMsg,     setErrorMsg]     = useState('')
 
-  const session = getSession()
+const [session, setSessionState] = useState<ReturnType<typeof getSession>>(null)
 
   useEffect(() => {
-    if (!session) { router.push(`/${locale}/login`); return }
-    const saved = loadProgress(session.tenant_id)
-    if (saved) {
-      setStep(saved.step)
-      setBusinessType(saved.business_type)
-      setShopName(saved.shop_name)
-      setPhone(saved.phone)
-      setServices(saved.services)
-    }
-    setState('ACTIVE')
-  }, [])
+  const s = getSession()
+  if (!s) { router.push(`/${locale}/login`); return }
+  setSessionState(s)
+  const saved = loadProgress(s.tenant_id)
+  if (saved) {
+    setStep(saved.step)
+    setBusinessType(saved.business_type)
+    setShopName(saved.shop_name)
+    setPhone(saved.phone)
+    setServices(saved.services)
+  }
+  setState('ACTIVE')
+}, [])
 
   useEffect(() => {
-    if (state !== 'ACTIVE' || !session) return
-    saveProgress({ tenant_id: session.tenant_id, step, business_type: businessType, shop_name: shopName, phone, services })
-  }, [step, businessType, shopName, phone, services, state])
+  if (state !== 'ACTIVE' || !session) return
+  saveProgress({ tenant_id: session.tenant_id, step, business_type: businessType, shop_name: shopName, phone, services })
+}, [step, businessType, shopName, phone, services, state, session])
 
   function selectBusiness(type: string) {
     setBusinessType(type)
