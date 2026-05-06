@@ -71,28 +71,27 @@ export default function OnboardingWizard() {
   const [services,     setServices]     = useState<Step3Item[]>([])
   const [retryCount,   setRetryCount]   = useState(0)
   const [errorMsg,     setErrorMsg]     = useState('')
-
-const [session, setSessionState] = useState<ReturnType<typeof getSession>>(null)
-
-  useEffect(() => {
-  const s = getSession()
-  if (!s) { router.push(`/${locale}/login`); return }
-  setSessionState(s)
-  const saved = loadProgress(s.tenant_id)
-  if (saved) {
-    setStep(saved.step)
-    setBusinessType(saved.business_type)
-    setShopName(saved.shop_name)
-    setPhone(saved.phone)
-    setServices(saved.services)
-  }
-  setState('ACTIVE')
-}, [])
+  const [session,      setSessionState] = useState<ReturnType<typeof getSession>>(null)
 
   useEffect(() => {
-  if (state !== 'ACTIVE' || !session) return
-  saveProgress({ tenant_id: session.tenant_id, step, business_type: businessType, shop_name: shopName, phone, services })
-}, [step, businessType, shopName, phone, services, state, session])
+    const s = getSession()
+    if (!s) { router.push(`/${locale}/login`); return }
+    setSessionState(s)
+    const saved = loadProgress(s.tenant_id)
+    if (saved) {
+      setStep(saved.step)
+      setBusinessType(saved.business_type)
+      setShopName(saved.shop_name)
+      setPhone(saved.phone)
+      setServices(saved.services)
+    }
+    setState('ACTIVE')
+  }, [])
+
+  useEffect(() => {
+    if (state !== 'ACTIVE' || !session) return
+    saveProgress({ tenant_id: session.tenant_id, step, business_type: businessType, shop_name: shopName, phone, services })
+  }, [step, businessType, shopName, phone, services, state, session])
 
   function selectBusiness(type: string) {
     setBusinessType(type)
@@ -110,14 +109,14 @@ const [session, setSessionState] = useState<ReturnType<typeof getSession>>(null)
         .eq('id', session.tenant_id)
       if (tenantErr) throw tenantErr
 
-      await supabase.from('services').delete().eq('tenant_id', session.tenant_id).eq('is_default', true)
+      await supabase.from('items').delete().eq('tenant_id', session.tenant_id).eq('is_default', true)
 
       const validServices = services.filter(s => s.name.trim() && Number(s.price) > 0)
       const toInsert = validServices.length > 0
         ? validServices
         : [DEFAULTS_BY_TYPE[businessType]?.[0] || { name: 'Service', price: '50' }]
 
-      await supabase.from('services').insert(
+      await supabase.from('items').insert(
         toInsert.map(s => ({
           tenant_id: session.tenant_id,
           branch_id: session.branch_id,
