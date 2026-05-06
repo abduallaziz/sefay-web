@@ -189,15 +189,13 @@
   "selectPlan": "Select Plan",
   "currentBadge": "Current Plan",
   "loading": "Loading...",
-  "upgrading": "Processing..."
-},
-"features": {
-  "pos": "Point of Sale",
-  "reports": "Reports",
-  "items": "Items",
-  "customers": "Customers",
-  "expenses": "Expenses",
-  "coupons": "Coupons",
-  "all": "All Features"
+  "upgrading": "Processing...",
+  "feature_pos": "Point of Sale",
+  "feature_reports": "Reports",
+  "feature_items": "Items",
+  "feature_customers": "Customers",
+  "feature_expenses": "Expenses",
+  "feature_coupons": "Coupons",
+  "feature_all": "All Features"
 }
 }

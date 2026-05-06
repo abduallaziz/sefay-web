@@ -187,16 +187,14 @@
     "selectPlan": "اختر هذه الخطة",
     "currentBadge": "خطتك الحالية",
     "loading": "جاري التحميل...",
-    "upgrading": "جاري..."
-  },
-  
-  "features": {
-  "pos": "نقاط البيع",
-  "reports": "التقارير",
-  "items": "المنتجات",
-  "customers": "العملاء",
-  "expenses": "المصاريف",
-  "coupons": "الكوبونات",
-  "all": "كل المميزات"
-}
+    "upgrading": "جاري...",
+    "feature_pos": "نقاط البيع",
+    "feature_reports": "التقارير",
+    "feature_items": "المنتجات",
+    "feature_customers": "العملاء",
+    "feature_expenses": "المصاريف",
+    "feature_coupons": "الكوبونات",
+    "feature_all": "كل المميزات"
+    
+  }
 }
