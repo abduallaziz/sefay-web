@@ -39,7 +39,7 @@ export default function POSPage() {
   const [customerSearch, setCustomerSearch] = useState('')
   const [customerResults, setCustomerResults] = useState<Customer[]>([])
   const [discount, setDiscount]         = useState(0)
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'mixed'>('cash')
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'mada' | 'visa' | 'mastercard' | 'mixed'>('cash')
   const [cashAmount, setCashAmount]     = useState('')
   const [cardAmount, setCardAmount]     = useState('')
   const [notes, setNotes]               = useState('')
