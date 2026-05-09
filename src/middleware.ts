@@ -8,23 +8,25 @@ export default function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const token = request.cookies.get('token')?.value
 
-  const locale = pathname.split('/')[1] || routing.defaultLocale
-  const pathWithoutLocale = pathname.replace(`/${locale}`, '') || '/'
+  const supportedLocales = ['ar', 'en']
+  const firstSegment = pathname.split('/')[1]
+  const locale = supportedLocales.includes(firstSegment) ? firstSegment : routing.defaultLocale
+  const pathWithoutLocale = supportedLocales.includes(firstSegment)
+    ? pathname.slice(firstSegment.length + 1) || '/'
+    : pathname
 
-  const isProtected  = pathWithoutLocale.startsWith('/dashboard')
-  const isAuthPage   = pathWithoutLocale.startsWith('/login') || pathWithoutLocale.startsWith('/signup')
-  const isRoot       = pathWithoutLocale === '/' || pathWithoutLocale === ''
+  const isProtected = pathWithoutLocale.startsWith('/dashboard')
+  const isAuthPage  = pathWithoutLocale === '/login' || pathWithoutLocale === '/signup'
+  const isRoot      = pathWithoutLocale === '/' || pathWithoutLocale === ''
 
   if (isProtected && !token) {
     return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
   }
 
   if (isRoot) {
-    if (token) {
-      return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url))
-    } else {
-      return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
-    }
+    return token
+      ? NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url))
+      : NextResponse.redirect(new URL(`/${locale}/login`, request.url))
   }
 
   if (isAuthPage && token) {
