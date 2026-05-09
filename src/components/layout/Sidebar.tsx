@@ -10,7 +10,7 @@ import {
   BarChart3, GitBranch, UserCog,
   Tag, Settings, LogOut, ChevronLeft, ChevronRight,
   DollarSign, RefreshCw,
-  Zap,
+  Zap, Monitor,
 } from 'lucide-react'
 import '@/styles/sidebar.css'
 import { useBusinessConfig } from '@/hooks/useBusinessConfig'

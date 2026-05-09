@@ -32,17 +32,19 @@ export const api = {
       axiosInstance.post('/auth/login', { email, password }),
   },
   orders: {
-    getAll: (date?: string) =>
-      axiosInstance.get(`/orders${date ? `?date=${date}` : ''}`),
-    summary: (date?: string) =>
-      axiosInstance.get(`/orders/summary${date ? `?date=${date}` : ''}`),
-    getByRange: (from: string, to: string) =>
-      axiosInstance.get(`/orders/range?from=${from}&to=${to}`),
-    summaryByRange: (from: string, to: string) =>
-      axiosInstance.get(`/orders/summary/range?from=${from}&to=${to}`),
-    refund: (id: string, body: { mode: 'full' | 'partial'; refund_amount?: number; items?: { service_name: string; price: number; qty: number }[] }) =>
-  axiosInstance.patch(`/orders/${id}/refund`, body),
-  },
+  getAll: (date?: string) =>
+    axiosInstance.get(`/orders${date ? `?date=${date}` : ''}`),
+  summary: (date?: string) =>
+    axiosInstance.get(`/orders/summary${date ? `?date=${date}` : ''}`),
+  getByRange: (from: string, to: string) =>
+    axiosInstance.get(`/orders/range?from=${from}&to=${to}`),
+  summaryByRange: (from: string, to: string) =>
+    axiosInstance.get(`/orders/summary/range?from=${from}&to=${to}`),
+  refund: (id: string, body: { mode: 'full' | 'partial'; refund_amount?: number; items?: { service_name: string; price: number; qty: number }[] }) =>
+    axiosInstance.patch(`/orders/${id}/refund`, body),
+  create: (body: any) =>
+    axiosInstance.post('/orders', body),
+},
   // حط هذا بدله
 items: {
     getAll: () => axiosInstance.get('/items/all'),
