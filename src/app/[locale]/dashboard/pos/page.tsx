@@ -159,7 +159,7 @@ export default function POSPage() {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '16px', height: 'calc(100vh - 80px)', overflow: 'hidden' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '16px', height: 'calc(100vh - 180px)', overflow: 'hidden' }}>
 
       {/* ─── LEFT: Items ─────────────────── */}
       <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 }}>
@@ -293,7 +293,7 @@ export default function POSPage() {
         </div>
 
         {/* Cart Items — scrollable */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '12px', minHeight: '0' }}>
           {cart.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--color-text-muted)' }}>
               <ShoppingCart size={40} style={{ marginBottom: '12px', opacity: 0.3 }} />
