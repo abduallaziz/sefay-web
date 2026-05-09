@@ -46,7 +46,9 @@
     "hasAccount": "لديك حساب؟",
     "loginLink": "سجل دخول",
     "noAccount": "ليس لديك حساب؟",
-    "signupLink": "سجل الآن"
+    "signupLink": "سجل الآن",
+    "signupSuccess": "🎉 تم إنشاء الحساب بنجاح!",
+    "signingUp": "جاري الإنشاء..."
   },
   "nav": {
     "dashboard": "الرئيسية",

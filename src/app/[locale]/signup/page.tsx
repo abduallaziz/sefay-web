@@ -17,6 +17,7 @@ export default function SignupPage() {
   const [confirm,  setConfirm]  = useState('')
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
+  const [success,  setSuccess]  = useState(false)
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
@@ -42,7 +43,11 @@ export default function SignupPage() {
       })
 
       document.cookie = `token=${data.token}; path=/; max-age=86400`
-      window.location.href = `/${locale}/onboarding`
+      setSuccess(true)
+
+      setTimeout(() => {
+        window.location.href = `/${locale}/onboarding`
+      }, 1500)
     } catch (err: any) {
       setError(err.response?.data?.message || t('auth.signupError'))
     } finally {
@@ -59,7 +64,8 @@ export default function SignupPage() {
         </div>
 
         <form className="auth-form" onSubmit={handleSignup}>
-          {error && <div className="auth-error">{error}</div>}
+          {error   && <div className="auth-error">{error}</div>}
+          {success && <div className="auth-success">{t('auth.signupSuccess')}</div>}
 
           <div className="auth-field">
             <label>{t('auth.name')}</label>
@@ -121,9 +127,9 @@ export default function SignupPage() {
           <button
             type="submit"
             className={`auth-btn ${loading ? 'btn-loading' : ''}`}
-            disabled={loading}
+            disabled={loading || success}
           >
-            {!loading && t('auth.signupBtn')}
+            {loading ? t('auth.signingUp') : success ? t('auth.signupSuccess') : t('auth.signupBtn')}
           </button>
         </form>
 

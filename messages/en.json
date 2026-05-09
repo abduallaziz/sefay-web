@@ -46,7 +46,9 @@
     "hasAccount": "Already have an account?",
     "loginLink": "Sign in",
     "noAccount": "Don't have an account?",
-    "signupLink": "Sign up"
+    "signupLink": "Sign up",
+    "signupSuccess": "🎉 Account created successfully!",
+      "signingUp": "Creating account..."
   },
   "nav": {
     "dashboard": "Dashboard",
