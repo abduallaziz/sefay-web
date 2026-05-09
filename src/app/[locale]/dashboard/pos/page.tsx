@@ -410,8 +410,8 @@ export default function POSPage() {
 
         {/* Payment Method */}
         <div style={{ padding: '12px 16px', borderTop: '1px solid var(--color-border)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '10px' }}>
-            {(['cash', 'card', 'mixed'] as const).map(method => (
+<div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '10px' }}>
+              {(['cash', 'mada', 'visa', 'mastercard', 'mixed'] as const).map(method => (
               <button key={method} onClick={() => setPaymentMethod(method)} style={{
                 padding: '8px', borderRadius: 'var(--radius-md)', fontSize: '13px', fontWeight: '600',
                 border: `1px solid ${paymentMethod === method ? 'var(--color-primary)' : 'var(--color-border)'}`,
@@ -420,7 +420,7 @@ export default function POSPage() {
                 color: paymentMethod === method ? '#fff' : 'var(--color-text-secondary)',
                 transition: 'var(--transition)',
               }}>
-                {method === 'cash' ? lc('نقد', 'Cash') : method === 'card' ? lc('بطاقة', 'Card') : lc('مختلط', 'Mixed')}
+                {method === 'cash' ? lc('نقد', 'Cash') : method === 'mada' ? lc('مادا', 'Mada') : method === 'visa' ? lc('فيزا', 'Visa') : method === 'mastercard' ? lc('ماستر كارد', 'Mastercard') : lc('مختلط', 'Mixed')}
               </button>
             ))}
           </div>
