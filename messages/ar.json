@@ -34,7 +34,17 @@
     "password": "كلمة المرور",
     "loginBtn": "دخول",
     "loginError": "بيانات الدخول غير صحيحة",
-    "welcome": "مرحباً بك في Sefay"
+    "welcome": "مرحباً بك في Sefay",
+    "signupWelcome": "أنشئ حسابك في Sefay",
+    "name": "الاسم الكامل",
+    "namePlaceholder": "مثال: محمد أحمد",
+    "phone": "الجوال",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "passwordMismatch": "كلمة المرور غير متطابقة",
+    "signupBtn": "إنشاء حساب",
+    "signupError": "فشل إنشاء الحساب، حاول مجدداً",
+    "hasAccount": "لديك حساب؟",
+    "loginLink": "سجل دخول"
   },
   "nav": {
     "dashboard": "الرئيسية",

@@ -34,7 +34,19 @@
     "password": "Password",
     "loginBtn": "Sign In",
     "loginError": "Invalid credentials",
-    "welcome": "Welcome to Sefay"
+    "welcome": "Welcome to Sefay",
+    "signupWelcome": "Create your Sefay account",
+    "name": "Full Name",
+    "namePlaceholder": "e.g. John Smith",
+    "phone": "Phone",
+    "confirmPassword": "Confirm Password",
+    "passwordMismatch": "Passwords do not match",
+    "signupBtn": "Create Account",
+    "signupError": "Signup failed, please try again",
+    "hasAccount": "Already have an account?",
+    "loginLink": "Sign in",
+    "noAccount": "Don't have an account?",
+    "signupLink": "Sign up"
   },
   "nav": {
     "dashboard": "Dashboard",

@@ -7,23 +7,31 @@ import { api } from '@/lib/api'
 import { setSession } from '@/lib/auth'
 import '@/styles/auth.css'
 
-export default function LoginPage() {
+export default function SignupPage() {
   const t = useTranslations()
   const locale = useLocale()
   const router = useRouter()
 
+  const [name,     setName]     = useState('')
   const [email,    setEmail]    = useState('')
+  const [phone,    setPhone]    = useState('')
   const [password, setPassword] = useState('')
+  const [confirm,  setConfirm]  = useState('')
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
     setError('')
 
+    if (password !== confirm) {
+      setError(t('auth.passwordMismatch'))
+      return
+    }
+
+    setLoading(true)
     try {
-      const res = await api.auth.login(email, password)
+      const res = await api.auth.register({ name, email, password, phone })
       const data = res.data
 
       setSession({
@@ -37,11 +45,10 @@ export default function LoginPage() {
 
       document.cookie = `token=${data.token}; path=/; max-age=86400`
 
-      router.push(`/${locale}/dashboard`)
+      router.push(`/${locale}/onboarding`)
     } catch (err: any) {
-  console.log('Login error:', err.response?.data, err.message)
-  setError(err.response?.data?.message || t('auth.loginError'))
-} finally {
+      setError(err.response?.data?.message || t('auth.signupError'))
+    } finally {
       setLoading(false)
     }
   }
@@ -51,21 +58,42 @@ export default function LoginPage() {
       <div className="auth-card">
         <div className="auth-logo">
           <h1>Sefay</h1>
-          <p>{t('auth.welcome')}</p>
+          <p>{t('auth.signupWelcome')}</p>
         </div>
 
-        <form className="auth-form" onSubmit={handleLogin}>
+        <form className="auth-form" onSubmit={handleSignup}>
           {error && <div className="auth-error">{error}</div>}
+
+          <div className="auth-field">
+            <label>{t('auth.name')}</label>
+            <input
+              type="text"
+              placeholder={t('auth.namePlaceholder')}
+              value={name}
+              onChange={e => setName(e.target.value)}
+              required
+            />
+          </div>
 
           <div className="auth-field">
             <label>{t('auth.email')}</label>
             <input
               type="email"
-              placeholder="admin@sefay.com"
+              placeholder="email@example.com"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
               autoComplete="email"
+            />
+          </div>
+
+          <div className="auth-field">
+            <label>{t('auth.phone')}</label>
+            <input
+              type="tel"
+              placeholder="05xxxxxxxx"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
             />
           </div>
 
@@ -77,7 +105,19 @@ export default function LoginPage() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              autoComplete="current-password"
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div className="auth-field">
+            <label>{t('auth.confirmPassword')}</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              required
+              autoComplete="new-password"
             />
           </div>
 
@@ -86,19 +126,17 @@ export default function LoginPage() {
             className={`auth-btn ${loading ? 'btn-loading' : ''}`}
             disabled={loading}
           >
-            {!loading && t('auth.loginBtn')}
+            {!loading && t('auth.signupBtn')}
           </button>
         </form>
 
         <div className="auth-footer">
-          <p>Sefay ERP © {new Date().getFullYear()}</p>
           <p>
-        {t('auth.noAccount')}{' '}
-        <a href={`/${locale}/signup`}>{t('auth.signupLink')}</a>
-        </p>
+            {t('auth.hasAccount')}{' '}
+            <a href={`/${locale}/login`}>{t('auth.loginLink')}</a>
+          </p>
         </div>
       </div>
     </div>
-    
   )
 }

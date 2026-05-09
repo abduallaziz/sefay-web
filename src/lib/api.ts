@@ -30,6 +30,8 @@ export const api = {
   auth: {
     login: (email: string, password: string) =>
       axiosInstance.post('/auth/login', { email, password }),
+    register: (body: { name: string; email: string; password: string; phone?: string }) =>
+  axiosInstance.post('/auth/register', body),
   },
   orders: {
   getAll: (date?: string) =>
