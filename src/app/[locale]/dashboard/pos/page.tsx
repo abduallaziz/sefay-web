@@ -246,12 +246,15 @@ export default function POSPage() {
 
       {/* ─── RIGHT: Cart ─────────────────── */}
       <div style={{
-        backgroundColor: 'var(--color-bg-secondary)',
-        border: '1px solid var(--color-border)',
-        borderRadius: 'var(--radius-lg)',
-        display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
-      }}>
+  backgroundColor: 'var(--color-bg-secondary)',
+  border: '1px solid var(--color-border)',
+  borderRadius: 'var(--radius-lg)',
+  display: 'flex', flexDirection: 'column',
+  overflow: 'hidden',
+  position: 'sticky',
+  top: '0',
+  maxHeight: 'calc(100vh - 100px)',
+}}>
 
         {/* Cart Header */}
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
