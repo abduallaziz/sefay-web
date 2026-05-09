@@ -44,7 +44,9 @@
     "signupBtn": "إنشاء حساب",
     "signupError": "فشل إنشاء الحساب، حاول مجدداً",
     "hasAccount": "لديك حساب؟",
-    "loginLink": "سجل دخول"
+    "loginLink": "سجل دخول",
+    "noAccount": "ليس لديك حساب؟",
+    "signupLink": "سجل الآن"
   },
   "nav": {
     "dashboard": "الرئيسية",

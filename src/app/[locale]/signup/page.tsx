@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { api } from '@/lib/api'
 import { setSession } from '@/lib/auth'
@@ -10,7 +9,6 @@ import '@/styles/auth.css'
 export default function SignupPage() {
   const t = useTranslations()
   const locale = useLocale()
-  const router = useRouter()
 
   const [name,     setName]     = useState('')
   const [email,    setEmail]    = useState('')
@@ -44,8 +42,7 @@ export default function SignupPage() {
       })
 
       document.cookie = `token=${data.token}; path=/; max-age=86400`
-
-      router.push(`/${locale}/onboarding`)
+      window.location.href = `/${locale}/onboarding`
     } catch (err: any) {
       setError(err.response?.data?.message || t('auth.signupError'))
     } finally {
