@@ -163,7 +163,7 @@ export default function POSPage() {
       display: 'grid',
       gridTemplateColumns: '1fr 400px',
       gap: '16px',
-      height: 'calc(100vh - 120px)',
+      height: 'calc(100vh - 60px)',
       overflow: 'hidden',
     }}>
 
