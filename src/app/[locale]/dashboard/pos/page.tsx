@@ -64,7 +64,7 @@ export default function POSPage() {
     if (!q || q.length < 2) { setCustomerResults([]); return }
     try {
       const session = getSession()
-      const res = await api.customers.search(q, session?.tenant_id || '')
+      const res = await api.customers.search(q)
       setCustomerResults(res.data || [])
     } catch { setCustomerResults([]) }
   }

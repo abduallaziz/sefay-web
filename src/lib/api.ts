@@ -56,8 +56,8 @@ items: {
   },
   customers: {
     getAll: () => axiosInstance.get('/customers'),
-    search: (plate: string, tenant_id: string) =>
-      axiosInstance.get(`/customers/search?plate=${plate}&tenant_id=${tenant_id}`),
+    search: (q: string) =>
+      axiosInstance.get(`/customers/search?q=${q}`),
   },
   coupons: {
     getAll: () => axiosInstance.get('/coupons'),
