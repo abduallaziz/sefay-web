@@ -11,9 +11,9 @@ export default function middleware(request: NextRequest) {
   const locale = pathname.split('/')[1] || routing.defaultLocale
   const pathWithoutLocale = pathname.replace(`/${locale}`, '') || '/'
 
-  const isProtected = pathWithoutLocale.startsWith('/dashboard')
-  const isLoginPage = pathWithoutLocale.startsWith('/login')
-  const isRoot      = pathWithoutLocale === '/' || pathWithoutLocale === ''
+  const isProtected  = pathWithoutLocale.startsWith('/dashboard')
+  const isAuthPage   = pathWithoutLocale.startsWith('/login') || pathWithoutLocale.startsWith('/signup')
+  const isRoot       = pathWithoutLocale === '/' || pathWithoutLocale === ''
 
   if (isProtected && !token) {
     return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
@@ -25,6 +25,10 @@ export default function middleware(request: NextRequest) {
     } else {
       return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
     }
+  }
+
+  if (isAuthPage && token) {
+    return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url))
   }
 
   return intlMiddleware(request)
