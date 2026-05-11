@@ -10,6 +10,7 @@ import { Item } from '@/types'
 import { Search, RefreshCw, Trash2, ToggleLeft, ToggleRight, Plus, X, Save, Upload } from 'lucide-react'
 import '@/styles/modals.css'
 import '@/styles/forms.css'
+import VariantsModal from './VariantsModal'
 
 interface BundleItem {
   service_id: string
@@ -29,6 +30,7 @@ export default function ItemsPage() {
   const [selected,  setSelected]  = useState<Item | null>(null)
   const [saving,    setSaving]    = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [variantsItem, setVariantsItem] = useState<Item | null>(null)
 
   const [serviceType,  setServiceType]  = useState<'single' | 'bundle'>('single')
   const [bundleItems,  setBundleItems]  = useState<BundleItem[]>([])
@@ -578,6 +580,8 @@ function openEdit(svc: Item) {
                     <div className="btn-group">
                       <button className="action-btn" onClick={() => openEdit(svc)}
                         title={locale === 'ar' ? 'تعديل' : 'Edit'}>✏️</button>
+                      <button className="action-btn" onClick={() => setVariantsItem(svc)}
+                        title="Variants">🎛️</button>
                       <button className={`action-btn ${svc.active ? '' : 'success'}`}
                         onClick={() => toggleActive(svc)}>
                         {svc.active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
@@ -604,6 +608,14 @@ function openEdit(svc: Item) {
           </table>
         )}
       </div>
+      {variantsItem && (
+  <VariantsModal
+    itemId={variantsItem.id}
+    itemName={variantsItem.name}
+    trackInventory={(variantsItem as any).track_inventory || false}
+    onClose={() => setVariantsItem(null)}
+  />
+)}
     </div>
   )
 }
