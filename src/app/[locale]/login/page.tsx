@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from 'next-intl'
 import { api } from '@/lib/api'
 import { setSession } from '@/lib/auth'
@@ -10,7 +9,6 @@ import '@/styles/auth.css'
 export default function LoginPage() {
   const t = useTranslations()
   const locale = useLocale()
-  const router = useRouter()
 
   const [email,    setEmail]    = useState('')
   const [password, setPassword] = useState('')
@@ -47,11 +45,16 @@ export default function LoginPage() {
   return (
     <div className="auth-container">
 
-      {/* بانر علوي */}
       <div className="auth-hero">
         <div className="auth-hero-badge">✦ نظام إدارة الأعمال</div>
         <h1 className="auth-hero-title">Sefay</h1>
-        <p className="auth-hero-sub">منصة متكاملة لإدارة نشاطك التجاري</p>
+        <p className="auth-hero-sub">منصة متكاملة لإدارة نشاطك التجاري بكل سهولة</p>
+        <div className="auth-hero-features">
+          <div className="auth-hero-feature"><span>🧾</span><span>إدارة الطلبات والمبيعات</span></div>
+          <div className="auth-hero-feature"><span>📊</span><span>تقارير وإحصائيات لحظية</span></div>
+          <div className="auth-hero-feature"><span>🏪</span><span>يدعم كافة أنواع الأنشطة</span></div>
+          <div className="auth-hero-feature"><span>👥</span><span>إدارة الموظفين والفروع</span></div>
+        </div>
       </div>
 
       <div className="auth-card">
@@ -96,13 +99,16 @@ export default function LoginPage() {
         </form>
 
         <div className="auth-footer">
-          <p>
-            {t('auth.noAccount')}{' '}
-            <a href={`/${locale}/signup`}>{t('auth.signupLink')}</a>
-          </p>
+          <div className="auth-footer-row">
+            <span>{t('auth.noAccount')}</span>
+            <a href={`/${locale}/signup`} className="auth-signup-btn">
+              {t('auth.signupLink')} ✨
+            </a>
+          </div>
           <p className="auth-copyright">Sefay ERP © {new Date().getFullYear()}</p>
         </div>
       </div>
+
     </div>
   )
 }
