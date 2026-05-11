@@ -44,24 +44,15 @@ export default function LoginPage() {
 
   return (
     <div className="auth-container">
-
-      <div className="auth-hero">
-        <div className="auth-hero-badge">✦ نظام إدارة الأعمال</div>
-        <h1 className="auth-hero-title">Sefay</h1>
-        <p className="auth-hero-sub">منصة متكاملة لإدارة نشاطك التجاري بكل سهولة</p>
-        <div className="auth-hero-features">
-          <div className="auth-hero-feature"><span>🧾</span><span>إدارة الطلبات والمبيعات</span></div>
-          <div className="auth-hero-feature"><span>📊</span><span>تقارير وإحصائيات لحظية</span></div>
-          <div className="auth-hero-feature"><span>🏪</span><span>يدعم كافة أنواع الأنشطة</span></div>
-          <div className="auth-hero-feature"><span>👥</span><span>إدارة الموظفين والفروع</span></div>
-        </div>
-      </div>
-
       <div className="auth-card">
+
+        {/* Header */}
         <div className="auth-logo">
+          <h1>Sefay</h1>
           <p>{t('auth.welcome')}</p>
         </div>
 
+        {/* Form */}
         <form className="auth-form" onSubmit={handleLogin}>
           {error && <div className="auth-error">{error}</div>}
 
@@ -98,6 +89,7 @@ export default function LoginPage() {
           </button>
         </form>
 
+        {/* Signup */}
         <div className="auth-footer">
           <div className="auth-footer-row">
             <span>{t('auth.noAccount')}</span>
@@ -107,8 +99,16 @@ export default function LoginPage() {
           </div>
           <p className="auth-copyright">Sefay ERP © {new Date().getFullYear()}</p>
         </div>
-      </div>
 
+        {/* Features */}
+        <div className="auth-card-features">
+          <div className="auth-card-feature"><span>🧾</span><span>إدارة الطلبات والمبيعات</span></div>
+          <div className="auth-card-feature"><span>📊</span><span>تقارير وإحصائيات لحظية</span></div>
+          <div className="auth-card-feature"><span>🏪</span><span>يدعم كافة أنواع الأنشطة</span></div>
+          <div className="auth-card-feature"><span>👥</span><span>إدارة الموظفين والفروع</span></div>
+        </div>
+
+      </div>
     </div>
   )
 }
