@@ -12,12 +12,10 @@ export function TrialBanner() {
   if (trial.isExpired) {
     return (
       <>
-        {/* البانر */}
         <div className="w-full bg-red-600 text-white text-center py-2 text-sm font-medium">
           انتهت فترة التجربة — يرجى الترقية للاستمرار
         </div>
 
-        {/* Overlay يغلق كل شي */}
         <div style={{
           position: 'fixed',
           inset: 0,
@@ -46,7 +44,7 @@ export function TrialBanner() {
             <p style={{ fontSize: '14px', color: 'var(--color-text-muted)', lineHeight: 1.6 }}>
               لمواصلة استخدام Sefay، يرجى الترقية إلى إحدى الخطط المدفوعة
             </p>
-            
+            <a
               href={`/${locale}/dashboard/upgrade`}
               style={{
                 backgroundColor: 'var(--color-primary)',
