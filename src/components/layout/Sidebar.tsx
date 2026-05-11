@@ -32,7 +32,7 @@ export default function Sidebar({ collapsed, setCollapsed, session, mobileOpen, 
 const { hasCapability } = useBusinessConfig()
   const navItems = [
   { href: '/dashboard',           icon: LayoutDashboard, label: t('dashboard'),  cap: null },
-  { href: '/dashboard/pos',       icon: Monitor,         label: t('pos'),        cap: null },  { href: '/dashboard/orders',    icon: ShoppingCart,    label: t('orders'),     cap: null },
+  { href: '/dashboard/pos',       icon: Monitor,         label: t('pos'),        cap: null },
   { href: '/dashboard/orders',    icon: ShoppingCart,    label: t('orders'),     cap: null },
   { href: '/dashboard/items',     icon: Wrench,          label: t('items'),      cap: null },
   { href: '/dashboard/customers', icon: Users,           label: t('customers'),  cap: null },

@@ -36,21 +36,26 @@ export default function LoginPage() {
       })
 
       document.cookie = `token=${data.token}; path=/; max-age=86400`
-
-      router.push(`/${locale}/dashboard`)
+      window.location.href = `/${locale}/dashboard`
     } catch (err: any) {
-  console.log('Login error:', err.response?.data, err.message)
-  setError(err.response?.data?.message || t('auth.loginError'))
-} finally {
+      setError(err.response?.data?.message || t('auth.loginError'))
+    } finally {
       setLoading(false)
     }
   }
 
   return (
     <div className="auth-container">
+
+      {/* بانر علوي */}
+      <div className="auth-hero">
+        <div className="auth-hero-badge">✦ نظام إدارة الأعمال</div>
+        <h1 className="auth-hero-title">Sefay</h1>
+        <p className="auth-hero-sub">منصة متكاملة لإدارة نشاطك التجاري</p>
+      </div>
+
       <div className="auth-card">
         <div className="auth-logo">
-          <h1>Sefay</h1>
           <p>{t('auth.welcome')}</p>
         </div>
 
@@ -91,14 +96,13 @@ export default function LoginPage() {
         </form>
 
         <div className="auth-footer">
-          <p>Sefay ERP © {new Date().getFullYear()}</p>
           <p>
-        {t('auth.noAccount')}{' '}
-        <a href={`/${locale}/signup`}>{t('auth.signupLink')}</a>
-        </p>
+            {t('auth.noAccount')}{' '}
+            <a href={`/${locale}/signup`}>{t('auth.signupLink')}</a>
+          </p>
+          <p className="auth-copyright">Sefay ERP © {new Date().getFullYear()}</p>
         </div>
       </div>
     </div>
-    
   )
 }
