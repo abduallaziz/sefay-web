@@ -27,12 +27,8 @@ export default function UpgradePage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [currentPlan, setCurrentPlan] = useState<CurrentPlan | null>(null);
   const [loading, setLoading] = useState(true);
-  const [upgrading, setUpgrading] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string>('');
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    setUserRole(user.role || '');
     fetchData();
   }, []);
 
@@ -56,24 +52,6 @@ export default function UpgradePage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleUpgrade = async (planId: string) => {
-    if (userRole !== 'superadmin') return;
-    setUpgrading(planId);
-    const token = localStorage.getItem('token');
-
-    const res = await fetch(`${API_URL}/business/upgrade`, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ planId }),
-    });
-
-    if (res.ok) await fetchData();
-    setUpgrading(null);
   };
 
   if (loading) return <div className="upgrade-page">{t('loading')}</div>;
@@ -116,20 +94,21 @@ export default function UpgradePage() {
                 ))}
               </ul>
 
-              <button
-                onClick={() => !isCurrent && handleUpgrade(plan.id)}
-                disabled={isCurrent || upgrading === plan.id || userRole !== 'superadmin'}
-                className={`upgrade-btn ${isCurrent ? 'current' : userRole !== 'superadmin' ? 'disabled' : 'select'}`}
-                title={userRole !== 'superadmin' ? t('adminOnly') : ''}
-              >
-                {isCurrent
-                  ? t('currentBadge')
-                  : upgrading === plan.id
-                  ? t('upgrading')
-                  : userRole !== 'superadmin'
-                  ? t('adminOnly')
-                  : t('selectPlan')}
-              </button>
+              {isCurrent ? (
+                <button disabled className="upgrade-btn current">
+                  {t('currentBadge')}
+                </button>
+              ) : (
+                <a
+                  href={`https://wa.me/966530575553?text=${encodeURIComponent(`مرحباً، أريد الاشتراك في خطة ${plan.name} بسعر ${plan.price} ${plan.currency}/شهر`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="upgrade-btn select"
+                  style={{ textDecoration: 'none', textAlign: 'center', display: 'block' }}
+                >
+                  {t('selectPlan')}
+                </a>
+              )}
             </div>
           );
         })}
