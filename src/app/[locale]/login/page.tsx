@@ -95,7 +95,6 @@ export default function LoginPage() {
               {t('auth.signupLink')} ✨
             </a>
           </div>
-          <p className="auth-copyright">Sefay ERP © {new Date().getFullYear()}</p>
         </div>
 
         <div className="auth-card-features">
@@ -104,7 +103,7 @@ export default function LoginPage() {
           <div className="auth-card-feature"><span>🏪</span><span>يدعم كافة أنواع الأنشطة</span></div>
           <div className="auth-card-feature"><span>👥</span><span>إدارة الموظفين والفروع</span></div>
         </div>
-
+          <p className="auth-copyright">Sefay ERP © {new Date().getFullYear()}</p>
       </div>
     </div>
   )
