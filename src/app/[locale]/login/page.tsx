@@ -46,13 +46,11 @@ export default function LoginPage() {
     <div className="auth-container">
       <div className="auth-card">
 
-        {/* Header */}
         <div className="auth-logo">
           <h1>Sefay</h1>
           <p>{t('auth.welcome')}</p>
         </div>
 
-        {/* Form */}
         <form className="auth-form" onSubmit={handleLogin}>
           {error && <div className="auth-error">{error}</div>}
 
@@ -89,7 +87,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {/* Signup */}
         <div className="auth-footer">
           <div className="auth-footer-row">
             <span>{t('auth.noAccount')}</span>
@@ -100,7 +97,6 @@ export default function LoginPage() {
           <p className="auth-copyright">Sefay ERP © {new Date().getFullYear()}</p>
         </div>
 
-        {/* Features */}
         <div className="auth-card-features">
           <div className="auth-card-feature"><span>🧾</span><span>إدارة الطلبات والمبيعات</span></div>
           <div className="auth-card-feature"><span>📊</span><span>تقارير وإحصائيات لحظية</span></div>
