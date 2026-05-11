@@ -47,8 +47,9 @@ export default function LoginPage() {
       <div className="auth-card">
 
         <div className="auth-logo">
+          <div className="auth-hero-badge">✦ نظام إدارة الأعمال</div>
           <h1>Sefay</h1>
-          <p>{t('auth.welcome')}</p>
+          <p>منصة متكاملة لإدارة نشاطك التجاري بكل سهولة</p>
         </div>
 
         <form className="auth-form" onSubmit={handleLogin}>
