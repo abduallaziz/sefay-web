@@ -5,13 +5,18 @@ import { useTranslations, useLocale } from 'next-intl'
 import { supabase } from '@/lib/supabase'
 import { getSession } from '@/lib/auth'
 import { User } from '@/types'
-import { Search, RefreshCw, Plus, X, Save, ToggleLeft, ToggleRight, Trash2 } from 'lucide-react'
+import { Search, RefreshCw, Plus, X, Save, ToggleLeft, ToggleRight, Trash2, Clock } from 'lucide-react'
+import { api } from '@/lib/api'
 import '@/styles/modals.css'
 import '@/styles/forms.css'
+
+const DAYS_AR = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
+const DAYS_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 export default function EmployeesPage() {
   const t = useTranslations('employees')
   const locale = useLocale()
+  const isAr = locale === 'ar'
 
   const [employees, setEmployees] = useState<User[]>([])
   const [branches,  setBranches]  = useState<any[]>([])
@@ -26,6 +31,14 @@ export default function EmployeesPage() {
   const [password, setPassword] = useState('')
   const [role,     setRole]     = useState('cashier')
   const [branchId, setBranchId] = useState('')
+
+  // ─── Availability Modal ───────────────────────
+  const [showAvail,     setShowAvail]     = useState(false)
+  const [availWorker,   setAvailWorker]   = useState<User | null>(null)
+  const [availSlots,    setAvailSlots]    = useState<{ day: number; start: string; end: string; active: boolean }[]>(
+    Array.from({ length: 7 }, (_, i) => ({ day: i, start: '09:00', end: '17:00', active: false }))
+  )
+  const [savingAvail, setSavingAvail] = useState(false)
 
   const ROLES = [
     { id: 'superadmin', labelAr: 'سوبر ادمن', labelEn: 'Super Admin' },
@@ -84,6 +97,62 @@ export default function EmployeesPage() {
     setShowModal(true)
   }
 
+  async function openAvailability(emp: User) {
+    setAvailWorker(emp)
+    // جيب الدوام الحالي
+    try {
+      const res = await api.appointments.getAvailability((emp as any).worker_id || emp.id)
+      const existing = res.data || []
+      setAvailSlots(
+        Array.from({ length: 7 }, (_, i) => {
+          const found = existing.find((a: any) => a.day_of_week === i)
+          return {
+            day:    i,
+            start:  found ? found.start_time.slice(0, 5) : '09:00',
+            end:    found ? found.end_time.slice(0, 5)   : '17:00',
+            active: !!found,
+          }
+        })
+      )
+    } catch {
+      setAvailSlots(Array.from({ length: 7 }, (_, i) => ({ day: i, start: '09:00', end: '17:00', active: false })))
+    }
+    setShowAvail(true)
+  }
+
+  async function saveAvailability() {
+    if (!availWorker) return
+    setSavingAvail(true)
+    try {
+      const session = getSession()
+      if (!session) return
+
+      const activeDays = availSlots.filter(s => s.active)
+
+      // احذف القديم وأضف الجديد مباشرة في Supabase
+      await supabase
+        .from('availability')
+        .delete()
+        .eq('tenant_id', session.tenant_id)
+        .eq('worker_id', availWorker.id)
+
+      if (activeDays.length > 0) {
+        await supabase.from('availability').insert(
+          activeDays.map(s => ({
+            tenant_id:   session.tenant_id,
+            worker_id:   availWorker.id,
+            day_of_week: s.day,
+            start_time:  s.start,
+            end_time:    s.end,
+          }))
+        )
+      }
+
+      setShowAvail(false)
+    } catch (e) { console.error(e) }
+    finally { setSavingAvail(false) }
+  }
+
   async function saveEmployee() {
     if (!name.trim() || !email.trim()) return
     if (!selected && !password.trim()) return
@@ -91,25 +160,16 @@ export default function EmployeesPage() {
     try {
       const session = getSession()
       if (!session) return
-
       if (selected) {
-        const body: any = {
-          name: name.trim(),
-          email: email.trim(),
-          role,
-          branch_id: branchId || null,
-        }
+        const body: any = { name: name.trim(), email: email.trim(), role, branch_id: branchId || null }
         if (password.trim()) body.password_hash = await hashPassword(password.trim())
         await supabase.from('users').update(body).eq('id', selected.id)
       } else {
         await supabase.from('users').insert({
           tenant_id: session.tenant_id,
-          name: name.trim(),
-          email: email.trim(),
+          name: name.trim(), email: email.trim(),
           password_hash: await hashPassword(password.trim()),
-          role,
-          branch_id: branchId || null,
-          is_active: true,
+          role, branch_id: branchId || null, is_active: true,
         })
       }
       setShowModal(false)
@@ -126,7 +186,7 @@ export default function EmployeesPage() {
   }
 
   async function deleteEmployee(emp: User) {
-    if (!confirm(locale === 'ar' ? `هل أنت متأكد من حذف "${emp.name}"؟` : `Delete "${emp.name}"?`)) return
+    if (!confirm(isAr ? `هل أنت متأكد من حذف "${emp.name}"؟` : `Delete "${emp.name}"?`)) return
     try {
       await supabase.from('users').delete().eq('id', emp.id)
       loadData()
@@ -144,138 +204,195 @@ export default function EmployeesPage() {
         <div>
           <h2 className="dashboard-page-title">{t('title')}</h2>
           <p className="dashboard-page-subtitle">
-            {employees.length} {locale === 'ar' ? 'موظف' : 'employees'}
+            {employees.length} {isAr ? 'موظف' : 'employees'}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
           <button className="btn btn-secondary btn-sm" onClick={loadData}>
             <RefreshCw size={14} />
-            {locale === 'ar' ? 'تحديث' : 'Refresh'}
+            {isAr ? 'تحديث' : 'Refresh'}
           </button>
           <button className="btn btn-primary btn-sm" onClick={openNew}>
             <Plus size={14} />
-            {locale === 'ar' ? 'إضافة موظف' : 'Add Employee'}
+            {isAr ? 'إضافة موظف' : 'Add Employee'}
           </button>
         </div>
       </div>
 
+      {/* ─── Employee Modal ─── */}
       {showModal && (
         <div className="modal-overlay">
           <div className="modal modal-md">
             <div className="modal-header">
               <h3 className="modal-title">
-                {selected
-                  ? (locale === 'ar' ? '✏️ تعديل موظف' : '✏️ Edit Employee')
-                  : (locale === 'ar' ? '➕ إضافة موظف' : '➕ Add Employee')}
+                {selected ? (isAr ? '✏️ تعديل موظف' : '✏️ Edit Employee') : (isAr ? '➕ إضافة موظف' : '➕ Add Employee')}
               </h3>
-              <button className="modal-close" onClick={() => setShowModal(false)}>
-                <X size={14} />
-              </button>
+              <button className="modal-close" onClick={() => setShowModal(false)}><X size={14} /></button>
             </div>
-
             <div className="modal-body">
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">{t('employeeName')} <span>*</span></label>
-                  <input id="emp-name" name="emp-name" className="form-input"
-                    value={name} onChange={e => setName(e.target.value)}
-                    placeholder={locale === 'ar' ? 'الاسم الكامل' : 'Full name'} />
+                  <input className="form-input" value={name} onChange={e => setName(e.target.value)}
+                    placeholder={isAr ? 'الاسم الكامل' : 'Full name'} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">{locale === 'ar' ? 'الإيميل' : 'Email'} <span>*</span></label>
-                  <input id="emp-email" name="emp-email" type="email" className="form-input"
-                    value={email} onChange={e => setEmail(e.target.value)}
+                  <label className="form-label">{isAr ? 'الإيميل' : 'Email'} <span>*</span></label>
+                  <input type="email" className="form-input" value={email} onChange={e => setEmail(e.target.value)}
                     placeholder="example@email.com" />
                 </div>
               </div>
-
               <div className="form-group">
                 <label className="form-label">
-                  {locale === 'ar' ? 'كلمة المرور' : 'Password'}
-                  {selected && (
-                    <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginRight: '6px' }}>
-                      ({locale === 'ar' ? 'اتركها فارغة للإبقاء على القديمة' : 'Leave blank to keep current'})
-                    </span>
-                  )}
+                  {isAr ? 'كلمة المرور' : 'Password'}
+                  {selected && <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginRight: '6px' }}>
+                    ({isAr ? 'اتركها فارغة للإبقاء على القديمة' : 'Leave blank to keep current'})
+                  </span>}
                   {!selected && <span>*</span>}
                 </label>
-                <input id="emp-password" name="emp-password" type="password" className="form-input"
-                  value={password} onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••" />
+                <input type="password" className="form-input" value={password}
+                  onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
               </div>
-
               <div className="form-group">
                 <label className="form-label">{t('role')} <span>*</span></label>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {ROLES.map(r => (
-                    <button key={r.id} onClick={() => setRole(r.id)}
-                      style={{
-                        padding: '8px 14px', borderRadius: 'var(--radius-sm)',
-                        border: `1.5px solid ${role === r.id ? 'var(--color-primary)' : 'var(--color-border)'}`,
-                        backgroundColor: role === r.id ? 'var(--color-primary-light)' : 'var(--color-bg-tertiary)',
-                        color: role === r.id ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-                        fontWeight: '700', fontSize: '12px', cursor: 'pointer',
-                      }}>
-                      {locale === 'ar' ? r.labelAr : r.labelEn}
+                    <button key={r.id} onClick={() => setRole(r.id)} style={{
+                      padding: '8px 14px', borderRadius: 'var(--radius-sm)',
+                      border: `1.5px solid ${role === r.id ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                      backgroundColor: role === r.id ? 'var(--color-primary-light)' : 'var(--color-bg-tertiary)',
+                      color: role === r.id ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+                      fontWeight: '700', fontSize: '12px', cursor: 'pointer',
+                    }}>
+                      {isAr ? r.labelAr : r.labelEn}
                     </button>
                   ))}
                 </div>
               </div>
-
               <div className="form-group">
-                <label className="form-label">{locale === 'ar' ? 'الفرع' : 'Branch'}</label>
-                <select id="emp-branch" name="emp-branch" className="form-input form-select"
-                  value={branchId} onChange={e => setBranchId(e.target.value)}>
-                  <option value="">{locale === 'ar' ? 'بدون فرع محدد' : 'No specific branch'}</option>
-                  {branches.map(b => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
-                  ))}
+                <label className="form-label">{isAr ? 'الفرع' : 'Branch'}</label>
+                <select className="form-input form-select" value={branchId} onChange={e => setBranchId(e.target.value)}>
+                  <option value="">{isAr ? 'بدون فرع محدد' : 'No specific branch'}</option>
+                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
             </div>
-
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
-                {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                {isAr ? 'إلغاء' : 'Cancel'}
               </button>
               <button className="btn btn-primary" onClick={saveEmployee} disabled={saving}>
                 <Save size={14} />
-                {saving
-                  ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...')
-                  : (locale === 'ar' ? 'حفظ' : 'Save')}
+                {saving ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ' : 'Save')}
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* ─── Availability Modal ─── */}
+      {showAvail && availWorker && (
+        <div className="modal-overlay">
+          <div className="modal modal-md">
+            <div className="modal-header">
+              <h3 className="modal-title">
+                <Clock size={16} style={{ marginLeft: '8px' }} />
+                {isAr ? `أوقات دوام — ${availWorker.name}` : `Schedule — ${availWorker.name}`}
+              </h3>
+              <button className="modal-close" onClick={() => setShowAvail(false)}><X size={14} /></button>
+            </div>
+            <div className="modal-body">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {availSlots.map((slot, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: '12px',
+                    padding: '10px 12px',
+                    backgroundColor: slot.active ? 'var(--color-primary-light)' : 'var(--color-bg-tertiary)',
+                    border: `1px solid ${slot.active ? 'var(--color-primary-border)' : 'var(--color-border)'}`,
+                    borderRadius: 'var(--radius-md)',
+                  }}>
+                    {/* Toggle Day */}
+                    <input type="checkbox" checked={slot.active}
+                      onChange={e => setAvailSlots(prev => prev.map((s, j) =>
+                        j === i ? { ...s, active: e.target.checked } : s
+                      ))}
+                      style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                    />
+                    <span style={{
+                      width: '80px', fontSize: '13px', fontWeight: '700',
+                      color: slot.active ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                    }}>
+                      {isAr ? DAYS_AR[slot.day] : DAYS_EN[slot.day]}
+                    </span>
+                    {/* Times */}
+                    <input type="time" value={slot.start} disabled={!slot.active}
+                      onChange={e => setAvailSlots(prev => prev.map((s, j) =>
+                        j === i ? { ...s, start: e.target.value } : s
+                      ))}
+                      style={{
+                        padding: '5px 8px', borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)',
+                        backgroundColor: 'var(--color-bg-secondary)',
+                        color: 'var(--color-text-primary)', fontSize: '12px',
+                        opacity: slot.active ? 1 : 0.4,
+                      }}
+                    />
+                    <span style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>→</span>
+                    <input type="time" value={slot.end} disabled={!slot.active}
+                      onChange={e => setAvailSlots(prev => prev.map((s, j) =>
+                        j === i ? { ...s, end: e.target.value } : s
+                      ))}
+                      style={{
+                        padding: '5px 8px', borderRadius: 'var(--radius-sm)',
+                        border: '1px solid var(--color-border)',
+                        backgroundColor: 'var(--color-bg-secondary)',
+                        color: 'var(--color-text-primary)', fontSize: '12px',
+                        opacity: slot.active ? 1 : 0.4,
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowAvail(false)}>
+                {isAr ? 'إلغاء' : 'Cancel'}
+              </button>
+              <button className="btn btn-primary" onClick={saveAvailability} disabled={savingAvail}>
+                <Save size={14} />
+                {savingAvail ? (isAr ? 'جاري الحفظ...' : 'Saving...') : (isAr ? 'حفظ الدوام' : 'Save Schedule')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Table ─── */}
       <div className="table-container">
         <div className="table-header">
           <h3 className="table-title">{t('title')}</h3>
           <div className="table-actions">
             <div className="table-search">
               <Search size={14} />
-              <input id="emp-search" name="emp-search"
-                placeholder={locale === 'ar' ? 'بحث...' : 'Search...'}
+              <input placeholder={isAr ? 'بحث...' : 'Search...'}
                 value={search} onChange={e => setSearch(e.target.value)} />
             </div>
           </div>
         </div>
-
         {loading ? (
           <div style={{ padding: '60px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
-            {locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}
+            {isAr ? 'جاري التحميل...' : 'Loading...'}
           </div>
         ) : (
           <table>
             <thead>
               <tr>
                 <th>{t('employeeName')}</th>
-                <th>{locale === 'ar' ? 'الإيميل' : 'Email'}</th>
+                <th>{isAr ? 'الإيميل' : 'Email'}</th>
                 <th>{t('role')}</th>
-                <th>{locale === 'ar' ? 'الفرع' : 'Branch'}</th>
-                <th>{locale === 'ar' ? 'الحالة' : 'Status'}</th>
-                <th>{locale === 'ar' ? 'إجراءات' : 'Actions'}</th>
+                <th>{isAr ? 'الفرع' : 'Branch'}</th>
+                <th>{isAr ? 'الحالة' : 'Status'}</th>
+                <th>{isAr ? 'إجراءات' : 'Actions'}</th>
               </tr>
             </thead>
             <tbody>
@@ -297,12 +414,10 @@ export default function EmployeesPage() {
                       </span>
                     </div>
                   </td>
-                  <td style={{ color: 'var(--color-text-secondary)' }}>
-                    {(emp as any).email || '—'}
-                  </td>
+                  <td style={{ color: 'var(--color-text-secondary)' }}>{(emp as any).email || '—'}</td>
                   <td>
                     <span className={`badge ${roleColors[emp.role] || 'badge-muted'}`}>
-                      {ROLES.find(r => r.id === emp.role)?.[locale === 'ar' ? 'labelAr' : 'labelEn'] || emp.role}
+                      {ROLES.find(r => r.id === emp.role)?.[isAr ? 'labelAr' : 'labelEn'] || emp.role}
                     </span>
                   </td>
                   <td style={{ color: 'var(--color-text-secondary)', fontSize: '12px' }}>
@@ -310,21 +425,22 @@ export default function EmployeesPage() {
                   </td>
                   <td>
                     <span className={`badge ${(emp as any).is_active ? 'badge-success' : 'badge-danger'}`}>
-                      {(emp as any).is_active
-                        ? (locale === 'ar' ? 'مفعّل' : 'Active')
-                        : (locale === 'ar' ? 'معطّل' : 'Inactive')}
+                      {(emp as any).is_active ? (isAr ? 'مفعّل' : 'Active') : (isAr ? 'معطّل' : 'Inactive')}
                     </span>
                   </td>
                   <td>
                     <div className="btn-group">
                       <button className="action-btn" onClick={() => openEdit(emp)}
-                        title={locale === 'ar' ? 'تعديل' : 'Edit'}>✏️</button>
+                        title={isAr ? 'تعديل' : 'Edit'}>✏️</button>
+                      <button className="action-btn" onClick={() => openAvailability(emp)}
+                        title={isAr ? 'الدوام' : 'Schedule'}>
+                        <Clock size={14} />
+                      </button>
                       <button className={`action-btn ${(emp as any).is_active ? '' : 'success'}`}
                         onClick={() => toggleEmployee(emp)}>
                         {(emp as any).is_active ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
                       </button>
-                      <button className="action-btn danger" onClick={() => deleteEmployee(emp)}
-                        title={locale === 'ar' ? 'حذف' : 'Delete'}>
+                      <button className="action-btn danger" onClick={() => deleteEmployee(emp)}>
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -332,16 +448,12 @@ export default function EmployeesPage() {
                 </tr>
               ))}
               {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={6}>
-                    <div className="table-empty">
-                      <div className="table-empty-icon">👥</div>
-                      <div className="table-empty-text">
-                        {locale === 'ar' ? 'لا يوجد موظفين' : 'No employees found'}
-                      </div>
-                    </div>
-                  </td>
-                </tr>
+                <tr><td colSpan={6}>
+                  <div className="table-empty">
+                    <div className="table-empty-icon">👥</div>
+                    <div className="table-empty-text">{isAr ? 'لا يوجد موظفين' : 'No employees found'}</div>
+                  </div>
+                </td></tr>
               )}
             </tbody>
           </table>
