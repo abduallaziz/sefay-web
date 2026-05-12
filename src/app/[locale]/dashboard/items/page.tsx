@@ -23,14 +23,15 @@ export default function ItemsPage() {
   const t = useTranslations('items')
   const locale = useLocale()
 
-  const [services,  setServices]  = useState<Item[]>([])
-  const [loading,   setLoading]   = useState(true)
-  const [search,    setSearch]    = useState('')
-  const [showModal, setShowModal] = useState(false)
-  const [selected,  setSelected]  = useState<Item | null>(null)
-  const [saving,    setSaving]    = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [variantsItem, setVariantsItem] = useState<Item | null>(null)
+  const [services,      setServices]      = useState<Item[]>([])
+  const [loading,       setLoading]       = useState(true)
+  const [search,        setSearch]        = useState('')
+  const [showModal,     setShowModal]     = useState(false)
+  const [selected,      setSelected]      = useState<Item | null>(null)
+  const [saving,        setSaving]        = useState(false)
+  const [uploading,     setUploading]     = useState(false)
+  const [variantsItem,  setVariantsItem]  = useState<Item | null>(null)
+  const [categoriesList, setCategoriesList] = useState<{ id: string; name: string; icon: string }[]>([])
 
   const [serviceType,  setServiceType]  = useState<'single' | 'bundle'>('single')
   const [bundleItems,  setBundleItems]  = useState<BundleItem[]>([])
@@ -39,16 +40,16 @@ export default function ItemsPage() {
   const [name,         setName]         = useState('')
   const [price,        setPrice]        = useState('')
   const [cashierPrice, setCashierPrice] = useState(false)
-  const [category,     setCategory]     = useState('عام')
+  const [categoryId,   setCategoryId]   = useState('')
+  const [category,     setCategory]     = useState('')
   const [icon,         setIcon]         = useState('🚗')
   const [color,        setColor]        = useState('#00d4ff')
   const [imageUrl,     setImageUrl]     = useState('')
 
   const ICONS  = ['🚗','🚙','🏎️','🚕','🚐','🚌','🛻','🚑','🧼','💦','✨','🪣','🧽','🔧','⚙️','💎']
   const COLORS = ['#00d4ff','#00e5a0','#a78bfa','#f0c040','#ff5566','#00b4d8','#4a90d9','#ff9500']
-  const CATS   = ['عام','غسيل خارجي','غسيل داخلي','تلميع','صيانة','إضافية']
 
-  useEffect(() => { loadServices() }, [])
+  useEffect(() => { loadServices(); loadCategories() }, [])
 
   async function loadServices() {
     setLoading(true)
@@ -59,22 +60,37 @@ export default function ItemsPage() {
     finally { setLoading(false) }
   }
 
+  async function loadCategories() {
+    try {
+      const session = getSession()
+      if (!session) return
+      const { data } = await supabase
+        .from('categories')
+        .select('id, name, icon')
+        .eq('tenant_id', session.tenant_id)
+        .order('sort_order', { ascending: true })
+      setCategoriesList(data || [])
+    } catch (e) { console.error(e) }
+  }
+
   function openNew() {
     setSelected(null)
     setName(''); setPrice(''); setCashierPrice(false)
     setServiceType('single'); setBundleItems([])
-    setCategory('عام'); setIcon('🚗'); setColor('#00d4ff'); setImageUrl('')
+    setCategory(''); setCategoryId('')
+    setIcon('🚗'); setColor('#00d4ff'); setImageUrl('')
     setShowModal(true)
   }
 
-function openEdit(svc: Item) {
+  function openEdit(svc: Item) {
     setSelected(svc)
     setName(svc.name)
     setPrice(String(svc.price))
     setCashierPrice((svc as any).cashier_price || false)
     setServiceType((svc as any).type === 'bundle' ? 'bundle' : 'single')
     setBundleItems((svc as any).bundle_items || [])
-    setCategory(svc.category || 'عام')
+    setCategory(svc.category || '')
+    setCategoryId((svc as any).category_id || '')
     setIcon(svc.icon || '🚗')
     setColor(svc.color || '#00d4ff')
     setImageUrl(svc.image_url || '')
@@ -140,7 +156,9 @@ function openEdit(svc: Item) {
       const body: any = {
         name: name.trim(),
         price: finalPrice,
-        category, icon, color,
+        category: categoriesList.find(c => c.id === categoryId)?.name || category,
+        category_id: categoryId || null,
+        icon, color,
         image_url: imageUrl || null,
         cashier_price: serviceType === 'single' ? cashierPrice : false,
         type: serviceType,
@@ -148,10 +166,10 @@ function openEdit(svc: Item) {
       }
 
       if (selected) {
-      await api.items.update(selected.id, body)
-    } else {
-      await api.items.create(body)
-    }
+        await api.items.update(selected.id, body)
+      } else {
+        await api.items.create(body)
+      }
       setShowModal(false)
       loadServices()
     } catch (e) { console.error(e) }
@@ -284,9 +302,18 @@ function openEdit(svc: Item) {
                   </div>
                   <div className="form-group">
                     <label className="form-label">{t('category')}</label>
-                    <select className="form-input form-select" value={category} onChange={e => setCategory(e.target.value)}>
-                      {CATS.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    {categoriesList.length > 0 ? (
+                      <select className="form-input form-select" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
+                        <option value="">{locale === 'ar' ? '— بدون فئة —' : '— No category —'}</option>
+                        {categoriesList.map(c => (
+                          <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', padding: '8px 0' }}>
+                        {locale === 'ar' ? 'لا توجد فئات — أضفها من الإعدادات' : 'No categories — add them from Settings'}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -321,14 +348,12 @@ function openEdit(svc: Item) {
                 </div>
               )}
 
-              {/* Bundle: خدمات مجمّعة */}
+              {/* Bundle */}
               {serviceType === 'bundle' && (
                 <div className="form-group">
                   <label className="form-label">
                     {locale === 'ar' ? 'الخدمات داخل الباقة' : 'Services in bundle'}
                   </label>
-
-                  {/* الخدمات المضافة */}
                   {bundleItems.length > 0 && (
                     <div style={{ marginBottom: '12px' }}>
                       {bundleItems.map(item => (
@@ -344,9 +369,7 @@ function openEdit(svc: Item) {
                               {item.service_name}
                             </div>
                             {!item.custom_price && (
-                              <input
-                                type="number" min="0"
-                                value={item.price}
+                              <input type="number" min="0" value={item.price}
                                 onChange={e => updateBundleItemPrice(item.service_id, e.target.value)}
                                 style={{
                                   marginTop: '4px', padding: '4px 8px',
@@ -354,8 +377,7 @@ function openEdit(svc: Item) {
                                   border: '1px solid var(--color-border)',
                                   borderRadius: '6px', fontSize: '12px',
                                   color: 'var(--color-primary)', width: '100px',
-                                }}
-                              />
+                                }} />
                             )}
                             {item.custom_price && (
                               <div style={{ fontSize: '11px', color: 'var(--color-warning)', marginTop: '4px' }}>
@@ -363,14 +385,11 @@ function openEdit(svc: Item) {
                               </div>
                             )}
                           </div>
-
-                          {/* toggle custom price */}
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                             <span style={{ fontSize: '10px', color: 'var(--color-text-muted)' }}>
                               {locale === 'ar' ? 'كاشير' : 'Cashier'}
                             </span>
-                            <div
-                              onClick={() => toggleBundleItemCustomPrice(item.service_id)}
+                            <div onClick={() => toggleBundleItemCustomPrice(item.service_id)}
                               style={{
                                 width: '36px', height: '20px', borderRadius: '10px', cursor: 'pointer',
                                 backgroundColor: item.custom_price ? 'var(--color-warning)' : 'var(--color-border)',
@@ -384,7 +403,6 @@ function openEdit(svc: Item) {
                               }} />
                             </div>
                           </div>
-
                           <button onClick={() => removeBundleItem(item.service_id)}
                             style={{
                               width: '28px', height: '28px', borderRadius: '6px',
@@ -397,8 +415,6 @@ function openEdit(svc: Item) {
                           </button>
                         </div>
                       ))}
-
-                      {/* إجمالي الباقة */}
                       <div style={{
                         padding: '10px 12px', borderRadius: 'var(--radius-sm)',
                         backgroundColor: 'var(--color-success-light)',
@@ -415,15 +431,10 @@ function openEdit(svc: Item) {
                       </div>
                     </div>
                   )}
-
-                  {/* البحث عن خدمة لإضافتها */}
                   <div style={{ marginBottom: '8px' }}>
-                    <input
-                      className="form-input"
+                    <input className="form-input"
                       placeholder={locale === 'ar' ? 'ابحث عن خدمة لإضافتها...' : 'Search service to add...'}
-                      value={bundleSearch}
-                      onChange={e => setBundleSearch(e.target.value)}
-                    />
+                      value={bundleSearch} onChange={e => setBundleSearch(e.target.value)} />
                   </div>
                   <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
                     {filteredBundle.length === 0 ? (
@@ -431,8 +442,7 @@ function openEdit(svc: Item) {
                         {locale === 'ar' ? 'لا توجد خدمات' : 'No services'}
                       </div>
                     ) : filteredBundle.map(svc => (
-                      <div key={svc.id}
-                        onClick={() => addBundleItem(svc)}
+                      <div key={svc.id} onClick={() => addBundleItem(svc)}
                         style={{
                           display: 'flex', alignItems: 'center', gap: '10px',
                           padding: '10px 12px', cursor: 'pointer',
@@ -443,9 +453,7 @@ function openEdit(svc: Item) {
                         onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                       >
                         <div style={{ fontSize: '18px' }}>{svc.icon || '🚗'}</div>
-                        <div style={{ flex: 1, fontSize: '13px', color: 'var(--color-text-primary)', fontWeight: '600' }}>
-                          {svc.name}
-                        </div>
+                        <div style={{ flex: 1, fontSize: '13px', color: 'var(--color-text-primary)', fontWeight: '600' }}>{svc.name}</div>
                         <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--color-primary)' }}>
                           {formatCurrency(svc.price, locale === 'ar' ? 'ar-SA' : 'en-US')}
                         </div>
@@ -503,11 +511,8 @@ function openEdit(svc: Item) {
           <div className="table-actions">
             <div className="table-search">
               <Search size={14} />
-              <input
-                placeholder={locale === 'ar' ? 'بحث...' : 'Search...'}
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
+              <input placeholder={locale === 'ar' ? 'بحث...' : 'Search...'}
+                value={search} onChange={e => setSearch(e.target.value)} />
             </div>
           </div>
         </div>
@@ -599,7 +604,8 @@ function openEdit(svc: Item) {
                     <div className="table-empty">
                       <div className="table-empty-icon">⚙️</div>
                       <div className="table-empty-text">
-                        {locale === 'ar' ? 'لا توجد منتجات' : 'No items found'}                      </div>
+                        {locale === 'ar' ? 'لا توجد منتجات' : 'No items found'}
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -608,14 +614,15 @@ function openEdit(svc: Item) {
           </table>
         )}
       </div>
+
       {variantsItem && (
-  <VariantsModal
-    itemId={variantsItem.id}
-    itemName={variantsItem.name}
-    trackInventory={(variantsItem as any).track_inventory || false}
-    onClose={() => setVariantsItem(null)}
-  />
-)}
+        <VariantsModal
+          itemId={variantsItem.id}
+          itemName={variantsItem.name}
+          trackInventory={(variantsItem as any).track_inventory || false}
+          onClose={() => setVariantsItem(null)}
+        />
+      )}
     </div>
   )
 }
