@@ -30,6 +30,8 @@ export default function ItemsPage() {
   const [selected,      setSelected]      = useState<Item | null>(null)
   const [saving,        setSaving]        = useState(false)
   const [uploading,     setUploading]     = useState(false)
+  const [duration,        setDuration]        = useState('')
+  const [durationEnabled, setDurationEnabled] = useState(false)
   const [variantsItem,  setVariantsItem]  = useState<Item | null>(null)
   const [categoriesList, setCategoriesList] = useState<{ id: string; name: string; icon: string; color: string }[]>([])
 
@@ -50,7 +52,7 @@ export default function ItemsPage() {
   const ICONS  = ['🚗','🚙','🏎️','🚕','🚐','🚌','🛻','🚑','🧼','💦','✨','🪣','🧽','🔧','⚙️','💎']
   const COLORS = ['#00d4ff','#00e5a0','#a78bfa','#f0c040','#ff5566','#00b4d8','#4a90d9','#ff9500']
 
-  useEffect(() => { loadServices(); loadCategories() }, [])
+useEffect(() => { loadServices(); loadCategories(); loadDurationSetting() }, [])
 
   async function loadServices() {
     setLoading(true)
@@ -74,8 +76,22 @@ export default function ItemsPage() {
     } catch (e) { console.error(e) }
   }
 
+  async function loadDurationSetting() {
+  try {
+    const session = getSession()
+    if (!session) return
+    const { data } = await supabase
+      .from('tenants')
+      .select('settings')
+      .eq('id', session.tenant_id)
+      .single()
+    setDurationEnabled(data?.settings?.duration_enabled !== false)
+  } catch (e) { console.error(e) }
+}
+
   function openNew() {
     setSelected(null)
+    setDuration('')
     setName(''); setPrice(''); setCashierPrice(false)
     setServiceType('single'); setBundleItems([])
     setCategory(''); setCategoryId('')
@@ -95,6 +111,7 @@ export default function ItemsPage() {
     setIcon(svc.icon || '🚗')
     setColor(svc.color || '#00d4ff')
     setImageUrl(svc.image_url || '')
+    setDuration(String((svc as any).duration || ''))
     setShowModal(true)
   }
 
@@ -164,6 +181,7 @@ export default function ItemsPage() {
         cashier_price: serviceType === 'single' ? cashierPrice : false,
         type: serviceType,
         bundle_items: serviceType === 'bundle' ? bundleItems : [],
+        duration: durationEnabled && duration !== '' ? Number(duration) : null,
       }
 
       if (selected) {
@@ -364,34 +382,51 @@ export default function ItemsPage() {
               </div>
 
               {/* Single: السعر */}
-              {serviceType === 'single' && (
-                <div className="form-group">
-                  <label className="form-label">{t('price')}</label>
-                  <div className="form-switch" onClick={() => setCashierPrice(!cashierPrice)} style={{ marginBottom: '8px' }}>
-                    <div>
-                      <div className="form-switch-label">
-                        {locale === 'ar' ? 'الكاشير يحدد السعر' : 'Cashier sets price'}
+                  {serviceType === 'single' && (
+                    <div className="form-group">
+                      <label className="form-label">{t('price')}</label>
+                      <div className="form-switch" onClick={() => setCashierPrice(!cashierPrice)} style={{ marginBottom: '8px' }}>
+                        <div>
+                          <div className="form-switch-label">
+                            {locale === 'ar' ? 'الكاشير يحدد السعر' : 'Cashier sets price'}
+                          </div>
+                        </div>
+                        <div style={{
+                          width: '40px', height: '22px', borderRadius: '11px',
+                          backgroundColor: cashierPrice ? 'var(--color-primary)' : 'var(--color-border)',
+                          position: 'relative', transition: 'var(--transition)',
+                        }}>
+                          <div style={{
+                            width: '16px', height: '16px', borderRadius: '50%',
+                            backgroundColor: '#fff', position: 'absolute',
+                            top: '3px', transition: 'var(--transition)',
+                            left: cashierPrice ? '21px' : '3px',
+                          }} />
+                        </div>
                       </div>
+                      {!cashierPrice && (
+                        <input className="form-input" type="number" min="0" value={price}
+                          onChange={e => setPrice(e.target.value)} placeholder="0" />
+                      )}
                     </div>
-                    <div style={{
-                      width: '40px', height: '22px', borderRadius: '11px',
-                      backgroundColor: cashierPrice ? 'var(--color-primary)' : 'var(--color-border)',
-                      position: 'relative', transition: 'var(--transition)',
-                    }}>
-                      <div style={{
-                        width: '16px', height: '16px', borderRadius: '50%',
-                        backgroundColor: '#fff', position: 'absolute',
-                        top: '3px', transition: 'var(--transition)',
-                        left: cashierPrice ? '21px' : '3px',
-                      }} />
-                    </div>
-                  </div>
-                  {!cashierPrice && (
-                    <input className="form-input" type="number" min="0" value={price}
-                      onChange={e => setPrice(e.target.value)} placeholder="0" />
                   )}
-                </div>
-              )}
+
+                  {durationEnabled && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        {locale === 'ar' ? '⏱️ المدة (دقيقة)' : '⏱️ Duration (minutes)'}
+                      </label>
+                      <input
+                        className="form-input"
+                        type="number"
+                        min="0"
+                        value={duration}
+                        onChange={e => setDuration(e.target.value)}
+                        placeholder={locale === 'ar' ? 'مثال: 30' : 'e.g. 30'}
+                        style={{ width: '160px' }}
+                      />
+                    </div>
+                  )}
 
               {/* Bundle */}
               {serviceType === 'bundle' && (
