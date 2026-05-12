@@ -30,13 +30,13 @@ const BUSINESS_TYPES = [
 ]
 
 const DEFAULTS_BY_TYPE: Record<string, Step3Item[]> = {
-  car_wash:    [{ name: 'غسيل خارجي', price: '30', duration: '20' }, { name: 'غسيل داخلي', price: '50', duration: '30' }, { name: 'بخار كامل', price: '80', duration: '45' }],
-  cafe:        [{ name: 'قهوة', price: '15', category: 'مشروبات ساخنة' }, { name: 'شاي', price: '10', category: 'مشروبات ساخنة' }, { name: 'عصير', price: '20', category: 'مشروبات باردة' }],
-  restaurant:  [{ name: 'وجبة رئيسية', price: '45', category: 'وجبات' }, { name: 'مقبلات', price: '25', category: 'مقبلات' }],
-  supermarket: [{ name: 'منتج 1', price: '10', quantity: '100', sku: '' }, { name: 'منتج 2', price: '25', quantity: '50', sku: '' }],
-  tailor:      [{ name: 'خياطة ثوب', price: '150', type: 'ثوب' }, { name: 'تعديل بنطلون', price: '50', type: 'بنطلون' }],
-  workshop:    [{ name: 'تغيير زيت', price: '80', duration: '30' }, { name: 'فحص', price: '50', duration: '20' }],
-  other:       [{ name: 'خدمة 1', price: '50' }],
+  car_wash:    [{ name: 'غسيل خارجي', price: '30', category: 'خارجي', duration: '20', stock_quantity: '' }, { name: 'غسيل داخلي', price: '50', category: 'داخلي', duration: '30', stock_quantity: '' }, { name: 'بخار كامل', price: '80', category: 'بخار', duration: '45', stock_quantity: '' }],
+  cafe:        [{ name: 'قهوة', price: '15', category: 'مشروبات ساخنة', duration: '5', stock_quantity: '' }, { name: 'شاي', price: '10', category: 'مشروبات ساخنة', duration: '3', stock_quantity: '' }, { name: 'عصير', price: '20', category: 'مشروبات باردة', duration: '5', stock_quantity: '' }],
+  restaurant:  [{ name: 'وجبة رئيسية', price: '45', category: 'وجبات', duration: '20', stock_quantity: '' }, { name: 'مقبلات', price: '25', category: 'مقبلات', duration: '10', stock_quantity: '' }],
+  supermarket: [{ name: 'منتج 1', price: '10', category: 'عام', stock_quantity: '100' }, { name: 'منتج 2', price: '25', category: 'عام', stock_quantity: '50' }],
+  tailor:      [{ name: 'خياطة ثوب', price: '150', category: 'ملابس رجالية', type: 'ثوب', duration: '1440' }, { name: 'تعديل بنطلون', price: '50', category: 'ملابس رجالية', type: 'بنطلون', duration: '480' }],
+  workshop:    [{ name: 'تغيير زيت', price: '80', category: 'صيانة', duration: '30', stock_quantity: '' }, { name: 'فحص شامل', price: '50', category: 'فحص', duration: '20', stock_quantity: '' }],
+  other:       [{ name: 'خدمة 1', price: '50', category: '', duration: '', stock_quantity: '' }],
 }
 
 function saveProgress(data: Omit<OnboardingProgress, 'expires_at'>) {
@@ -99,50 +99,58 @@ export default function OnboardingWizard() {
   }
 
   const complete = useCallback(async (attempt = 1) => {
-    if (!session) return
-    setState('COMPLETING')
-    setErrorMsg('')
-    try {
-      const { error: tenantErr } = await supabase
-        .from('tenants')
-        .update({ name: shopName.trim() || undefined, phone: phone.trim() || undefined, business_type: businessType, onboarded: true })
-        .eq('id', session.tenant_id)
-      if (tenantErr) throw tenantErr
+  if (!session) return
+  setState('COMPLETING')
+  setErrorMsg('')
+  try {
+    const validServices = services.filter(s => s.name.trim() && Number(s.price) > 0)
+    const toInsert = validServices.length > 0
+      ? validServices
+      : [DEFAULTS_BY_TYPE[businessType]?.[0] || { name: 'Service', price: '50' }]
 
-      await supabase.from('items').delete().eq('tenant_id', session.tenant_id).eq('is_default', true)
+    // 1. Insert items أولاً
+    const { error: insertErr } = await supabase.from('items').insert(
+      toInsert.map(s => ({
+        tenant_id:      session.tenant_id,
+        name:           s.name.trim(),
+        price:          Number(s.price),
+        active:         true,
+        is_default:     validServices.length === 0,
+        ...(s.category?.trim()      ? { category:       s.category.trim() }      : {}),
+        ...(s.type?.trim()          ? { type:           s.type.trim() }           : {}),
+        ...(s.duration?.trim()      ? { duration:       Number(s.duration) }      : {}),
+        ...(s.stock_quantity?.trim() ? { stock_quantity: Number(s.stock_quantity), track_inventory: true } : {}),
+      }))
+    )
+    if (insertErr) throw insertErr
 
-      const validServices = services.filter(s => s.name.trim() && Number(s.price) > 0)
-      const toInsert = validServices.length > 0
-        ? validServices
-        : [DEFAULTS_BY_TYPE[businessType]?.[0] || { name: 'Service', price: '50' }]
+    // 2. بعد نجاح الـ insert → update tenant
+    const { error: tenantErr } = await supabase
+      .from('tenants')
+      .update({
+        name:          shopName.trim() || undefined,
+        phone:         phone.trim() || undefined,
+        business_type: businessType,
+        onboarded:     true,
+      })
+      .eq('id', session.tenant_id)
+    if (tenantErr) throw tenantErr
 
-      const { error: insertErr } = await supabase.from('items').insert(
-        toInsert.map(s => ({
-          tenant_id: session.tenant_id,
-          name: s.name.trim(),
-          price: Number(s.price),
-          active: true,
-          is_default: validServices.length === 0,
-          ...(s.category ? { category: s.category } : {}),
-        }))
-      )
-      if (insertErr) throw insertErr
-
-      clearProgress()
-      setState('COMPLETE')
-      setTimeout(() => { router.push(`/${locale}/dashboard/orders`) }, 2500)
-    } catch (err: any) {
-      console.error(`Attempt ${attempt} failed:`, err)
-      if (attempt < 3) {
-        setState('RETRY')
-        setRetryCount(attempt)
-        setTimeout(() => complete(attempt + 1), attempt === 1 ? 2000 : 4000)
-      } else {
-        setState('ERROR')
-        setErrorMsg(isAr ? 'فشل الحفظ. تحقق من الإنترنت وحاول مجدداً.' : 'Save failed. Check your connection and try again.')
-      }
+    clearProgress()
+    setState('COMPLETE')
+    setTimeout(() => { router.push(`/${locale}/dashboard/orders`) }, 2500)
+  } catch (err: any) {
+    console.error(`Attempt ${attempt} failed:`, err)
+    if (attempt < 3) {
+      setState('RETRY')
+      setRetryCount(attempt)
+      setTimeout(() => complete(attempt + 1), attempt === 1 ? 2000 : 4000)
+    } else {
+      setState('ERROR')
+      setErrorMsg(isAr ? 'فشل الحفظ. تحقق من الإنترنت وحاول مجدداً.' : 'Save failed. Check your connection and try again.')
     }
-  }, [session, shopName, phone, businessType, services, locale, isAr])
+  }
+}, [session, shopName, phone, businessType, services, locale, isAr])
 
   const STEPS = [
     { num: 1 as Step, icon: Building2, ar: 'نوع النشاط', en: 'Business' },
@@ -151,7 +159,8 @@ export default function OnboardingWizard() {
     { num: 4 as Step, icon: Rocket,    ar: 'جاهز',       en: 'Ready' },
   ]
 
-  const canNext = (step === 1 && !!businessType) || (step === 2 && !!shopName.trim()) || step === 3 || step === 4
+  const step3Valid = services.some(s => s.name.trim() && Number(s.price) > 0)
+  const canNext = (step === 1 && !!businessType) || (step === 2 && !!shopName.trim()) || (step === 3 && step3Valid) || step === 4
 
   if (state === 'RECOVERY') {
     return (
@@ -286,13 +295,21 @@ export default function OnboardingWizard() {
             {isAr ? 'السابق' : 'Back'}
           </button>
 
-          {step < 4 ? (
-            <button onClick={() => setStep(s => (s + 1) as Step)} disabled={!canNext} className="btn btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: !canNext ? 0.4 : 1 }}>
-              {isAr ? 'التالي' : 'Next'}
-              {isAr ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-            </button>
-          ) : (
+              {step < 4 ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {step === 3 && (
+                    <button onClick={() => setStep(4)}
+                      style={{ padding: '10px 16px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-border)', backgroundColor: 'transparent', color: 'var(--color-text-muted)', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>
+                      {isAr ? 'تخطي' : 'Skip'}
+                    </button>
+                  )}
+                  <button onClick={() => setStep(s => (s + 1) as Step)} disabled={!canNext} className="btn btn-primary"
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', opacity: !canNext ? 0.4 : 1 }}>
+                    {isAr ? 'التالي' : 'Next'}
+                    {isAr ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+                  </button>
+                </div>
+              ) : (
             <button onClick={() => complete(1)} disabled={state === 'COMPLETING' || state === 'RETRY' || state === 'COMPLETE'}
               className="btn btn-primary"
               style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 28px', fontSize: '15px', fontWeight: '900' }}>

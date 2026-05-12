@@ -8,6 +8,7 @@ import { Tenant } from '@/types'
 import { Save, Upload, AlertTriangle } from 'lucide-react'
 import '@/styles/modals.css'
 import '@/styles/forms.css'
+import CategoriesTab from '@/components/settings/CategoriesTab'
 
 export default function SettingsPage() {
   const t = useTranslations('settings')
@@ -17,7 +18,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
-  const [tab, setTab] = useState<'company' | 'tax' | 'loyalty' | 'printer' | 'reset'>('company')
+  const [tab, setTab] = useState<'company' | 'tax' | 'loyalty' | 'printer' | 'categories' | 'reset'>('company')
   const [showResetModal, setShowResetModal] = useState(false)
   const [resetConfirm, setResetConfirm] = useState('')
   const [resetting, setResetting] = useState(false)
@@ -43,6 +44,7 @@ export default function SettingsPage() {
   const [printerType, setPrinterType] = useState('sunmi')
   const [printerWidth, setPrinterWidth] = useState('80')
   const [printFooter, setPrintFooter] = useState('')
+  const [durationEnabled, setDurationEnabled] = useState(true)
 
   useEffect(() => { loadTenant() }, [])
 
@@ -76,6 +78,7 @@ export default function SettingsPage() {
         setPrinterType(s.printer_type || 'sunmi')
         setPrinterWidth(String(s.printer_width || 80))
         setPrintFooter(s.print_footer || '')
+        setDurationEnabled(s.duration_enabled !== false)
       }
     } catch (e) { console.error(e) }
     finally { setLoading(false) }
@@ -122,6 +125,7 @@ export default function SettingsPage() {
             printer_type: printerType,
             printer_width: Number(printerWidth),
             print_footer: printFooter,
+            duration_enabled: durationEnabled,
           },
         })
         .eq('id', session.tenant_id)
@@ -143,7 +147,6 @@ export default function SettingsPage() {
       if (!session) return
       const tid = session.tenant_id
 
-      // جلب IDs الطلبات أولاً
       const { data: ordersData } = await supabase
         .from('orders')
         .select('id')
@@ -151,7 +154,6 @@ export default function SettingsPage() {
 
       const orderIds = (ordersData || []).map((o: any) => o.id)
 
-      // حذف order_items بـ .in() مو .eq()
       if (orderIds.length > 0) {
         await supabase.from('order_items').delete().in('order_id', orderIds)
       }
@@ -186,11 +188,12 @@ export default function SettingsPage() {
   }
 
   const TABS = [
-    { id: 'company',  labelAr: '🏢 الشركة',          labelEn: '🏢 Company' },
-    { id: 'tax',      labelAr: '💰 الضريبة',          labelEn: '💰 Tax' },
-    { id: 'loyalty',  labelAr: '⭐ الولاء',           labelEn: '⭐ Loyalty' },
-    { id: 'printer',  labelAr: '🖨️ الطابعة',         labelEn: '🖨️ Printer' },
-    { id: 'reset',    labelAr: '🔄 إعادة تعيين',      labelEn: '🔄 Reset' },
+    { id: 'company',    labelAr: '🏢 الشركة',       labelEn: '🏢 Company' },
+    { id: 'tax',        labelAr: '💰 الضريبة',       labelEn: '💰 Tax' },
+    { id: 'loyalty',    labelAr: '⭐ الولاء',        labelEn: '⭐ Loyalty' },
+    { id: 'printer',    labelAr: '🖨️ الطابعة',      labelEn: '🖨️ Printer' },
+    { id: 'categories', labelAr: '🗂️ الفئات',       labelEn: '🗂️ Categories' },
+    { id: 'reset',      labelAr: '🔄 إعادة تعيين',   labelEn: '🔄 Reset' },
   ]
 
   if (loading) return (
@@ -217,7 +220,7 @@ export default function SettingsPage() {
           <h2 className="dashboard-page-title">{t('title')}</h2>
           <p className="dashboard-page-subtitle">{tenant?.name || ''}</p>
         </div>
-        {tab !== 'reset' && (
+        {tab !== 'reset' && tab !== 'categories' && (
           <button className="btn btn-primary" onClick={saveTenant} disabled={saving}>
             <Save size={14} />
             {saving ? (locale === 'ar' ? 'جاري الحفظ...' : 'Saving...') : t('save')}
@@ -237,11 +240,7 @@ export default function SettingsPage() {
 
       {/* Company Tab */}
       {tab === 'company' && (
-        <div style={{
-          backgroundColor: 'var(--color-bg-secondary)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-lg)', padding: '20px',
-        }}>
+        <div style={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
           <h3 className="form-section-title">
             {locale === 'ar' ? '🏢 معلومات الشركة' : '🏢 Company Info'}
           </h3>
@@ -250,27 +249,15 @@ export default function SettingsPage() {
             <label className="form-label">{locale === 'ar' ? 'شعار الشركة' : 'Company Logo'}</label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               {logoUrl ? (
-                <img src={logoUrl} alt="logo" style={{
-                  width: '80px', height: '80px', borderRadius: '12px',
-                  objectFit: 'cover', border: '1px solid var(--color-border)',
-                }} />
+                <img src={logoUrl} alt="logo" style={{ width: '80px', height: '80px', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--color-border)' }} />
               ) : (
-                <div style={{
-                  width: '80px', height: '80px', borderRadius: '12px',
-                  backgroundColor: 'var(--color-primary-light)',
-                  border: '1px solid var(--color-primary-border)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '28px', fontWeight: '900', color: 'var(--color-primary)',
-                }}>S</div>
+                <div style={{ width: '80px', height: '80px', borderRadius: '12px', backgroundColor: 'var(--color-primary-light)', border: '1px solid var(--color-primary-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', fontWeight: '900', color: 'var(--color-primary)' }}>S</div>
               )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
                   <Upload size={13} />
-                  {uploading
-                    ? (locale === 'ar' ? 'جاري الرفع...' : 'Uploading...')
-                    : (locale === 'ar' ? 'رفع شعار' : 'Upload logo')}
-                  <input type="file" accept="image/*" style={{ display: 'none' }}
-                    disabled={uploading}
+                  {uploading ? (locale === 'ar' ? 'جاري الرفع...' : 'Uploading...') : (locale === 'ar' ? 'رفع شعار' : 'Upload logo')}
+                  <input type="file" accept="image/*" style={{ display: 'none' }} disabled={uploading}
                     onChange={e => e.target.files?.[0] && uploadLogo(e.target.files[0])} />
                 </label>
                 {logoUrl && (
@@ -285,51 +272,40 @@ export default function SettingsPage() {
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">{t('shopName')} <span>*</span></label>
-              <input id="s-name" name="s-name" className="form-input"
-                value={name} onChange={e => setName(e.target.value)} />
+              <input id="s-name" name="s-name" className="form-input" value={name} onChange={e => setName(e.target.value)} />
             </div>
             <div className="form-group">
               <label className="form-label">{t('phone')}</label>
-              <input id="s-phone" name="s-phone" className="form-input"
-                value={phone} onChange={e => setPhone(e.target.value)} placeholder="05XXXXXXXX" />
+              <input id="s-phone" name="s-phone" className="form-input" value={phone} onChange={e => setPhone(e.target.value)} placeholder="05XXXXXXXX" />
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">{t('city')}</label>
-              <input id="s-city" name="s-city" className="form-input"
-                value={city} onChange={e => setCity(e.target.value)} />
+              <input id="s-city" name="s-city" className="form-input" value={city} onChange={e => setCity(e.target.value)} />
             </div>
             <div className="form-group">
               <label className="form-label">{t('website')}</label>
-              <input id="s-web" name="s-web" className="form-input"
-                value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://" />
-                <div className="form-group">
-              <label className="form-label">
-                {locale === 'ar' ? 'المنطقة الزمنية' : 'Timezone'}
-              </label>
-              <select className="form-input form-select"
-                  value={timezone} onChange={e => setTimezone(e.target.value)}>
-                  <option value="Asia/Riyadh">السعودية — UTC+3</option>
-                  <option value="Asia/Dubai">الإمارات — UTC+4</option>
-                  <option value="Asia/Kuwait">الكويت — UTC+3</option>
-                  <option value="Asia/Qatar">قطر — UTC+3</option>
-                  <option value="Asia/Bahrain">البحرين — UTC+3</option>
-                  <option value="Asia/Muscat">عُمان — UTC+4</option>
-                  <option value="Africa/Cairo">مصر — UTC+2</option>
-                  <option value="Europe/London">لندن — UTC+0</option>
-              </select>
-            </div>
+              <input id="s-web" name="s-web" className="form-input" value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://" />
             </div>
           </div>
 
-          <div style={{
-            marginTop: '16px', padding: '12px 16px',
-            backgroundColor: 'var(--color-primary-light)',
-            border: '1px solid var(--color-primary-border)',
-            borderRadius: 'var(--radius-sm)',
-          }}>
+          <div className="form-group">
+            <label className="form-label">{locale === 'ar' ? 'المنطقة الزمنية' : 'Timezone'}</label>
+            <select className="form-input form-select" value={timezone} onChange={e => setTimezone(e.target.value)}>
+              <option value="Asia/Riyadh">السعودية — UTC+3</option>
+              <option value="Asia/Dubai">الإمارات — UTC+4</option>
+              <option value="Asia/Kuwait">الكويت — UTC+3</option>
+              <option value="Asia/Qatar">قطر — UTC+3</option>
+              <option value="Asia/Bahrain">البحرين — UTC+3</option>
+              <option value="Asia/Muscat">عُمان — UTC+4</option>
+              <option value="Africa/Cairo">مصر — UTC+2</option>
+              <option value="Europe/London">لندن — UTC+0</option>
+            </select>
+          </div>
+
+          <div style={{ marginTop: '16px', padding: '12px 16px', backgroundColor: 'var(--color-primary-light)', border: '1px solid var(--color-primary-border)', borderRadius: 'var(--radius-sm)' }}>
             <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', marginBottom: '4px' }}>
               {locale === 'ar' ? 'الخطة الحالية' : 'Current Plan'}
             </div>
@@ -347,11 +323,7 @@ export default function SettingsPage() {
 
       {/* Tax Tab */}
       {tab === 'tax' && (
-        <div style={{
-          backgroundColor: 'var(--color-bg-secondary)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-lg)', padding: '20px',
-        }}>
+        <div style={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
           <h3 className="form-section-title">
             {locale === 'ar' ? '💰 إعدادات الضريبة' : '💰 Tax Settings'}
           </h3>
@@ -362,52 +334,27 @@ export default function SettingsPage() {
                 value={taxRate} onChange={e => setTaxRate(e.target.value)} placeholder="15" />
               <div className="form-input-group-addon">%</div>
             </div>
-            <span className="form-hint">
-              {locale === 'ar' ? 'أدخل 0 لتعطيل الضريبة' : 'Enter 0 to disable tax'}
-            </span>
+            <span className="form-hint">{locale === 'ar' ? 'أدخل 0 لتعطيل الضريبة' : 'Enter 0 to disable tax'}</span>
           </div>
           <div className="form-group">
             <label className="form-label">{t('taxNumber')}</label>
-            <input id="s-taxnum" name="s-taxnum" className="form-input"
-              value={taxNumber} onChange={e => setTaxNumber(e.target.value)}
-              placeholder="3XXXXXXXXXXXXXXXX" />
+            <input id="s-taxnum" name="s-taxnum" className="form-input" value={taxNumber}
+              onChange={e => setTaxNumber(e.target.value)} placeholder="3XXXXXXXXXXXXXXXX" />
           </div>
         </div>
       )}
 
       {/* Loyalty Tab */}
       {tab === 'loyalty' && (
-        <div style={{
-          backgroundColor: 'var(--color-bg-secondary)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-lg)', padding: '20px',
-        }}>
-          <h3 className="form-section-title">
-            ⭐ {locale === 'ar' ? 'نقاط الولاء' : 'Loyalty Points'}
-          </h3>
-          <div className="form-switch" onClick={() => setLoyaltyEnabled(!loyaltyEnabled)}
-            style={{ marginBottom: '16px' }}>
+        <div style={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+          <h3 className="form-section-title">⭐ {locale === 'ar' ? 'نقاط الولاء' : 'Loyalty Points'}</h3>
+          <div className="form-switch" onClick={() => setLoyaltyEnabled(!loyaltyEnabled)} style={{ marginBottom: '16px' }}>
             <div>
-              <div className="form-switch-label">
-                {locale === 'ar' ? 'تفعيل نقاط الولاء' : 'Enable Loyalty Points'}
-              </div>
-              <div className="form-switch-desc">
-                {locale === 'ar'
-                  ? 'العملاء يكسبون نقاط مع كل عملية شراء'
-                  : 'Customers earn points with every purchase'}
-              </div>
+              <div className="form-switch-label">{locale === 'ar' ? 'تفعيل نقاط الولاء' : 'Enable Loyalty Points'}</div>
+              <div className="form-switch-desc">{locale === 'ar' ? 'العملاء يكسبون نقاط مع كل عملية شراء' : 'Customers earn points with every purchase'}</div>
             </div>
-            <div style={{
-              width: '40px', height: '22px', borderRadius: '11px',
-              backgroundColor: loyaltyEnabled ? 'var(--color-primary)' : 'var(--color-border)',
-              position: 'relative', transition: 'var(--transition)',
-            }}>
-              <div style={{
-                width: '16px', height: '16px', borderRadius: '50%',
-                backgroundColor: '#fff', position: 'absolute',
-                top: '3px', transition: 'var(--transition)',
-                left: loyaltyEnabled ? '21px' : '3px',
-              }} />
+            <div style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: loyaltyEnabled ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'var(--transition)' }}>
+              <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#fff', position: 'absolute', top: '3px', transition: 'var(--transition)', left: loyaltyEnabled ? '21px' : '3px' }} />
             </div>
           </div>
 
@@ -415,40 +362,22 @@ export default function SettingsPage() {
             <>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">
-                    {locale === 'ar' ? 'نقاط لكل ريال' : 'Points per SAR'}
-                  </label>
+                  <label className="form-label">{locale === 'ar' ? 'نقاط لكل ريال' : 'Points per SAR'}</label>
                   <input id="s-lpp" name="s-lpp" className="form-input" type="number" min="0"
-                    value={loyaltyPointsPerSar}
-                    onChange={e => setLoyaltyPointsPerSar(e.target.value)} />
-                  <span className="form-hint">
-                    {locale === 'ar'
-                      ? 'عدد النقاط لكل ريال ينفقه العميل'
-                      : 'Points earned per SAR spent'}
-                  </span>
+                    value={loyaltyPointsPerSar} onChange={e => setLoyaltyPointsPerSar(e.target.value)} />
+                  <span className="form-hint">{locale === 'ar' ? 'عدد النقاط لكل ريال ينفقه العميل' : 'Points earned per SAR spent'}</span>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">
-                    {locale === 'ar' ? 'الحد الأدنى للاسترداد (نقطة)' : 'Min redeem points'}
-                  </label>
+                  <label className="form-label">{locale === 'ar' ? 'الحد الأدنى للاسترداد (نقطة)' : 'Min redeem points'}</label>
                   <input id="s-lmr" name="s-lmr" className="form-input" type="number" min="0"
-                    value={loyaltyMinRedeem}
-                    onChange={e => setLoyaltyMinRedeem(e.target.value)} />
+                    value={loyaltyMinRedeem} onChange={e => setLoyaltyMinRedeem(e.target.value)} />
                 </div>
               </div>
               <div className="form-group">
-                <label className="form-label">
-                  {locale === 'ar' ? 'قيمة كل نقطة (ريال)' : 'Value per point (SAR)'}
-                </label>
+                <label className="form-label">{locale === 'ar' ? 'قيمة كل نقطة (ريال)' : 'Value per point (SAR)'}</label>
                 <input id="s-lrv" name="s-lrv" className="form-input" type="number" min="0" step="0.01"
-                  value={loyaltyRedeemValue}
-                  onChange={e => setLoyaltyRedeemValue(e.target.value)}
-                  style={{ width: '150px' }} />
-                <span className="form-hint">
-                  {locale === 'ar'
-                    ? 'كل نقطة تساوي كم ريال عند الاسترداد'
-                    : 'SAR value of each point when redeemed'}
-                </span>
+                  value={loyaltyRedeemValue} onChange={e => setLoyaltyRedeemValue(e.target.value)} style={{ width: '150px' }} />
+                <span className="form-hint">{locale === 'ar' ? 'كل نقطة تساوي كم ريال عند الاسترداد' : 'SAR value of each point when redeemed'}</span>
               </div>
             </>
           )}
@@ -457,45 +386,33 @@ export default function SettingsPage() {
 
       {/* Printer Tab */}
       {tab === 'printer' && (
-        <div style={{
-          backgroundColor: 'var(--color-bg-secondary)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-lg)', padding: '20px',
-        }}>
-          <h3 className="form-section-title">
-            🖨️ {locale === 'ar' ? 'إعدادات الطابعة' : 'Printer Settings'}
-          </h3>
-          <div className="form-switch" onClick={() => setAutoPrint(!autoPrint)}
-            style={{ marginBottom: '16px' }}>
+        <div style={{ backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+          <h3 className="form-section-title">🖨️ {locale === 'ar' ? 'إعدادات الطابعة' : 'Printer Settings'}</h3>
+
+          <div className="form-switch" onClick={() => setAutoPrint(!autoPrint)} style={{ marginBottom: '16px' }}>
             <div>
-              <div className="form-switch-label">
-                {locale === 'ar' ? 'طباعة تلقائية عند الدفع' : 'Auto print on payment'}
-              </div>
-              <div className="form-switch-desc">
-                {locale === 'ar'
-                  ? 'يطبع الفاتورة تلقائياً بعد كل عملية دفع'
-                  : 'Automatically prints receipt after each payment'}
-              </div>
+              <div className="form-switch-label">{locale === 'ar' ? 'طباعة تلقائية عند الدفع' : 'Auto print on payment'}</div>
+              <div className="form-switch-desc">{locale === 'ar' ? 'يطبع الفاتورة تلقائياً بعد كل عملية دفع' : 'Automatically prints receipt after each payment'}</div>
             </div>
-            <div style={{
-              width: '40px', height: '22px', borderRadius: '11px',
-              backgroundColor: autoPrint ? 'var(--color-primary)' : 'var(--color-border)',
-              position: 'relative', transition: 'var(--transition)',
-            }}>
-              <div style={{
-                width: '16px', height: '16px', borderRadius: '50%',
-                backgroundColor: '#fff', position: 'absolute',
-                top: '3px', transition: 'var(--transition)',
-                left: autoPrint ? '21px' : '3px',
-              }} />
+            <div style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: autoPrint ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'var(--transition)' }}>
+              <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#fff', position: 'absolute', top: '3px', transition: 'var(--transition)', left: autoPrint ? '21px' : '3px' }} />
+            </div>
+          </div>
+
+          <div className="form-switch" onClick={() => setDurationEnabled(!durationEnabled)} style={{ marginBottom: '16px' }}>
+            <div>
+              <div className="form-switch-label">{locale === 'ar' ? 'تفعيل حقل المدة' : 'Enable Duration Field'}</div>
+              <div className="form-switch-desc">{locale === 'ar' ? 'يظهر حقل المدة في الخدمات والـ POS' : 'Shows duration field in services and POS'}</div>
+            </div>
+            <div style={{ width: '40px', height: '22px', borderRadius: '11px', backgroundColor: durationEnabled ? 'var(--color-primary)' : 'var(--color-border)', position: 'relative', transition: 'var(--transition)' }}>
+              <div style={{ width: '16px', height: '16px', borderRadius: '50%', backgroundColor: '#fff', position: 'absolute', top: '3px', transition: 'var(--transition)', left: durationEnabled ? '21px' : '3px' }} />
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">{locale === 'ar' ? 'نوع الطابعة' : 'Printer Type'}</label>
-              <select id="s-pt" name="s-pt" className="form-input form-select"
-                value={printerType} onChange={e => setPrinterType(e.target.value)}>
+              <select id="s-pt" name="s-pt" className="form-input form-select" value={printerType} onChange={e => setPrinterType(e.target.value)}>
                 <option value="sunmi">Sunmi (Android)</option>
                 <option value="bluetooth">Bluetooth</option>
                 <option value="usb">USB</option>
@@ -504,8 +421,7 @@ export default function SettingsPage() {
             </div>
             <div className="form-group">
               <label className="form-label">{locale === 'ar' ? 'عرض الورق (mm)' : 'Paper width (mm)'}</label>
-              <select id="s-pw" name="s-pw" className="form-input form-select"
-                value={printerWidth} onChange={e => setPrinterWidth(e.target.value)}>
+              <select id="s-pw" name="s-pw" className="form-input form-select" value={printerWidth} onChange={e => setPrinterWidth(e.target.value)}>
                 <option value="58">58mm</option>
                 <option value="80">80mm</option>
               </select>
@@ -513,9 +429,7 @@ export default function SettingsPage() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">
-              {locale === 'ar' ? 'نص أسفل الفاتورة' : 'Receipt footer text'}
-            </label>
+            <label className="form-label">{locale === 'ar' ? 'نص أسفل الفاتورة' : 'Receipt footer text'}</label>
             <textarea id="s-pf" name="s-pf" className="form-input form-textarea"
               value={printFooter} onChange={e => setPrintFooter(e.target.value)}
               placeholder={locale === 'ar' ? 'شكراً لزيارتكم...' : 'Thank you for your visit...'} />
@@ -523,38 +437,24 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* Categories Tab */}
+      {tab === 'categories' && <CategoriesTab />}
+
       {/* Reset Tab */}
       {tab === 'reset' && (
-        <div style={{
-          backgroundColor: 'var(--color-bg-secondary)',
-          border: '2px solid var(--color-danger-border)',
-          borderRadius: 'var(--radius-lg)', padding: '20px',
-        }}>
+        <div style={{ backgroundColor: 'var(--color-bg-secondary)', border: '2px solid var(--color-danger-border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
           <h3 className="form-section-title" style={{ color: 'var(--color-danger)' }}>
             ⚠️ {locale === 'ar' ? 'إعادة تعيين النظام' : 'System Reset'}
           </h3>
 
-          <div style={{
-            padding: '16px', borderRadius: 'var(--radius-sm)',
-            backgroundColor: 'var(--color-danger-light)',
-            border: '1px solid var(--color-danger-border)',
-            marginBottom: '20px',
-          }}>
+          <div style={{ padding: '16px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--color-danger-light)', border: '1px solid var(--color-danger-border)', marginBottom: '20px' }}>
             <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-              <AlertTriangle size={20} color="var(--color-danger)"
-                style={{ flexShrink: 0, marginTop: '2px' }} />
+              <AlertTriangle size={20} color="var(--color-danger)" style={{ flexShrink: 0, marginTop: '2px' }} />
               <div>
-                <div style={{
-                  fontWeight: '700', color: 'var(--color-danger)',
-                  marginBottom: '6px', fontSize: '14px',
-                }}>
-                  {locale === 'ar'
-                    ? 'تحذير: هذه العملية لا يمكن التراجع عنها!'
-                    : 'Warning: This action cannot be undone!'}
+                <div style={{ fontWeight: '700', color: 'var(--color-danger)', marginBottom: '6px', fontSize: '14px' }}>
+                  {locale === 'ar' ? 'تحذير: هذه العملية لا يمكن التراجع عنها!' : 'Warning: This action cannot be undone!'}
                 </div>
-                <div style={{
-                  fontSize: '12px', color: 'var(--color-text-secondary)', lineHeight: '1.7',
-                }}>
+                <div style={{ fontSize: '12px', color: 'var(--color-text-secondary)', lineHeight: '1.7' }}>
                   {locale === 'ar'
                     ? 'سيتم حذف: الطلبات، العملاء، المركبات، المصروفات، سجلات الوردية\nيُحتفظ بـ: الخدمات، الموظفين، الفروع، الإعدادات'
                     : 'Will delete: Orders, customers, vehicles, expenses, shift records\nWill keep: Services, employees, branches, settings'}
@@ -564,37 +464,23 @@ export default function SettingsPage() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">
-              {locale === 'ar' ? 'كلمة مرور الادمن الجديدة' : 'New admin password'}
-              <span>*</span>
-            </label>
+            <label className="form-label">{locale === 'ar' ? 'كلمة مرور الادمن الجديدة' : 'New admin password'}<span>*</span></label>
             <input id="s-newpass" name="s-newpass" type="password" className="form-input"
-              value={newAdminPass} onChange={e => setNewAdminPass(e.target.value)}
-              placeholder="••••••••" />
-            <span className="form-hint">
-              {locale === 'ar'
-                ? 'ستحتاج هذه الكلمة للدخول بعد إعادة التعيين'
-                : 'You will need this password to login after reset'}
-            </span>
+              value={newAdminPass} onChange={e => setNewAdminPass(e.target.value)} placeholder="••••••••" />
+            <span className="form-hint">{locale === 'ar' ? 'ستحتاج هذه الكلمة للدخول بعد إعادة التعيين' : 'You will need this password to login after reset'}</span>
           </div>
 
           <div className="form-group">
-            <label className="form-label">
-              {locale === 'ar' ? 'اكتب RESET للتأكيد' : 'Type RESET to confirm'}
-              <span>*</span>
-            </label>
+            <label className="form-label">{locale === 'ar' ? 'اكتب RESET للتأكيد' : 'Type RESET to confirm'}<span>*</span></label>
             <input id="s-reset" name="s-reset" className="form-input"
               value={resetConfirm} onChange={e => setResetConfirm(e.target.value)}
-              placeholder="RESET"
-              style={{ letterSpacing: '4px', fontWeight: '700' }} />
+              placeholder="RESET" style={{ letterSpacing: '4px', fontWeight: '700' }} />
           </div>
 
-          <button
-            className="btn btn-danger"
+          <button className="btn btn-danger"
             disabled={resetConfirm !== 'RESET' || !newAdminPass.trim() || newAdminPass.length < 4 || resetting}
             onClick={() => setShowResetModal(true)}
-            style={{ width: '100%', padding: '14px', fontSize: '14px', fontWeight: '900' }}
-          >
+            style={{ width: '100%', padding: '14px', fontSize: '14px', fontWeight: '900' }}>
             {resetting
               ? (locale === 'ar' ? '⏳ جاري إعادة التعيين...' : '⏳ Resetting...')
               : (locale === 'ar' ? '🔄 إعادة تعيين النظام الآن' : '🔄 Reset System Now')}
@@ -614,14 +500,8 @@ export default function SettingsPage() {
             <div className="modal-body">
               <div className="confirm-modal">
                 <div className="confirm-modal-icon danger">⚠️</div>
-                <div className="confirm-modal-title">
-                  {locale === 'ar' ? 'هل أنت متأكد 100%؟' : 'Are you 100% sure?'}
-                </div>
-                <div className="confirm-modal-desc">
-                  {locale === 'ar'
-                    ? 'سيتم حذف جميع البيانات نهائياً. لا يمكن استعادتها.'
-                    : 'All data will be permanently deleted. This cannot be undone.'}
-                </div>
+                <div className="confirm-modal-title">{locale === 'ar' ? 'هل أنت متأكد 100%؟' : 'Are you 100% sure?'}</div>
+                <div className="confirm-modal-desc">{locale === 'ar' ? 'سيتم حذف جميع البيانات نهائياً. لا يمكن استعادتها.' : 'All data will be permanently deleted. This cannot be undone.'}</div>
               </div>
             </div>
             <div className="modal-footer">
@@ -629,9 +509,7 @@ export default function SettingsPage() {
                 {locale === 'ar' ? 'إلغاء' : 'Cancel'}
               </button>
               <button className="btn btn-danger" onClick={resetSystem} disabled={resetting}>
-                {resetting
-                  ? (locale === 'ar' ? 'جاري...' : 'Resetting...')
-                  : (locale === 'ar' ? 'نعم، احذف كل شيء' : 'Yes, delete everything')}
+                {resetting ? (locale === 'ar' ? 'جاري...' : 'Resetting...') : (locale === 'ar' ? 'نعم، احذف كل شيء' : 'Yes, delete everything')}
               </button>
             </div>
           </div>
