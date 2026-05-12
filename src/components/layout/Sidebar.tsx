@@ -11,6 +11,7 @@ import {
   Tag, Settings, LogOut, ChevronLeft, ChevronRight,
   DollarSign, RefreshCw,
   Zap, Monitor, CalendarCheck,
+  CreditCard,
 } from 'lucide-react'
 import '@/styles/sidebar.css'
 import { useBusinessConfig } from '@/hooks/useBusinessConfig'
@@ -46,6 +47,7 @@ const { hasCapability } = useBusinessConfig()
   { href: '/dashboard/coupons',   icon: Tag,             label: t('coupons'),    cap: null },
   { href: '/dashboard/sync',      icon: RefreshCw,       label: t('sync'),       cap: null },
   { href: '/dashboard/upgrade',   icon: Zap,             label: t('upgrade'),    cap: null },
+  { href: '/dashboard/subscriptions', icon: CreditCard, label: t('subscriptions'), cap: null },
   { href: '/dashboard/settings',  icon: Settings,        label: t('settings'),   cap: null },
   
 ].filter(item => item.cap === null || hasCapability(item.cap))
