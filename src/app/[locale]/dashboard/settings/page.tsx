@@ -27,6 +27,7 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState('')
   const [city, setCity] = useState('')
   const [website, setWebsite] = useState('')
+  const [timezone, setTimezone] = useState('Asia/Riyadh')
   const [logoUrl, setLogoUrl] = useState('')
   const [uploading, setUploading] = useState(false)
 
@@ -63,6 +64,7 @@ export default function SettingsPage() {
         setCity(data.city || '')
         setWebsite(data.website || '')
         setLogoUrl(data.logo_url || '')
+        setTimezone(data.timezone || 'Asia/Riyadh')
         setTaxRate(data.tax_rate !== null ? String(data.tax_rate) : '15')
         setTaxNumber(data.tax_number || '')
         const s = data.settings || {}
@@ -108,6 +110,7 @@ export default function SettingsPage() {
           city,
           website,
           logo_url: logoUrl || null,
+          timezone,
           tax_rate: taxRate === '' ? 0 : Number(taxRate),
           tax_number: taxNumber,
           settings: {
@@ -302,6 +305,22 @@ export default function SettingsPage() {
               <label className="form-label">{t('website')}</label>
               <input id="s-web" name="s-web" className="form-input"
                 value={website} onChange={e => setWebsite(e.target.value)} placeholder="https://" />
+                <div className="form-group">
+              <label className="form-label">
+                {locale === 'ar' ? 'المنطقة الزمنية' : 'Timezone'}
+              </label>
+              <select className="form-input form-select"
+                  value={timezone} onChange={e => setTimezone(e.target.value)}>
+                  <option value="Asia/Riyadh">السعودية — UTC+3</option>
+                  <option value="Asia/Dubai">الإمارات — UTC+4</option>
+                  <option value="Asia/Kuwait">الكويت — UTC+3</option>
+                  <option value="Asia/Qatar">قطر — UTC+3</option>
+                  <option value="Asia/Bahrain">البحرين — UTC+3</option>
+                  <option value="Asia/Muscat">عُمان — UTC+4</option>
+                  <option value="Africa/Cairo">مصر — UTC+2</option>
+                  <option value="Europe/London">لندن — UTC+0</option>
+              </select>
+            </div>
             </div>
           </div>
 
