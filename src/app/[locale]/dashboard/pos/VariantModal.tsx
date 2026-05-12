@@ -73,22 +73,25 @@ export default function VariantModal({ item, isAr, onConfirm, onClose }: Props) 
 
   function toggleOption(group: VariantGroup, optionId: string) {
     setSelected(prev => {
-      const current = prev[group.id] || []
-      if (group.multi_select) {
+        const current = prev[group.id] || []
+
+        if (!group.multi_select || group.max_select === 1) {
+        // single select — دائماً استبدل
+        return { ...prev, [group.id]: [optionId] }
+        }
+
+        // multi select
         const max = group.max_select || 999
         if (current.includes(optionId)) {
-          const next = current.filter(id => id !== optionId)
-          if (group.required && next.length === 0) return prev
-          return { ...prev, [group.id]: next }
+        const next = current.filter(id => id !== optionId)
+        if (group.required && next.length === 0) return prev
+        return { ...prev, [group.id]: next }
         } else {
-          if (current.length >= max) return prev
-          return { ...prev, [group.id]: [...current, optionId] }
+        if (current.length >= max) return prev
+        return { ...prev, [group.id]: [...current, optionId] }
         }
-      } else {
-        return { ...prev, [group.id]: [optionId] }
-      }
     })
-  }
+}
 
   function isValid() {
     return groups.every(g => {
