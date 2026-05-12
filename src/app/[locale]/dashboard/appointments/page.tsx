@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { api } from '@/lib/api'
-import { formatCurrency } from '@/lib/utils'
 import { Plus, ChevronLeft, ChevronRight, Clock, User, Briefcase, CalendarCheck } from 'lucide-react'
 import NewAppointmentModal from './NewAppointmentModal'
 
@@ -84,12 +83,15 @@ export default function AppointmentsPage() {
   }
 
   // تجميع الحجوزات حسب الساعة
-  const hours = Array.from({ length: 14 }, (_, i) => i + 7) // 7 صباحاً → 9 مساءً
   const byHour = (hour: number) => appointments.filter(a => {
-    const h = new Date(a.start_time).getHours()
-    return h === hour
-  })
-
+  const h = parseInt(new Date(a.start_time).toLocaleString('en-US', {
+    timeZone: 'Asia/Riyadh',
+    hour: 'numeric',
+    hour12: false
+  }))
+  return h === hour
+})
+const hours = Array.from({ length: 18 }, (_, i) => i + 6)
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' })
   const isToday  = selectedDate === todayStr
 
