@@ -44,8 +44,9 @@ const { hasCapability } = useBusinessConfig()
   { href: '/dashboard/expenses',  icon: DollarSign,      label: t('expenses'),   cap: null },
   { href: '/dashboard/coupons',   icon: Tag,             label: t('coupons'),    cap: null },
   { href: '/dashboard/sync',      icon: RefreshCw,       label: t('sync'),       cap: null },
-  { href: '/dashboard/upgrade',   icon: Zap,             label: t('upgrade'), cap: null },
+  { href: '/dashboard/upgrade',   icon: Zap,             label: t('upgrade'),    cap: null },
   { href: '/dashboard/settings',  icon: Settings,        label: t('settings'),   cap: null },
+  { href: '/dashboard/workers',   icon: Users,           label: t('workers'),    cap: null },
 ].filter(item => item.cap === null || hasCapability(item.cap))
 
   function handleLogout() {

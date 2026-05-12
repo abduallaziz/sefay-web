@@ -63,6 +63,7 @@
     "sync": "Sync",
     "upgrade": "Upgrade",
     "pos": "POS",
+    "workers": "Workers",
     "appointments": "Appointments"
   },
   "dashboard": {
