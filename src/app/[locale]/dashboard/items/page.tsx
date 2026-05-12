@@ -30,10 +30,10 @@ export default function ItemsPage() {
   const [selected,      setSelected]      = useState<Item | null>(null)
   const [saving,        setSaving]        = useState(false)
   const [uploading,     setUploading]     = useState(false)
-  const [duration,        setDuration]        = useState('')
-  const [durationEnabled, setDurationEnabled] = useState(false)
   const [variantsItem,  setVariantsItem]  = useState<Item | null>(null)
   const [categoriesList, setCategoriesList] = useState<{ id: string; name: string; icon: string; color: string }[]>([])
+  const [duration,        setDuration]        = useState('')
+  const [durationEnabled, setDurationEnabled] = useState(false)
 
   const [serviceType,  setServiceType]  = useState<'single' | 'bundle'>('single')
   const [bundleItems,  setBundleItems]  = useState<BundleItem[]>([])
@@ -52,7 +52,7 @@ export default function ItemsPage() {
   const ICONS  = ['🚗','🚙','🏎️','🚕','🚐','🚌','🛻','🚑','🧼','💦','✨','🪣','🧽','🔧','⚙️','💎']
   const COLORS = ['#00d4ff','#00e5a0','#a78bfa','#f0c040','#ff5566','#00b4d8','#4a90d9','#ff9500']
 
-useEffect(() => { loadServices(); loadCategories(); loadDurationSetting() }, [])
+  useEffect(() => { loadServices(); loadCategories(); loadDurationSetting() }, [])
 
   async function loadServices() {
     setLoading(true)
@@ -77,29 +77,31 @@ useEffect(() => { loadServices(); loadCategories(); loadDurationSetting() }, [])
   }
 
   async function loadDurationSetting() {
-  try {
-    const session = getSession()
-    if (!session) return
-    const { data } = await supabase
-      .from('tenants')
-      .select('settings')
-      .eq('id', session.tenant_id)
-      .single()
-    setDurationEnabled(data?.settings?.duration_enabled !== false)
-  } catch (e) { console.error(e) }
-}
+    try {
+      const session = getSession()
+      if (!session) return
+      const { data } = await supabase
+        .from('tenants')
+        .select('settings')
+        .eq('id', session.tenant_id)
+        .single()
+      setDurationEnabled(data?.settings?.duration_enabled !== false)
+    } catch (e) { console.error(e) }
+  }
 
-  function openNew() {
+  async function openNew() {
+    await loadDurationSetting()
     setSelected(null)
-    setDuration('')
     setName(''); setPrice(''); setCashierPrice(false)
     setServiceType('single'); setBundleItems([])
     setCategory(''); setCategoryId('')
     setIcon('🚗'); setColor('#00d4ff'); setImageUrl('')
+    setDuration('')
     setShowModal(true)
   }
 
-  function openEdit(svc: Item) {
+  async function openEdit(svc: Item) {
+    await loadDurationSetting()
     setSelected(svc)
     setName(svc.name)
     setPrice(String(svc.price))
@@ -322,111 +324,111 @@ useEffect(() => { loadServices(); loadCategories(); loadDurationSetting() }, [])
                   <div className="form-group">
                     <label className="form-label">{t('category')}</label>
                     {categoriesList.length > 0 ? (
-  <div style={{ position: 'relative' }}>
-    <div
-      onClick={() => setCategoryDropdownOpen(v => !v)}
-      className="form-input"
-      style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
-      {categoryId ? (() => {
-        const cat = categoriesList.find(c => c.id === categoryId)
-        return cat ? (
-          <>
-            <div style={{ width: '24px', height: '24px', borderRadius: '4px', backgroundColor: 'var(--color-bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-              {cat.icon?.startsWith('http')
-                ? <img src={cat.icon} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <span style={{ fontSize: '16px' }}>{cat.icon}</span>}
-            </div>
-            <span style={{ fontSize: '13px' }}>{cat.name}</span>
-          </>
-        ) : null
-      })() : (
-        <span style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>
-          {locale === 'ar' ? '— بدون فئة —' : '— No category —'}
-        </span>
-      )}
-    </div>
+                      <div style={{ position: 'relative' }}>
+                        <div
+                          onClick={() => setCategoryDropdownOpen(v => !v)}
+                          className="form-input"
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
+                          {categoryId ? (() => {
+                            const cat = categoriesList.find(c => c.id === categoryId)
+                            return cat ? (
+                              <>
+                                <div style={{ width: '24px', height: '24px', borderRadius: '4px', backgroundColor: 'var(--color-bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                                  {cat.icon?.startsWith('http')
+                                    ? <img src={cat.icon} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    : <span style={{ fontSize: '16px' }}>{cat.icon}</span>}
+                                </div>
+                                <span style={{ fontSize: '13px' }}>{cat.name}</span>
+                              </>
+                            ) : null
+                          })() : (
+                            <span style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>
+                              {locale === 'ar' ? '— بدون فئة —' : '— No category —'}
+                            </span>
+                          )}
+                        </div>
 
-    {categoryDropdownOpen && (
-      <div style={{ position: 'absolute', top: '100%', insetInlineStart: 0, insetInlineEnd: 0, zIndex: 100, backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-lg)', maxHeight: '200px', overflowY: 'auto' }}>
-        <div
-          onClick={() => { setCategoryId(''); setCategoryDropdownOpen(false) }}
-          style={{ padding: '10px 12px', cursor: 'pointer', fontSize: '13px', color: 'var(--color-text-muted)', borderBottom: '1px solid var(--color-border)' }}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)'}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-          {locale === 'ar' ? '— بدون فئة —' : '— No category —'}
-        </div>
-        {categoriesList.map(c => (
-          <div key={c.id}
-            onClick={() => { setCategoryId(c.id); setCategoryDropdownOpen(false) }}
-            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--color-border)' }}
-            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)'}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
-            <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: c.color || 'var(--color-bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
-              {c.icon?.startsWith('http')
-                ? <img src={c.icon} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <span style={{ fontSize: '16px' }}>{c.icon}</span>}
-            </div>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-primary)' }}>{c.name}</span>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-) : (
-  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', padding: '8px 0' }}>
-    {locale === 'ar' ? 'لا توجد فئات — أضفها من الإعدادات' : 'No categories — add them from Settings'}
-  </div>
-)}
+                        {categoryDropdownOpen && (
+                          <div style={{ position: 'absolute', top: '100%', insetInlineStart: 0, insetInlineEnd: 0, zIndex: 100, backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-lg)', maxHeight: '200px', overflowY: 'auto' }}>
+                            <div
+                              onClick={() => { setCategoryId(''); setCategoryDropdownOpen(false) }}
+                              style={{ padding: '10px 12px', cursor: 'pointer', fontSize: '13px', color: 'var(--color-text-muted)', borderBottom: '1px solid var(--color-border)' }}
+                              onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)'}
+                              onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                              {locale === 'ar' ? '— بدون فئة —' : '— No category —'}
+                            </div>
+                            {categoriesList.map(c => (
+                              <div key={c.id}
+                                onClick={() => { setCategoryId(c.id); setCategoryDropdownOpen(false) }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--color-border)' }}
+                                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)'}
+                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+                                <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: c.color || 'var(--color-bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                                  {c.icon?.startsWith('http')
+                                    ? <img src={c.icon} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    : <span style={{ fontSize: '16px' }}>{c.icon}</span>}
+                                </div>
+                                <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-primary)' }}>{c.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', padding: '8px 0' }}>
+                        {locale === 'ar' ? 'لا توجد فئات — أضفها من الإعدادات' : 'No categories — add them from Settings'}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Single: السعر */}
-                  {serviceType === 'single' && (
-                    <div className="form-group">
-                      <label className="form-label">{t('price')}</label>
-                      <div className="form-switch" onClick={() => setCashierPrice(!cashierPrice)} style={{ marginBottom: '8px' }}>
-                        <div>
-                          <div className="form-switch-label">
-                            {locale === 'ar' ? 'الكاشير يحدد السعر' : 'Cashier sets price'}
-                          </div>
-                        </div>
-                        <div style={{
-                          width: '40px', height: '22px', borderRadius: '11px',
-                          backgroundColor: cashierPrice ? 'var(--color-primary)' : 'var(--color-border)',
-                          position: 'relative', transition: 'var(--transition)',
-                        }}>
-                          <div style={{
-                            width: '16px', height: '16px', borderRadius: '50%',
-                            backgroundColor: '#fff', position: 'absolute',
-                            top: '3px', transition: 'var(--transition)',
-                            left: cashierPrice ? '21px' : '3px',
-                          }} />
-                        </div>
+              {serviceType === 'single' && (
+                <div className="form-group">
+                  <label className="form-label">{t('price')}</label>
+                  <div className="form-switch" onClick={() => setCashierPrice(!cashierPrice)} style={{ marginBottom: '8px' }}>
+                    <div>
+                      <div className="form-switch-label">
+                        {locale === 'ar' ? 'الكاشير يحدد السعر' : 'Cashier sets price'}
                       </div>
-                      {!cashierPrice && (
-                        <input className="form-input" type="number" min="0" value={price}
-                          onChange={e => setPrice(e.target.value)} placeholder="0" />
-                      )}
                     </div>
+                    <div style={{
+                      width: '40px', height: '22px', borderRadius: '11px',
+                      backgroundColor: cashierPrice ? 'var(--color-primary)' : 'var(--color-border)',
+                      position: 'relative', transition: 'var(--transition)',
+                    }}>
+                      <div style={{
+                        width: '16px', height: '16px', borderRadius: '50%',
+                        backgroundColor: '#fff', position: 'absolute',
+                        top: '3px', transition: 'var(--transition)',
+                        left: cashierPrice ? '21px' : '3px',
+                      }} />
+                    </div>
+                  </div>
+                  {!cashierPrice && (
+                    <input className="form-input" type="number" min="0" value={price}
+                      onChange={e => setPrice(e.target.value)} placeholder="0" />
                   )}
+                </div>
+              )}
 
-                  {durationEnabled && (
-                    <div className="form-group">
-                      <label className="form-label">
-                        {locale === 'ar' ? '⏱️ المدة (دقيقة)' : '⏱️ Duration (minutes)'}
-                      </label>
-                      <input
-                        className="form-input"
-                        type="number"
-                        min="0"
-                        value={duration}
-                        onChange={e => setDuration(e.target.value)}
-                        placeholder={locale === 'ar' ? 'مثال: 30' : 'e.g. 30'}
-                        style={{ width: '160px' }}
-                      />
-                    </div>
-                  )}
+              {durationEnabled && (
+                <div className="form-group">
+                  <label className="form-label">
+                    {locale === 'ar' ? '⏱️ المدة (دقيقة)' : '⏱️ Duration (minutes)'}
+                  </label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    value={duration}
+                    onChange={e => setDuration(e.target.value)}
+                    placeholder={locale === 'ar' ? 'مثال: 30' : 'e.g. 30'}
+                    style={{ width: '160px' }}
+                  />
+                </div>
+              )}
 
               {/* Bundle */}
               {serviceType === 'bundle' && (
@@ -608,6 +610,7 @@ useEffect(() => { loadServices(); loadCategories(); loadDurationSetting() }, [])
                 <th>{t('serviceName')}</th>
                 <th>{t('category')}</th>
                 <th>{t('price')}</th>
+                {durationEnabled && <th>{locale === 'ar' ? 'المدة' : 'Duration'}</th>}
                 <th>{t('type')}</th>
                 <th>{locale === 'ar' ? 'الحالة' : 'Status'}</th>
                 <th>{locale === 'ar' ? 'إجراءات' : 'Actions'}</th>
@@ -649,6 +652,11 @@ useEffect(() => { loadServices(); loadCategories(); loadDurationSetting() }, [])
                       ? <span style={{ color: 'var(--color-warning)', fontSize: '12px' }}>⌨️ {locale === 'ar' ? 'يحدده الكاشير' : 'Cashier sets'}</span>
                       : formatCurrency(svc.price, locale === 'ar' ? 'ar-SA' : 'en-US')}
                   </td>
+                  {durationEnabled && (
+                    <td style={{ color: 'var(--color-text-secondary)' }}>
+                      {(svc as any).duration ? `${(svc as any).duration} ${locale === 'ar' ? 'د' : 'min'}` : '—'}
+                    </td>
+                  )}
                   <td>
                     <span className={`badge ${(svc as any).type === 'bundle' ? 'badge-purple' : 'badge-primary'}`}>
                       {(svc as any).type === 'bundle'
@@ -680,7 +688,7 @@ useEffect(() => { loadServices(); loadCategories(); loadDurationSetting() }, [])
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={durationEnabled ? 7 : 6}>
                     <div className="table-empty">
                       <div className="table-empty-icon">⚙️</div>
                       <div className="table-empty-text">
