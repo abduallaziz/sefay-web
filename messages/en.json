@@ -283,24 +283,6 @@
       { "name": "Abaya Tailoring", "price": "200", "type": "Abaya" }
     ]
   }
-}
-,
-"appointments": {
-  "title": "Appointments",
-  "new": "New Appointment",
-  "noAppointments": "No appointments",
-  "today": "Today",
-  "worker": "Worker",
-  "service": "Service",
-  "customer": "Customer",
-  "date": "Date",
-  "time": "Time",
-  "notes": "Notes",
-  "status": {
-    "pending": "Pending",
-    "confirmed": "Confirmed",
-    "completed": "Completed",
-    "cancelled": "Cancelled"
-  }
+
 }
 }
