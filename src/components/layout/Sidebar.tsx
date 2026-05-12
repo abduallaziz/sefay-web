@@ -41,12 +41,13 @@ const { hasCapability } = useBusinessConfig()
   { href: '/dashboard/reports',   icon: BarChart3,       label: t('reports'),    cap: null },
   { href: '/dashboard/branches',  icon: GitBranch,       label: t('branches'),   cap: null },
   { href: '/dashboard/employees', icon: UserCog,         label: t('employees'),  cap: null },
+  { href: '/dashboard/workers',   icon: Users,           label: t('workers'),    cap: null },
   { href: '/dashboard/expenses',  icon: DollarSign,      label: t('expenses'),   cap: null },
   { href: '/dashboard/coupons',   icon: Tag,             label: t('coupons'),    cap: null },
   { href: '/dashboard/sync',      icon: RefreshCw,       label: t('sync'),       cap: null },
   { href: '/dashboard/upgrade',   icon: Zap,             label: t('upgrade'),    cap: null },
   { href: '/dashboard/settings',  icon: Settings,        label: t('settings'),   cap: null },
-  { href: '/dashboard/workers',   icon: Users,           label: t('workers'),    cap: null },
+  
 ].filter(item => item.cap === null || hasCapability(item.cap))
 
   function handleLogout() {

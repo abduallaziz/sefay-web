@@ -57,13 +57,13 @@
     "customers": "Customers",
     "reports": "Reports",
     "branches": "Branches",
-    "employees": "Employees",
+    "employees": "Team",
     "expenses": "Expenses",
     "coupons": "Coupons",
     "sync": "Sync",
     "upgrade": "Upgrade",
     "pos": "POS",
-    "workers": "Workers",
+    "workers": "Service Providers",
     "appointments": "Appointments"
   },
   "dashboard": {
