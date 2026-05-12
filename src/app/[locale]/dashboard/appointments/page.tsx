@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
-import { Plus, ChevronLeft, ChevronRight, Clock, User, Briefcase, CalendarDays } from 'lucide-react'
+import { Plus, ChevronLeft, ChevronRight, Clock, User, Briefcase, CalendarCheck } from 'lucide-react'
 import NewAppointmentModal from './NewAppointmentModal'
 
 interface Appointment {
@@ -107,7 +107,7 @@ export default function AppointmentsPage() {
         borderBottom: '1px solid var(--color-border)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <Calendar size={20} style={{ color: 'var(--color-primary)' }} />
+          <CalendarCheck size={20} style={{ color: 'var(--color-primary)' }} />
           <h1 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--color-text-primary)', margin: 0 }}>
             {lc('المواعيد', 'Appointments')}
           </h1>
@@ -182,7 +182,7 @@ export default function AppointmentsPage() {
           </div>
         ) : appointments.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px', color: 'var(--color-text-muted)' }}>
-            <Calendar size={48} style={{ marginBottom: '12px', opacity: 0.3 }} />
+            <CalendarCheck size={48} style={{ marginBottom: '12px', opacity: 0.3 }} />
             <div style={{ fontSize: '15px' }}>{lc('لا توجد مواعيد', 'No appointments')}</div>
           </div>
         ) : (
