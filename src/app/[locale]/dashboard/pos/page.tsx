@@ -14,6 +14,7 @@ interface Item {
   category: string
   image_url?: string
   color?: string
+  duration?: number
 }
 
 interface CartItem extends Item {
@@ -156,7 +157,7 @@ export default function POSPage() {
         discount:       discountAmt,
         notes:          notes || undefined,
         items: cart.map(c => ({
-          item_id:   c.id.split('_')[0], // نرجع الـ original item_id
+          item_id:   c.id.split('_')[0],
           item_name: c.name,
           price:     c.custom_price ?? c.price,
           qty:       c.qty,
@@ -283,7 +284,14 @@ export default function POSPage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px',
                     }}>🛍️</div>
                   )}
-                  <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-primary)', textAlign: 'center' }}>{item.name}</div>
+                  <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-primary)', textAlign: 'center' }}>
+                    {item.name}
+                  </div>
+                  {item.duration && (
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>
+                      ⏱️ {item.duration} {isAr ? 'د' : 'min'}
+                    </div>
+                  )}
                   <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--color-primary)' }}>
                     {formatCurrency(item.price, isAr ? 'ar-SA' : 'en-US')}
                   </div>
@@ -344,6 +352,11 @@ export default function POSPage() {
               }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-text-primary)', marginBottom: '2px' }}>{item.name}</div>
+                  {item.duration && (
+                    <div style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginBottom: '2px' }}>
+                      ⏱️ {item.duration} {isAr ? 'د' : 'min'}
+                    </div>
+                  )}
                   <div style={{ fontSize: '12px', color: 'var(--color-primary)', fontWeight: '700' }}>
                     {formatCurrency((item.custom_price ?? item.price) * item.qty, isAr ? 'ar-SA' : 'en-US')}
                   </div>
@@ -519,7 +532,6 @@ export default function POSPage() {
         </div>
       </div>
 
-      {/* Variant Modal */}
       {variantItem && (
         <VariantModal
           item={variantItem}
