@@ -63,7 +63,9 @@
     "sync": "المزامنة",
     "settings": "الإعدادات",
     "upgrade": "ترقية الخطة",
-    "pos": "نقطة البيع"
+    "pos": "نقطة البيع",
+    "appointments": "المواعيد"
+
 
   },
   "dashboard": {
@@ -283,6 +285,25 @@
       { "name": "تعديل بنطلون", "price": "50", "type": "بنطلون" },
       { "name": "خياطة عباية", "price": "200", "type": "عباية" }
     ]
+  }
+}
+,
+"appointments": {
+  "title": "المواعيد",
+  "new": "موعد جديد",
+  "noAppointments": "لا توجد مواعيد",
+  "today": "اليوم",
+  "worker": "الموظف",
+  "service": "الخدمة",
+  "customer": "العميل",
+  "date": "التاريخ",
+  "time": "الوقت",
+  "notes": "ملاحظات",
+  "status": {
+    "pending": "معلق",
+    "confirmed": "مؤكد",
+    "completed": "مكتمل",
+    "cancelled": "ملغي"
   }
 }
 }

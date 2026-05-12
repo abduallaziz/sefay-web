@@ -62,7 +62,8 @@
     "coupons": "Coupons",
     "sync": "Sync",
     "upgrade": "Upgrade",
-    "pos": "POS"
+    "pos": "POS",
+    "appointments": "Appointments"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -281,6 +282,25 @@
       { "name": "Pants Alteration", "price": "50", "type": "Pants" },
       { "name": "Abaya Tailoring", "price": "200", "type": "Abaya" }
     ]
+  }
+}
+,
+"appointments": {
+  "title": "Appointments",
+  "new": "New Appointment",
+  "noAppointments": "No appointments",
+  "today": "Today",
+  "worker": "Worker",
+  "service": "Service",
+  "customer": "Customer",
+  "date": "Date",
+  "time": "Time",
+  "notes": "Notes",
+  "status": {
+    "pending": "Pending",
+    "confirmed": "Confirmed",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
   }
 }
 }

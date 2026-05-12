@@ -99,6 +99,27 @@ export const api = {
     update: (id: string, body: any) => axiosInstance.put(`/expenses/${id}`, body),
     delete: (id: string) => axiosInstance.delete(`/expenses/${id}`),
   },
+
+
+  appointments: {
+    getAll: (date?: string) =>
+      axiosInstance.get(`/appointments${date ? `?date=${date}` : ''}`),
+    create: (body: any) =>
+      axiosInstance.post('/appointments', body),
+    update: (id: string, body: any) =>
+      axiosInstance.patch(`/appointments/${id}`, body),
+    delete: (id: string) =>
+      axiosInstance.delete(`/appointments/${id}`),
+    getSlots: (worker_id: string, date: string) =>
+      axiosInstance.get(`/appointments/slots?worker_id=${worker_id}&date=${date}`),
+    getAvailability: (worker_id?: string) =>
+      axiosInstance.get(`/appointments/availability${worker_id ? `?worker_id=${worker_id}` : ''}`),
+    setAvailability: (body: any) =>
+      axiosInstance.post('/appointments/availability', body),
+  },
+  workers: {
+    getAll: () => axiosInstance.get('/workers'),
+  },
 }
 
 export default axiosInstance
