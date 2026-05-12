@@ -11,8 +11,7 @@ import {
   Tag, Settings, LogOut, ChevronLeft, ChevronRight,
   DollarSign, RefreshCw,
   Zap, Monitor, CalendarCheck,
-  CreditCard,
-} from 'lucide-react'
+  CreditCard, LayoutGrid,} from 'lucide-react'
 import '@/styles/sidebar.css'
 import { useBusinessConfig } from '@/hooks/useBusinessConfig'
 
@@ -38,6 +37,7 @@ const { hasCapability } = useBusinessConfig()
   { href: '/dashboard/appointments', icon: CalendarCheck, label: t('appointments'), cap: null },
   { href: '/dashboard/orders',    icon: ShoppingCart,    label: t('orders'),     cap: null },
   { href: '/dashboard/items',     icon: Wrench,          label: t('items'),      cap: null },
+  { href: '/dashboard/categories', icon: LayoutGrid,   label: t('categories'), cap: null },
   { href: '/dashboard/customers', icon: Users,           label: t('customers'),  cap: null },
   { href: '/dashboard/reports',   icon: BarChart3,       label: t('reports'),    cap: null },
   { href: '/dashboard/branches',  icon: GitBranch,       label: t('branches'),   cap: null },
