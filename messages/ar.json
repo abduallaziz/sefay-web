@@ -286,24 +286,6 @@
       { "name": "خياطة عباية", "price": "200", "type": "عباية" }
     ]
   }
-}
-,
-"appointments": {
-  "title": "المواعيد",
-  "new": "موعد جديد",
-  "noAppointments": "لا توجد مواعيد",
-  "today": "اليوم",
-  "worker": "الموظف",
-  "service": "الخدمة",
-  "customer": "العميل",
-  "date": "التاريخ",
-  "time": "الوقت",
-  "notes": "ملاحظات",
-  "status": {
-    "pending": "معلق",
-    "confirmed": "مؤكد",
-    "completed": "مكتمل",
-    "cancelled": "ملغي"
-  }
+
 }
 }

@@ -10,10 +10,11 @@ import {
   BarChart3, GitBranch, UserCog,
   Tag, Settings, LogOut, ChevronLeft, ChevronRight,
   DollarSign, RefreshCw,
-  Zap, Monitor,
+  Zap, Monitor, CalendarCheck,
 } from 'lucide-react'
 import '@/styles/sidebar.css'
 import { useBusinessConfig } from '@/hooks/useBusinessConfig'
+
 
 interface SidebarProps {
   collapsed: boolean
@@ -33,6 +34,7 @@ const { hasCapability } = useBusinessConfig()
   const navItems = [
   { href: '/dashboard',           icon: LayoutDashboard, label: t('dashboard'),  cap: null },
   { href: '/dashboard/pos',       icon: Monitor,         label: t('pos'),        cap: null },
+  { href: '/dashboard/appointments', icon: CalendarCheck, label: t('appointments'), cap: null },
   { href: '/dashboard/orders',    icon: ShoppingCart,    label: t('orders'),     cap: null },
   { href: '/dashboard/items',     icon: Wrench,          label: t('items'),      cap: null },
   { href: '/dashboard/customers', icon: Users,           label: t('customers'),  cap: null },
