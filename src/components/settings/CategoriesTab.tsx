@@ -32,6 +32,7 @@ export default function CategoriesTab() {
   const [loading, setLoading]       = useState(true)
   const [saving, setSaving]         = useState(false)
   const [toast, setToast]           = useState('')
+  const [dragIndex, setDragIndex] = useState<number | null>(null)
 
   const [newName,  setNewName]  = useState('')
   const [newColor, setNewColor] = useState(PRESET_COLORS[0])
@@ -211,31 +212,49 @@ export default function CategoriesTab() {
 
       {/* Categories list */}
       {categories.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '32px', color: 'var(--color-text-muted)', fontSize: '13px' }}>
-          {isAr ? 'لا توجد فئات بعد' : 'No categories yet'}
+  <div style={{ textAlign: 'center', padding: '32px', color: 'var(--color-text-muted)', fontSize: '13px' }}>
+    {isAr ? 'لا توجد فئات بعد' : 'No categories yet'}
+  </div>
+) : (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+    {categories.map((cat, index) => (
+      <div key={cat.id}
+        draggable
+        onDragStart={() => setDragIndex(index)}
+        onDragOver={e => { e.preventDefault() }}
+        onDrop={async () => {
+          if (dragIndex === null || dragIndex === index) return
+          const reordered = [...categories]
+          const [moved] = reordered.splice(dragIndex, 1)
+          reordered.splice(index, 0, moved)
+          const updated = reordered.map((c, i) => ({ ...c, sort_order: i }))
+          setCategories(updated)
+          setDragIndex(null)
+          // حفظ الترتيب في DB
+          await Promise.all(updated.map(c =>
+            supabase.from('categories').update({ sort_order: c.sort_order }).eq('id', c.id)
+          ))
+        }}
+        onDragEnd={() => setDragIndex(null)}
+        style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', backgroundColor: dragIndex === index ? 'var(--color-primary-light)' : 'var(--color-bg-tertiary)', border: `1px solid ${dragIndex === index ? 'var(--color-primary)' : 'var(--color-border)'}`, borderRadius: 'var(--radius-sm)', transition: 'all 0.15s', cursor: 'grab' }}>
+        <GripVertical size={14} color="var(--color-text-muted)" style={{ flexShrink: 0 }} />
+        <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', backgroundColor: cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0, overflow: 'hidden' }}>
+          {cat.icon?.startsWith('http')
+            ? <img src={cat.icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : cat.icon}
         </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {categories.map((cat) => (
-            <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', backgroundColor: 'var(--color-bg-tertiary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)' }}>
-              <GripVertical size={14} color="var(--color-text-muted)" style={{ flexShrink: 0, cursor: 'grab' }} />
-              <div style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', backgroundColor: cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0, overflow: 'hidden' }}>
-                {cat.icon?.startsWith('http')
-                  ? <img src={cat.icon} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : cat.icon}
-              </div>
-              <input className="form-input" value={cat.name}
-                onChange={e => updateCategory(cat.id, 'name', e.target.value)}
-                onBlur={e => updateCategory(cat.id, 'name', e.target.value)}
-                style={{ flex: 1, padding: '6px 10px', fontSize: '13px', fontWeight: '600' }} />
-              <button type="button" onClick={() => deleteCategory(cat.id)}
-                style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-danger-border)', backgroundColor: 'var(--color-danger-light)', color: 'var(--color-danger)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Trash2 size={13} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+        <input className="form-input" value={cat.name}
+          onChange={e => updateCategory(cat.id, 'name', e.target.value)}
+          onBlur={e => updateCategory(cat.id, 'name', e.target.value)}
+          style={{ flex: 1, padding: '6px 10px', fontSize: '13px', fontWeight: '600' }} />
+        <button type="button" onClick={() => deleteCategory(cat.id)}
+          style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--color-danger-border)', backgroundColor: 'var(--color-danger-light)', color: 'var(--color-danger)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Trash2 size={13} />
+        </button>
+      </div>
+    ))}
+  </div>
+)}
     </div>
   )
 }
