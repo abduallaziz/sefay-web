@@ -50,6 +50,30 @@
     "signupSuccess": "🎉 تم إنشاء الحساب بنجاح!",
     "signingUp": "جاري الإنشاء..."
   },
+  
+  "subscriptions": {
+  "title": "الاشتراكات",
+  "current": "الاشتراك الحالي",
+  "history": "سجل الاشتراكات",
+  "plan": "الخطة",
+  "status": "الحالة",
+  "startedAt": "تاريخ البدء",
+  "expiresAt": "تاريخ الانتهاء",
+  "price": "السعر",
+  "limits": "الحدود",
+  "branches": "فروع",
+  "users": "مستخدمين",
+  "unlimited": "غير محدود",
+  "noActive": "لا يوجد اشتراك نشط",
+  "noHistory": "لا يوجد سجل اشتراكات",
+  "loading": "جاري التحميل...",
+  "status_active": "نشط",
+  "status_cancelled": "ملغي",
+  "status_expired": "منتهي",
+  "cycle_monthly": "شهري",
+  "cycle_yearly": "سنوي"
+},
+
   "nav": {
     "dashboard": "الرئيسية",
     "orders": "الطلبات",
@@ -60,13 +84,13 @@
     "employees": "فريق العمل",
     "expenses": "المصاريف",
     "coupons": "الكوبونات",
+    "subscriptions": "الاشتراكات",
     "sync": "المزامنة",
     "settings": "الإعدادات",
     "upgrade": "ترقية الخطة",
     "pos": "نقطة البيع",
     "workers": "مقدمو الخدمه",
     "appointments": "المواعيد"
-
 
   },
   "dashboard": {

@@ -50,6 +50,30 @@
     "signupSuccess": "🎉 Account created successfully!",
       "signingUp": "Creating account..."
   },
+
+  "subscriptions": {
+  "title": "Subscriptions",
+  "current": "Current Subscription",
+  "history": "Subscription History",
+  "plan": "Plan",
+  "status": "Status",
+  "startedAt": "Start Date",
+  "expiresAt": "Expiry Date",
+  "price": "Price",
+  "limits": "Limits",
+  "branches": "Branches",
+  "users": "Users",
+  "unlimited": "Unlimited",
+  "noActive": "No active subscription",
+  "noHistory": "No subscription history",
+  "loading": "Loading...",
+  "status_active": "Active",
+  "status_cancelled": "Cancelled",
+  "status_expired": "Expired",
+  "cycle_monthly": "month",
+  "cycle_yearly": "year"
+},
+
   "nav": {
     "dashboard": "Dashboard",
     "orders": "Orders",
@@ -64,7 +88,8 @@
     "upgrade": "Upgrade",
     "pos": "POS",
     "workers": "Service Providers",
-    "appointments": "Appointments"
+    "appointments": "Appointments",
+    "subscriptions": "Subscriptions"
   },
   "dashboard": {
     "title": "Dashboard",
