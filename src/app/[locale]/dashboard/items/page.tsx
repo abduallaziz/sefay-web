@@ -31,7 +31,7 @@ export default function ItemsPage() {
   const [saving,        setSaving]        = useState(false)
   const [uploading,     setUploading]     = useState(false)
   const [variantsItem,  setVariantsItem]  = useState<Item | null>(null)
-  const [categoriesList, setCategoriesList] = useState<{ id: string; name: string; icon: string }[]>([])
+  const [categoriesList, setCategoriesList] = useState<{ id: string; name: string; icon: string; color: string }[]>([])
 
   const [serviceType,  setServiceType]  = useState<'single' | 'bundle'>('single')
   const [bundleItems,  setBundleItems]  = useState<BundleItem[]>([])
@@ -40,6 +40,7 @@ export default function ItemsPage() {
   const [name,         setName]         = useState('')
   const [price,        setPrice]        = useState('')
   const [cashierPrice, setCashierPrice] = useState(false)
+  const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false)
   const [categoryId,   setCategoryId]   = useState('')
   const [category,     setCategory]     = useState('')
   const [icon,         setIcon]         = useState('🚗')
@@ -66,7 +67,7 @@ export default function ItemsPage() {
       if (!session) return
       const { data } = await supabase
         .from('categories')
-        .select('id, name, icon')
+        .select('id, name, icon, color')
         .eq('tenant_id', session.tenant_id)
         .order('sort_order', { ascending: true })
       setCategoriesList(data || [])
@@ -303,17 +304,61 @@ export default function ItemsPage() {
                   <div className="form-group">
                     <label className="form-label">{t('category')}</label>
                     {categoriesList.length > 0 ? (
-                      <select className="form-input form-select" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
-                        <option value="">{locale === 'ar' ? '— بدون فئة —' : '— No category —'}</option>
-                        {categoriesList.map(c => (
-                          <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', padding: '8px 0' }}>
-                        {locale === 'ar' ? 'لا توجد فئات — أضفها من الإعدادات' : 'No categories — add them from Settings'}
-                      </div>
-                    )}
+  <div style={{ position: 'relative' }}>
+    <div
+      onClick={() => setCategoryDropdownOpen(v => !v)}
+      className="form-input"
+      style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
+      {categoryId ? (() => {
+        const cat = categoriesList.find(c => c.id === categoryId)
+        return cat ? (
+          <>
+            <div style={{ width: '24px', height: '24px', borderRadius: '4px', backgroundColor: 'var(--color-bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+              {cat.icon?.startsWith('http')
+                ? <img src={cat.icon} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ fontSize: '16px' }}>{cat.icon}</span>}
+            </div>
+            <span style={{ fontSize: '13px' }}>{cat.name}</span>
+          </>
+        ) : null
+      })() : (
+        <span style={{ color: 'var(--color-text-muted)', fontSize: '13px' }}>
+          {locale === 'ar' ? '— بدون فئة —' : '— No category —'}
+        </span>
+      )}
+    </div>
+
+    {categoryDropdownOpen && (
+      <div style={{ position: 'absolute', top: '100%', insetInlineStart: 0, insetInlineEnd: 0, zIndex: 100, backgroundColor: 'var(--color-bg-secondary)', border: '1px solid var(--color-border)', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-lg)', maxHeight: '200px', overflowY: 'auto' }}>
+        <div
+          onClick={() => { setCategoryId(''); setCategoryDropdownOpen(false) }}
+          style={{ padding: '10px 12px', cursor: 'pointer', fontSize: '13px', color: 'var(--color-text-muted)', borderBottom: '1px solid var(--color-border)' }}
+          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)'}
+          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+          {locale === 'ar' ? '— بدون فئة —' : '— No category —'}
+        </div>
+        {categoriesList.map(c => (
+          <div key={c.id}
+            onClick={() => { setCategoryId(c.id); setCategoryDropdownOpen(false) }}
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', cursor: 'pointer', borderBottom: '1px solid var(--color-border)' }}
+            onMouseEnter={e => e.currentTarget.style.backgroundColor = 'var(--color-bg-tertiary)'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}>
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', backgroundColor: c.color || 'var(--color-bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+              {c.icon?.startsWith('http')
+                ? <img src={c.icon} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ fontSize: '16px' }}>{c.icon}</span>}
+            </div>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--color-text-primary)' }}>{c.name}</span>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+) : (
+  <div style={{ fontSize: '12px', color: 'var(--color-text-muted)', padding: '8px 0' }}>
+    {locale === 'ar' ? 'لا توجد فئات — أضفها من الإعدادات' : 'No categories — add them from Settings'}
+  </div>
+)}
                   </div>
                 </div>
               </div>
