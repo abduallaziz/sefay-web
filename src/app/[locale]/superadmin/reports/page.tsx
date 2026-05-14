@@ -96,13 +96,13 @@ export default function ReportsPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <div className="flex items-center gap-2 mb-4">
             <UserX size={18} className="text-red-500" />
-            <h2 className="font-semibold text-gray-900">Churn هذا الشهر</h2>
+            <h2 className="font-semibold text-gray-900">الاشتراكات الملغاة هذا الشهر</h2>
             <span className="mr-auto bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
               {data.churnCount} اشتراك
             </span>
           </div>
           {data.churned.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-4">لا يوجد churn هذا الشهر 🎉</p>
+            <p className="text-gray-400 text-sm text-center py-4">لا توجد اشتراكات ملغاة هذا الشهر 🎉</p>
           ) : (
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {data.churned.map(c => (
@@ -163,7 +163,7 @@ export default function ReportsPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <div className="flex items-center gap-2 mb-4">
           <UserX size={18} className="text-gray-400" />
-          <h2 className="font-semibold text-gray-900">Tenants غير نشطين</h2>
+          <h2 className="font-semibold text-gray-900">العملاء غير النشطين</h2>
           <span className="text-xs text-gray-400">(لم يدخلوا آخر 90 يوم)</span>
           <span className="mr-auto bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">
             {data.inactive.length}
