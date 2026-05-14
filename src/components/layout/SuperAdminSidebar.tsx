@@ -6,23 +6,23 @@ import {
   LayoutDashboard,
   Building2,
   CreditCard,
-  Users,
   BarChart3,
   Bell,
   Shield,
   Settings,
+  Package,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const links = [
-  { href: '/ar/superadmin',            label: 'نظرة عامة',     icon: LayoutDashboard },
-  { href: '/ar/superadmin/tenants',    label: 'المشتركين',     icon: Building2 },
-  { href: '/ar/superadmin/billing',    label: 'الاشتراكات',    icon: CreditCard },
-  { href: '/ar/superadmin/users',      label: 'المستخدمين',    icon: Users },
-  { href: '/ar/superadmin/reports',    label: 'التقارير',      icon: BarChart3 },
-  { href: '/ar/superadmin/notifications', label: 'الإشعارات', icon: Bell },
-  { href: '/ar/superadmin/audit',      label: 'سجل العمليات',  icon: Shield },
-  { href: '/ar/superadmin/settings',   label: 'الإعدادات',     icon: Settings },
+  { href: '/ar/superadmin',               label: 'نظرة عامة',    icon: LayoutDashboard },
+  { href: '/ar/superadmin/tenants',        label: 'المشتركين',    icon: Building2 },
+  { href: '/ar/superadmin/subscriptions',  label: 'الاشتراكات',   icon: CreditCard },
+  { href: '/ar/superadmin/plans',          label: 'الخطط',        icon: Package },
+  { href: '/ar/superadmin/reports',        label: 'التقارير',     icon: BarChart3 },
+  { href: '/ar/superadmin/notifications',  label: 'الإشعارات',    icon: Bell },
+  { href: '/ar/superadmin/audit',          label: 'سجل العمليات', icon: Shield },
+  { href: '/ar/superadmin/settings',       label: 'الإعدادات',    icon: Settings },
 ]
 
 export default function SuperAdminSidebar() {
