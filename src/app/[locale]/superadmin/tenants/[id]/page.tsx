@@ -29,7 +29,7 @@ type TenantUser = {
   phone: string; role: string; is_active: boolean; created_at: string
 }
 
-const ROLES = ['admin', 'manager', 'cashier', 'viewer']
+const ROLES = ['owner', 'manager', 'cashier', 'worker']
 
 export default function TenantDetailPage() {
   const { id } = useParams<{ id: string }>()
