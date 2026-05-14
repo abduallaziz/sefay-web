@@ -16,11 +16,12 @@ export default function middleware(request: NextRequest) {
     : pathname
 
   const isProtected = pathWithoutLocale.startsWith('/dashboard')
+  const isSuperAdmin = pathWithoutLocale.startsWith('/superadmin')
   const isAuthPage  = pathWithoutLocale === '/login' || pathWithoutLocale === '/signup'
   const isRoot      = pathWithoutLocale === '/' || pathWithoutLocale === ''
 
-  if (isProtected && !token) {
-    return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
+  if ((isProtected || isSuperAdmin) && !token) {
+  return NextResponse.redirect(new URL(`/${locale}/login`, request.url))
   }
 
   if (isRoot) {
