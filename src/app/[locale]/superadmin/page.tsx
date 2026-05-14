@@ -10,6 +10,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import axiosInstance from '@/lib/api'
+
 
 interface OverviewData {
   totalTenants: number
@@ -24,12 +26,9 @@ export default function SuperAdminOverviewPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/superadmin/overview`, {
-      credentials: 'include',
-    })
-      .then(r => r.json())
-      .then(setData)
-      .finally(() => setLoading(false))
+  axiosInstance.get('/superadmin/overview')
+    .then(r => setData(r.data))
+    .finally(() => setLoading(false))
   }, [])
 
   if (loading) {
