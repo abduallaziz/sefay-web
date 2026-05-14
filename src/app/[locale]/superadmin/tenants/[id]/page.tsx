@@ -59,24 +59,25 @@ export default function TenantDetailPage() {
   const token = () => localStorage.getItem('token')
 
   const load = async () => {
-    setLoading(true)
-    try {
-      const [tRes, uRes] = await Promise.all([
-        fetch(`${API}/superadmin/tenants/${id}`,       { headers: { Authorization: `Bearer ${token()}` } }),
-        fetch(`${API}/superadmin/tenants/${id}/users`, { headers: { Authorization: `Bearer ${token()}` } }),
-      ])
-      const tData = await tRes.json()
-      const uData = await uRes.json()
-      setTenant(tData)
-      setForm(tData)
-      setCapForm({ max_users: tData.max_users ?? 0, max_branches: tData.max_branches ?? 0 })
-      setUsers(Array.isArray(uData) ? uData : [])
-    } finally {
-      setLoading(false)
-    }
+  if (!id || id === '[id]') return
+  setLoading(true)
+  try {
+    const [tRes, uRes] = await Promise.all([
+      fetch(`${API}/superadmin/tenants/${id}`,       { headers: { Authorization: `Bearer ${token()}` } }),
+      fetch(`${API}/superadmin/tenants/${id}/users`, { headers: { Authorization: `Bearer ${token()}` } }),
+    ])
+    const tData = await tRes.json()
+    const uData = await uRes.json()
+    setTenant(tData)
+    setForm(tData)
+    setCapForm({ max_users: tData.max_users ?? 0, max_branches: tData.max_branches ?? 0 })
+    setUsers(Array.isArray(uData) ? uData : [])
+  } finally {
+    setLoading(false)
   }
+}
 
-  useEffect(() => { load() }, [id])
+useEffect(() => { if (id) load() }, [id])
 
   const notify = (text: string) => { setMsg(text); setTimeout(() => setMsg(''), 3000) }
 
