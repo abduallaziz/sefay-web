@@ -1,196 +1,199 @@
+// C:\sefay-platform\apps\web-dashboard\src\app\ar\superadmin\audit\page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Building2, Search, Filter, Plus } from 'lucide-react'
+import { Shield, Search, Filter } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
-type Tenant = {
+type AuditLog = {
   id: string
-  name: string
-  slug: string
-  plan: string
-  status: string
-  phone: string
-  email: string
-  city: string
-  business_type: string
-  onboarded: boolean
+  tenant_id: string | null
+  user_id: string | null
+  action: string
+  entity: string | null
+  entity_id: string | null
+  details: any
   created_at: string
-  trial_ends_at: string | null
-  sub_end: string | null
+  tenants?: { name: string }
+  users?: { name: string; email: string }
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  active:    'bg-green-100 text-green-700',
-  inactive:  'bg-gray-100 text-gray-600',
-  suspended: 'bg-red-100 text-red-700',
-  deleted:   'bg-red-200 text-red-800',
-  trial:     'bg-yellow-100 text-yellow-700',
-}
+export default function AuditPage() {
+  const [logs, setLogs] = useState<AuditLog[]>([])
+  const [total, setTotal] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [page, setPage] = useState(1)
 
-const STATUS_LABELS: Record<string, string> = {
-  active:    'نشط',
-  inactive:  'معطل',
-  suspended: 'موقوف',
-  deleted:   'محذوف',
-  trial:     'تجريبي',
-}
+  const [filters, setFilters] = useState({
+    tenant_id: '',
+    action: '',
+    from_date: '',
+    to_date: '',
+  })
 
-export default function TenantsPage() {
-  const router = useRouter()
-  const [tenants, setTenants]   = useState<Tenant[]>([])
-  const [loading, setLoading]   = useState(true)
-  const [search, setSearch]     = useState('')
-  const [status, setStatus]     = useState('')
-  const [plan, setPlan]         = useState('')
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : ''
+  const headers = { Authorization: `Bearer ${token}` }
 
-  const fetchTenants = async () => {
+  async function fetchLogs(p = 1) {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const params = new URLSearchParams()
-      if (search) params.set('search', search)
-      if (status) params.set('status', status)
-      if (plan)   params.set('plan', plan)
+      const params = new URLSearchParams({ page: String(p), limit: '30' })
+      if (filters.tenant_id) params.set('tenant_id', filters.tenant_id)
+      if (filters.action) params.set('action', filters.action)
+      if (filters.from_date) params.set('from_date', filters.from_date)
+      if (filters.to_date) params.set('to_date', filters.to_date)
 
-      const res = await fetch(`${API}/superadmin/tenants?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const data = await res.json()
-      setTenants(Array.isArray(data) ? data : [])
-    } catch {
-      setTenants([])
+      const res = await fetch(`${API}/superadmin/audit?${params}`, { headers })
+      const json = await res.json()
+      setLogs(json.data || [])
+      setTotal(json.total || 0)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => { fetchTenants() }, [status, plan])
+  useEffect(() => { fetchLogs(1) }, [])
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    fetchTenants()
+  function handleSearch() {
+    setPage(1)
+    fetchLogs(1)
+  }
+
+  const totalPages = Math.ceil(total / 30)
+
+  // لون حسب نوع العملية
+  function actionColor(action: string) {
+    if (action.includes('delete') || action.includes('حذف')) return 'bg-red-100 text-red-700'
+    if (action.includes('create') || action.includes('إنشاء')) return 'bg-green-100 text-green-700'
+    if (action.includes('update') || action.includes('تعديل')) return 'bg-blue-100 text-blue-700'
+    if (action.includes('login') || action.includes('تسجيل')) return 'bg-purple-100 text-purple-700'
+    return 'bg-gray-100 text-gray-700'
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Building2 size={24} className="text-blue-600" />
-          <h1 className="text-2xl font-bold text-gray-900">المشتركين</h1>
-          <span className="bg-blue-100 text-blue-700 text-sm px-2 py-0.5 rounded-full">
-            {tenants.length}
-          </span>
+    <div className="p-6 space-y-6" dir="rtl">
+      <div className="flex items-center gap-3">
+        <Shield className="text-blue-500" size={24} />
+        <div>
+          <h1 className="text-2xl font-bold">سجل العمليات</h1>
+          <p className="text-gray-500 text-sm">تتبع كل العمليات الحساسة في النظام</p>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <form onSubmit={handleSearch} className="flex flex-wrap gap-3">
-          <div className="flex-1 min-w-[200px] relative">
-            <Search size={16} className="absolute right-3 top-2.5 text-gray-400" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="بحث بالاسم أو الإيميل أو الجوال..."
-              className="w-full pr-9 pl-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <select
-            value={status}
-            onChange={e => setStatus(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-          >
-            <option value="">كل الحالات</option>
-            <option value="active">نشط</option>
-            <option value="trial">تجريبي</option>
-            <option value="inactive">معطل</option>
-            <option value="suspended">موقوف</option>
-            <option value="deleted">محذوف</option>
-          </select>
-
-          <select
-            value={plan}
-            onChange={e => setPlan(e.target.value)}
-            className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
-          >
-            <option value="">كل الخطط</option>
-            <option value="starter">Starter</option>
-            <option value="pro">Pro</option>
-            <option value="enterprise">Enterprise</option>
-          </select>
-
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 flex items-center gap-2"
-          >
-            <Search size={14} />
-            بحث
-          </button>
-        </form>
+      {/* فلاتر */}
+      <div className="bg-white rounded-xl border p-4">
+        <div className="flex items-center gap-2 mb-3 text-sm font-medium text-gray-600">
+          <Filter size={14} /> فلترة
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <input
+            placeholder="بحث بالعملية..."
+            value={filters.action}
+            onChange={e => setFilters(f => ({ ...f, action: e.target.value }))}
+            className="border rounded-lg px-3 py-2 text-sm"
+          />
+          <input
+            placeholder="ID المشترك..."
+            value={filters.tenant_id}
+            onChange={e => setFilters(f => ({ ...f, tenant_id: e.target.value }))}
+            className="border rounded-lg px-3 py-2 text-sm"
+          />
+          <input
+            type="date"
+            value={filters.from_date}
+            onChange={e => setFilters(f => ({ ...f, from_date: e.target.value }))}
+            className="border rounded-lg px-3 py-2 text-sm"
+          />
+          <input
+            type="date"
+            value={filters.to_date}
+            onChange={e => setFilters(f => ({ ...f, to_date: e.target.value }))}
+            className="border rounded-lg px-3 py-2 text-sm"
+          />
+        </div>
+        <button
+          onClick={handleSearch}
+          className="mt-3 flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700"
+        >
+          <Search size={14} /> بحث
+        </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      {/* الجدول */}
+      <div className="bg-white rounded-xl border overflow-hidden">
+        <div className="p-4 border-b">
+          <p className="text-sm text-gray-500">إجمالي: <span className="font-semibold text-gray-800">{total}</span> سجل</p>
+        </div>
+
         {loading ? (
-          <div className="p-12 text-center text-gray-400">جاري التحميل...</div>
-        ) : tenants.length === 0 ? (
-          <div className="p-12 text-center text-gray-400">لا توجد نتائج</div>
+          <div className="p-8 text-center text-gray-400">جاري التحميل...</div>
+        ) : logs.length === 0 ? (
+          <div className="p-8 text-center text-gray-400">لا توجد سجلات</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-right px-4 py-3 text-gray-600 font-medium">الاسم</th>
-                <th className="text-right px-4 py-3 text-gray-600 font-medium">النوع</th>
-                <th className="text-right px-4 py-3 text-gray-600 font-medium">الخطة</th>
-                <th className="text-right px-4 py-3 text-gray-600 font-medium">الحالة</th>
-                <th className="text-right px-4 py-3 text-gray-600 font-medium">المدينة</th>
-                <th className="text-right px-4 py-3 text-gray-600 font-medium">تاريخ الانتهاء</th>
-                <th className="text-right px-4 py-3 text-gray-600 font-medium">تاريخ الانضمام</th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {tenants.map(t => (
-                <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">{t.name}</div>
-                    <div className="text-gray-400 text-xs">{t.email}</div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{t.business_type || '—'}</td>
-                  <td className="px-4 py-3">
-                    <span className="bg-purple-100 text-purple-700 text-xs px-2 py-0.5 rounded-full capitalize">
-                      {t.plan || '—'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[t.status] || 'bg-gray-100 text-gray-600'}`}>
-                      {STATUS_LABELS[t.status] || t.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">{t.city || '—'}</td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {t.sub_end ? new Date(t.sub_end).toLocaleDateString('ar-SA') : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
-                    {new Date(t.created_at).toLocaleDateString('ar-SA')}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => router.push(`/ar/superadmin/tenants/${t.id}`)}
-                      className="text-blue-600 hover:underline text-xs"
-                    >
-                      تفاصيل
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500 text-xs">
+                <tr>
+                  <th className="text-right px-4 py-3">التاريخ</th>
+                  <th className="text-right px-4 py-3">العملية</th>
+                  <th className="text-right px-4 py-3">المشترك</th>
+                  <th className="text-right px-4 py-3">المستخدم</th>
+                  <th className="text-right px-4 py-3">الكيان</th>
+                  <th className="text-right px-4 py-3">التفاصيل</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y">
+                {logs.map(log => (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
+                      {new Date(log.created_at).toLocaleString('ar-SA')}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${actionColor(log.action)}`}>
+                        {log.action}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {log.tenants?.name ?? <span className="text-gray-400">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {log.users?.name ?? <span className="text-gray-400">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500">
+                      {log.entity ?? '—'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 max-w-xs truncate">
+                      {log.details ? JSON.stringify(log.details) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="p-4 border-t flex items-center justify-between">
+            <button
+              onClick={() => { setPage(p => p - 1); fetchLogs(page - 1) }}
+              disabled={page === 1}
+              className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40 hover:bg-gray-50"
+            >
+              السابق
+            </button>
+            <span className="text-sm text-gray-500">
+              صفحة {page} من {totalPages}
+            </span>
+            <button
+              onClick={() => { setPage(p => p + 1); fetchLogs(page + 1) }}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 text-sm border rounded-lg disabled:opacity-40 hover:bg-gray-50"
+            >
+              التالي
+            </button>
+          </div>
         )}
       </div>
     </div>
