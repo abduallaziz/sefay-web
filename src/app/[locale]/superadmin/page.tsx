@@ -26,10 +26,14 @@ export default function SuperAdminOverviewPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-  axiosInstance.get('/superadmin/overview')
-    .then(r => setData(r.data))
+  const token = localStorage.getItem('token')
+  fetch(`${process.env.NEXT_PUBLIC_API_URL}/superadmin/overview`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+    .then(r => r.json())
+    .then(setData)
     .finally(() => setLoading(false))
-  }, [])
+}, [])
 
   if (loading) {
     return (
