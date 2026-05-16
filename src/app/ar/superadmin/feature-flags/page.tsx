@@ -16,6 +16,7 @@ interface Flag {
   label: string;
   group: string;
   enabled: boolean;
+  fromPlan: boolean;
   note: string | null;
 }
 
@@ -28,7 +29,6 @@ export default function FeatureFlagsPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
-  // Limits state
   const [maxUsers, setMaxUsers] = useState<string>('');
   const [maxBranches, setMaxBranches] = useState<string>('');
   const [maxInvoices, setMaxInvoices] = useState<string>('');
@@ -57,7 +57,6 @@ export default function FeatureFlagsPage() {
     setSelectedTenant(tenant);
     setLoadingFlags(true);
 
-    // Set limits
     setUnlimitedUsers(tenant.max_users === null);
     setMaxUsers(tenant.max_users?.toString() ?? '');
     setUnlimitedBranches(tenant.max_branches === null);
@@ -171,9 +170,8 @@ export default function FeatureFlagsPage() {
                   <h2 className="font-semibold text-gray-700">الحدود — {selectedTenant.name}</h2>
                 </div>
                 <div className="p-4 space-y-4">
-                  {/* Max Users */}
                   <div className="flex items-center gap-4">
-                    <div className="w-32 text-sm text-gray-600">عدد المستخدمين</div>
+                    <div className="w-36 text-sm text-gray-600">عدد المستخدمين</div>
                     <label className="flex items-center gap-1.5 text-sm text-gray-500">
                       <input
                         type="checkbox"
@@ -194,9 +192,8 @@ export default function FeatureFlagsPage() {
                     )}
                   </div>
 
-                  {/* Max Branches */}
                   <div className="flex items-center gap-4">
-                    <div className="w-32 text-sm text-gray-600">عدد الفروع</div>
+                    <div className="w-36 text-sm text-gray-600">عدد الفروع</div>
                     <label className="flex items-center gap-1.5 text-sm text-gray-500">
                       <input
                         type="checkbox"
@@ -217,9 +214,8 @@ export default function FeatureFlagsPage() {
                     )}
                   </div>
 
-                  {/* Max Invoices */}
                   <div className="flex items-center gap-4">
-                    <div className="w-32 text-sm text-gray-600">عدد الفواتير</div>
+                    <div className="w-36 text-sm text-gray-600">عدد الفواتير</div>
                     <label className="flex items-center gap-1.5 text-sm text-gray-500">
                       <input
                         type="checkbox"
@@ -265,20 +261,31 @@ export default function FeatureFlagsPage() {
                       .map((flag) => (
                         <label
                           key={flag.feature}
-                          className="flex items-center justify-between px-4 py-3 border-b hover:bg-gray-50 cursor-pointer"
+                          className={`flex items-center justify-between px-4 py-3 border-b ${
+                            flag.fromPlan
+                              ? 'bg-gray-50 cursor-not-allowed'
+                              : 'hover:bg-gray-50 cursor-pointer'
+                          }`}
                         >
                           <div>
-                            <div className="text-sm font-medium text-gray-700">
-                              {flag.label}
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-700">
+                                {flag.label}
+                              </span>
+                              {flag.fromPlan && (
+                                <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded">
+                                  من الخطة
+                                </span>
+                              )}
                             </div>
                             <div className="text-xs text-gray-400">{flag.feature}</div>
                           </div>
                           <input
                             type="checkbox"
                             checked={flag.enabled}
-                            disabled={saving === flag.feature}
-                            onChange={() => toggleFlag(flag.feature, !flag.enabled)}
-                            className="w-4 h-4 rounded accent-blue-600 cursor-pointer disabled:opacity-50"
+                            disabled={saving === flag.feature || flag.fromPlan}
+                            onChange={() => !flag.fromPlan && toggleFlag(flag.feature, !flag.enabled)}
+                            className="w-4 h-4 rounded cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed accent-blue-600"
                           />
                         </label>
                       ))}
