@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Plus } from 'lucide-react'
+import { Search, Copy } from 'lucide-react'
 
 const API = process.env.NEXT_PUBLIC_API_URL
 
@@ -23,6 +23,7 @@ export default function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [copied, setCopied] = useState<string | null>(null)
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : ''
   const headers = { Authorization: `Bearer ${token}` }
@@ -41,6 +42,12 @@ export default function TenantsPage() {
   }
 
   useEffect(() => { fetchTenants() }, [])
+
+  function copyId(id: string) {
+    navigator.clipboard.writeText(id)
+    setCopied(id)
+    setTimeout(() => setCopied(null), 2000)
+  }
 
   function statusColor(status: string) {
     if (status === 'active') return 'bg-green-100 text-green-700'
@@ -98,6 +105,7 @@ export default function TenantsPage() {
                   <th className="text-right px-4 py-3">الحالة</th>
                   <th className="text-right px-4 py-3">الجوال</th>
                   <th className="text-right px-4 py-3">النوع</th>
+                  <th className="text-right px-4 py-3">ID</th>
                   <th className="text-right px-4 py-3">تاريخ التسجيل</th>
                   <th className="text-right px-4 py-3">الإجراءات</th>
                 </tr>
@@ -118,6 +126,21 @@ export default function TenantsPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-500">{tenant.phone || '—'}</td>
                     <td className="px-4 py-3 text-gray-500">{tenant.business_type || '—'}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-mono text-gray-400">{tenant.id}</span>
+                        <button
+                          onClick={() => copyId(tenant.id)}
+                          className="text-gray-400 hover:text-blue-600"
+                          title="نسخ"
+                        >
+                          {copied === tenant.id
+                            ? <span className="text-green-500 text-xs">✓</span>
+                            : <Copy size={12} />
+                          }
+                        </button>
+                      </div>
+                    </td>
                     <td className="px-4 py-3 text-gray-400">
                       {new Date(tenant.created_at).toLocaleDateString('ar-SA')}
                     </td>
