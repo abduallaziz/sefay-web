@@ -14,6 +14,7 @@ import {
   CreditCard, LayoutGrid,} from 'lucide-react'
 import '@/styles/sidebar.css'
 import { useBusinessConfig } from '@/hooks/useBusinessConfig'
+import { useEffect, useState } from 'react'
 
 
 interface SidebarProps {
@@ -29,8 +30,13 @@ export default function Sidebar({ collapsed, setCollapsed, session, mobileOpen, 
   const locale = useLocale()
   const pathname = usePathname()
   const router = useRouter()
+  const [isImpersonating, setIsImpersonating] = useState(false)
 
-const { hasCapability } = useBusinessConfig()
+  useEffect(() => {
+    setIsImpersonating(!!localStorage.getItem('superadmin_token'))
+  }, [])
+
+  const { hasCapability } = useBusinessConfig()
   const navItems = [
   { href: '/dashboard',           icon: LayoutDashboard, label: t('dashboard'),  cap: null },
   { href: '/dashboard/pos',       icon: Monitor,         label: t('pos'),        cap: null },
@@ -58,6 +64,16 @@ const { hasCapability } = useBusinessConfig()
     router.push(`/${locale}/login`)
   }
 
+  function handleBackToSuperAdmin() {
+    const token = localStorage.getItem('superadmin_token')
+    const user = localStorage.getItem('superadmin_user')
+    localStorage.setItem('token', token || '')
+    localStorage.setItem('user', user || '')
+    localStorage.removeItem('superadmin_token')
+    localStorage.removeItem('superadmin_user')
+    router.push('/ar/superadmin/impersonate')
+  }
+
   const isActive = (href: string) => {
     if (href === '/dashboard') return pathname.endsWith('/dashboard')
     return pathname.includes(href)
@@ -65,7 +81,6 @@ const { hasCapability } = useBusinessConfig()
 
   return (
     <>
-      {/* Overlay للموبايل */}
       {mobileOpen && (
         <div className="sidebar-overlay active" onClick={onMobileClose} />
       )}
@@ -109,23 +124,19 @@ const { hasCapability } = useBusinessConfig()
             </Link>
           ))}
         </nav>
-// أضف هذا الجزء في الـ JSX
-{typeof window !== 'undefined' && localStorage.getItem('superadmin_token') && (
-  <button
-    onClick={() => {
-      const token = localStorage.getItem('superadmin_token');
-      const user = localStorage.getItem('superadmin_user');
-      localStorage.setItem('token', token || '');
-      localStorage.setItem('user', user || '');
-      localStorage.removeItem('superadmin_token');
-      localStorage.removeItem('superadmin_user');
-      router.push('/ar/superadmin/impersonate');
-    }}
-    className="w-full flex items-center gap-2 px-3 py-2 text-sm bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100"
-  >
-    ↩ رجوع للسوبر ادمن
-  </button>
-)}
+
+        {isImpersonating && (
+          <div className="px-3 pb-2">
+            <button
+              onClick={handleBackToSuperAdmin}
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              <span>↩</span>
+              {!collapsed && <span>رجوع للسوبر ادمن</span>}
+            </button>
+          </div>
+        )}
+
         <div className="sidebar-footer">
           <div className="sidebar-user" onClick={handleLogout}>
             <div className="sidebar-user-avatar">
