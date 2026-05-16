@@ -109,7 +109,23 @@ const { hasCapability } = useBusinessConfig()
             </Link>
           ))}
         </nav>
-
+// أضف هذا الجزء في الـ JSX
+{typeof window !== 'undefined' && localStorage.getItem('superadmin_token') && (
+  <button
+    onClick={() => {
+      const token = localStorage.getItem('superadmin_token');
+      const user = localStorage.getItem('superadmin_user');
+      localStorage.setItem('token', token || '');
+      localStorage.setItem('user', user || '');
+      localStorage.removeItem('superadmin_token');
+      localStorage.removeItem('superadmin_user');
+      router.push('/ar/superadmin/impersonate');
+    }}
+    className="w-full flex items-center gap-2 px-3 py-2 text-sm bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100"
+  >
+    ↩ رجوع للسوبر ادمن
+  </button>
+)}
         <div className="sidebar-footer">
           <div className="sidebar-user" onClick={handleLogout}>
             <div className="sidebar-user-avatar">

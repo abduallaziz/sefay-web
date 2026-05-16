@@ -20,6 +20,7 @@ const links = [
   { href: '/ar/superadmin/tenants',        label: 'المشتركين',    icon: Building2 },
   { href: '/ar/superadmin/subscriptions',  label: 'الاشتراكات',   icon: CreditCard },
   { href: '/ar/superadmin/plans',          label: 'الخطط',        icon: Package },
+  { href: '/ar/superadmin/impersonate', label: 'دخول بحساب Tenant', icon: '🎭' },
   { href: '/ar/superadmin/reports',        label: 'التقارير',     icon: BarChart3 },
   { href: '/ar/superadmin/notifications',  label: 'الإشعارات',    icon: Bell },
   { href: '/ar/superadmin/communications', label: 'الرسائل',      icon: MessageSquare },
