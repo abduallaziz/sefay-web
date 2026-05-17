@@ -16,6 +16,7 @@ import {
   Flag,
   UserCheck,
   Zap,
+  Terminal,
 } from 'lucide-react'
 
 const links = [
@@ -30,6 +31,7 @@ const links = [
   { href: '/ar/superadmin/communications',  label: 'الرسائل',           icon: MessageSquare },
   { href: '/ar/superadmin/audit',           label: 'سجل العمليات',      icon: Shield },
   { href: '/ar/superadmin/automation',      label: 'الأتمتة',           icon: Zap },
+  { href: '/ar/superadmin/developer', label: 'Developer & Security', icon: Terminal },
   { href: '/ar/superadmin/settings',        label: 'الإعدادات',         icon: Settings },
 ]
 
