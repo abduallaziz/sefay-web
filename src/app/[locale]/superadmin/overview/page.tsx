@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 
 export default function OverviewPage() {
-  const t = useTranslations('overview');
+  const t = useTranslations('superadmin.overview');
   const { data, isLoading, isError } = useOverview();
 
   if (isLoading) {
