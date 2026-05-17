@@ -13,13 +13,11 @@ function formatDate(dateStr: string) {
 
 function formatDetails(details: Record<string, unknown> | null): string {
   if (!details) return '—'
-  return Object.entries(details)
-    .slice(0, 2)
-    .map(([k, v]) => {
-      if (k === 'email') return String(v)
-      return `${k}: ${String(v)}`
-    })
-    .join(' • ')
+  const entries = Object.entries(details).slice(0, 2)
+  return entries.map(([k, v]) => {
+    if (k === 'email') return String(v)
+    return `${k}: ${String(v)}`
+  }).join(' • ')
 }
 
 export default function AuditPage() {
@@ -74,40 +72,38 @@ export default function AuditPage() {
         ) : isError ? (
           <div className="p-8 text-center text-red-400">حدث خطأ في تحميل البيانات</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-[#0f1117] text-gray-500 text-xs">
-                <tr>
-                  <th className="text-right px-4 py-3 w-32">الإجراء</th>
-                  <th className="text-right px-4 py-3 w-24">الكيان</th>
-                  <th className="text-right px-4 py-3 w-36">المستخدم</th>
-                  <th className="text-right px-4 py-3 w-32">التاريخ</th>
-                  <th className="text-right px-4 py-3">التفاصيل</th>
+          <table className="w-full text-sm">
+            <thead className="bg-[#0f1117] text-gray-500 text-xs">
+              <tr>
+                <th className="text-right px-4 py-3">الإجراء</th>
+                <th className="text-right px-4 py-3">الكيان</th>
+                <th className="text-right px-4 py-3">المستخدم</th>
+                <th className="text-right px-4 py-3">التاريخ</th>
+                <th className="text-right px-4 py-3">التفاصيل</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#1e2130]">
+              {data?.data.map((log: AuditLog) => (
+                <tr key={log.id} className="hover:bg-[#1e2130] transition-colors">
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${actionColor(log.action)}`}>
+                      {log.action}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">{log.entity ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-400 text-xs">
+                    {log.users?.name ?? log.users?.email ?? 'system'}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500 text-xs" dir="ltr">
+                    {formatDate(log.created_at)}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500 text-xs max-w-[200px] truncate" title={JSON.stringify(log.details)}>
+                    {formatDetails(log.details)}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1e2130]">
-                {data?.data.map((log: AuditLog) => (
-                  <tr key={log.id} className="hover:bg-[#1e2130] transition-colors">
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${actionColor(log.action)}`}>
-                        {log.action}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{log.entity ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">
-                      {log.users?.name ?? log.users?.email ?? 'system'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs" dir="ltr">
-                      {formatDate(log.created_at)}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs max-w-xs truncate" title={JSON.stringify(log.details)}>
-                      {formatDetails(log.details)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
 
         {data && data.total > 30 && (
