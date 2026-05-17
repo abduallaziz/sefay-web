@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import {
   LayoutDashboard,
   Building2,
@@ -14,8 +15,8 @@ import {
   MessageSquare,
   Flag,
   UserCheck,
+  Zap,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 const links = [
   { href: '/ar/superadmin',                label: 'نظرة عامة',         icon: LayoutDashboard },
@@ -28,6 +29,7 @@ const links = [
   { href: '/ar/superadmin/notifications',   label: 'الإشعارات',         icon: Bell },
   { href: '/ar/superadmin/communications',  label: 'الرسائل',           icon: MessageSquare },
   { href: '/ar/superadmin/audit',           label: 'سجل العمليات',      icon: Shield },
+  { href: '/ar/superadmin/automation',      label: 'الأتمتة',           icon: Zap },
   { href: '/ar/superadmin/settings',        label: 'الإعدادات',         icon: Settings },
 ]
 
