@@ -4,6 +4,12 @@ import { useState } from 'react'
 import { useAuditLogs } from '@/features/superadmin/audit/hooks/useAuditLogs'
 import type { AuditLog } from '@/features/superadmin/audit/api/audit.api'
 
+function formatDate(dateStr: string) {
+  const d = new Date(dateStr)
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`
+}
+
 export default function AuditPage() {
   const [page, setPage] = useState(1)
   const [action, setAction] = useState('')
@@ -12,10 +18,10 @@ export default function AuditPage() {
 
   const { data, isLoading, isError } = useAuditLogs({ page, limit: 30, action, from_date, to_date })
 
-  function actionColor(action: string) {
-    if (action.includes('delete')) return 'bg-red-500/10 text-red-400'
-    if (action.includes('create')) return 'bg-green-500/10 text-green-400'
-    if (action.includes('update')) return 'bg-blue-500/10 text-blue-400'
+  function actionColor(a: string) {
+    if (a.includes('delete')) return 'bg-red-500/10 text-red-400'
+    if (a.includes('create')) return 'bg-green-500/10 text-green-400'
+    if (a.includes('update')) return 'bg-blue-500/10 text-blue-400'
     return 'bg-gray-500/10 text-gray-400'
   }
 
@@ -72,8 +78,8 @@ export default function AuditPage() {
                   const detailsText = log.details
                     ? Object.entries(log.details)
                         .slice(0, 2)
-                        .map(([k, v]) => `${k}: ${v}`)
-                        .join(' | ')
+                        .map(([k, v]) => `${k}: ${String(v)}`)
+                        .join('  •  ')
                     : '—'
 
                   return (
@@ -84,26 +90,18 @@ export default function AuditPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-gray-400">{log.entity ?? '—'}</td>
-                      <td className="px-4 py-3 text-gray-400 font-mono text-xs">
-                        {log.user_id ? log.user_id.slice(0, 8) : 'system'}
+                      <td className="px-4 py-3 text-gray-400 text-xs">
+                        {log.users?.name ?? log.users?.email ?? 'system'}
                       </td>
-                      <td className="px-4 py-3 text-gray-500 text-xs">
-                        {new Date(log.created_at).toLocaleDateString('en-GB', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: '2-digit',
-                        })}
+                      <td className="px-4 py-3 text-gray-500 text-xs" dir="ltr">
+                        {formatDate(log.created_at)}
                       </td>
-                      <td
-                    className="px-4 py-3 text-gray-500 text-xs max-w-xs truncate ltr"
-                        title={JSON.stringify(log.details)}
-                        dir="ltr"
-                        >
+                      <td className="px-4 py-3 text-gray-500 text-xs max-w-xs truncate" dir="ltr" title={JSON.stringify(log.details)}>
                         {detailsText}
-                        </td>
+                      </td>
                     </tr>
-                        )
-                    })}
+                  )
+                })}
               </tbody>
             </table>
           </div>

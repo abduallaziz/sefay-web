@@ -9,6 +9,8 @@ export interface AuditLog {
   entity_id: string | null
   details: Record<string, unknown> | null
   created_at: string
+  users: { name: string; email: string } | null
+  tenants: { name: string } | null
 }
 
 export interface AuditLogsResponse {
