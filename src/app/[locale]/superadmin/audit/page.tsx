@@ -89,20 +89,21 @@ export default function AuditPage() {
                       </td>
                       <td className="px-4 py-3 text-gray-500 text-xs">
                         {new Date(log.created_at).toLocaleDateString('en-GB', {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
+                        year: 'numeric',
+                        month: 'short',
+                        day: '2-digit',
                         })}
                       </td>
                       <td
-                        className="px-4 py-3 text-gray-500 text-xs max-w-xs truncate"
+                    className="px-4 py-3 text-gray-500 text-xs max-w-xs truncate ltr"
                         title={JSON.stringify(log.details)}
-                      >
+                        dir="ltr"
+                        >
                         {detailsText}
-                      </td>
+                        </td>
                     </tr>
-                  )
-                })}
+                        )
+                    })}
               </tbody>
             </table>
           </div>
