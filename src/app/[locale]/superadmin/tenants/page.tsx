@@ -39,7 +39,7 @@ export default function TenantsPage() {
         <h1 className="text-2xl font-bold text-white">المشتركين</h1>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3 flex-row-reverse justify-end">
         <input
           placeholder="بحث بالاسم أو الجوال..."
           value={search}
