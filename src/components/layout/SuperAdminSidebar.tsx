@@ -17,22 +17,26 @@ import {
   UserCheck,
   Zap,
   Terminal,
+  Database,
+  HeadphonesIcon,
 } from 'lucide-react'
 
 const links = [
-  { href: '/ar/superadmin',                label: 'نظرة عامة',         icon: LayoutDashboard },
-  { href: '/ar/superadmin/tenants',         label: 'المشتركين',         icon: Building2 },
-  { href: '/ar/superadmin/subscriptions',   label: 'الاشتراكات',        icon: CreditCard },
-  { href: '/ar/superadmin/plans',           label: 'الخطط',             icon: Package },
-  { href: '/ar/superadmin/impersonate',     label: 'دخول بحساب Tenant', icon: UserCheck },
-  { href: '/ar/superadmin/feature-flags',   label: 'Feature Flags',     icon: Flag },
-  { href: '/ar/superadmin/reports',         label: 'التقارير',          icon: BarChart3 },
-  { href: '/ar/superadmin/notifications',   label: 'الإشعارات',         icon: Bell },
-  { href: '/ar/superadmin/communications',  label: 'الرسائل',           icon: MessageSquare },
-  { href: '/ar/superadmin/audit',           label: 'سجل العمليات',      icon: Shield },
-  { href: '/ar/superadmin/automation',      label: 'الأتمتة',           icon: Zap },
-  { href: '/ar/superadmin/developer', label: 'Developer & Security', icon: Terminal },
-  { href: '/ar/superadmin/settings',        label: 'الإعدادات',         icon: Settings },
+  { href: '/ar/superadmin',                label: 'نظرة عامة',           icon: LayoutDashboard },
+  { href: '/ar/superadmin/tenants',         label: 'المشتركين',           icon: Building2 },
+  { href: '/ar/superadmin/subscriptions',   label: 'الاشتراكات',          icon: CreditCard },
+  { href: '/ar/superadmin/plans',           label: 'الخطط',               icon: Package },
+  { href: '/ar/superadmin/impersonate',     label: 'دخول بحساب Tenant',   icon: UserCheck },
+  { href: '/ar/superadmin/feature-flags',   label: 'Feature Flags',       icon: Flag },
+  { href: '/ar/superadmin/reports',         label: 'التقارير',            icon: BarChart3 },
+  { href: '/ar/superadmin/notifications',   label: 'الإشعارات',           icon: Bell },
+  { href: '/ar/superadmin/communications',  label: 'الرسائل',             icon: MessageSquare },
+  { href: '/ar/superadmin/audit',           label: 'سجل العمليات',        icon: Shield },
+  { href: '/ar/superadmin/automation',      label: 'الأتمتة',             icon: Zap },
+  { href: '/ar/superadmin/developer',       label: 'Developer & Security', icon: Terminal },
+  { href: '/ar/superadmin/backup',          label: 'النسخ الاحتياطي',     icon: Database },
+  { href: '/ar/superadmin/support',         label: 'الدعم الفني',         icon: HeadphonesIcon },
+  { href: '/ar/superadmin/settings',        label: 'الإعدادات',           icon: Settings },
 ]
 
 export default function SuperAdminSidebar() {
@@ -45,7 +49,7 @@ export default function SuperAdminSidebar() {
         <h1 className="text-lg font-bold text-white">Super Admin</h1>
       </div>
 
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {links.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
