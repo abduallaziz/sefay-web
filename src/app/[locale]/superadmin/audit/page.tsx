@@ -14,10 +14,7 @@ function formatDate(dateStr: string) {
 function formatDetails(details: Record<string, unknown> | null): string {
   if (!details) return '—'
   const entries = Object.entries(details).slice(0, 2)
-  return entries.map(([k, v]) => {
-    if (k === 'email') return String(v)
-    return `${k}: ${String(v)}`
-  }).join(' • ')
+  return entries.map(([, v]) => String(v)).join(' • ')
 }
 
 export default function AuditPage() {
@@ -48,12 +45,14 @@ export default function AuditPage() {
         />
         <input
           type="date"
+          lang="en"
           value={from_date}
           onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
           className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
         />
         <input
           type="date"
+          lang="en"
           value={to_date}
           onChange={(e) => { setToDate(e.target.value); setPage(1) }}
           className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
@@ -94,10 +93,10 @@ export default function AuditPage() {
                   <td className="px-4 py-3 text-gray-400 text-xs">
                     {log.users?.name ?? log.users?.email ?? 'system'}
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs" dir="ltr">
+                  <td className="px-4 py-3 text-gray-500 text-xs text-right" dir="ltr">
                     {formatDate(log.created_at)}
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs max-w-[200px] truncate" title={JSON.stringify(log.details)}>
+                  <td className="px-4 py-3 text-gray-500 text-xs max-w-[200px] truncate text-right" title={JSON.stringify(log.details)}>
                     {formatDetails(log.details)}
                   </td>
                 </tr>
