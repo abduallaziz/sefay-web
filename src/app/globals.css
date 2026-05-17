@@ -127,4 +127,19 @@
   html {
     @apply font-sans;
   }
+
+  /* في نهاية globals.css — بعد @layer base */
+
+/* ===== Superadmin Dark Theme ===== */
+:root {
+  --sa-bg: #0f1117;
+  --sa-surface: #141720;
+  --sa-border: #1e2130;
+  --sa-text: #ffffff;
+  --sa-text-muted: #6b7280;
+  --sa-accent: #3b82f6;
+  --sa-success: #22c55e;
+  --sa-warning: #eab308;
+  --sa-danger: #ef4444;
+}
 }
