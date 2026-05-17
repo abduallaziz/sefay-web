@@ -15,7 +15,12 @@ function formatDetails(details: Record<string, unknown> | null): string {
   if (!details) return '—'
   return Object.entries(details)
     .slice(0, 2)
-    .map(([, v]) => String(v))
+    .map(([k, v]) => {
+      if (v === null || v === undefined) return null
+      if (typeof v === 'object') return `${k}: ${JSON.stringify(v).slice(0, 20)}`
+      return `${k}: ${String(v)}`
+    })
+    .filter(Boolean)
     .join(' • ')
 }
 
@@ -38,27 +43,31 @@ export default function AuditPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-white">سجل الأحداث</h1>
 
-      <div className="flex gap-3 flex-wrap">
+      <div className="flex gap-3 flex-wrap items-center">
         <input
           placeholder="نوع الإجراء..."
           value={action}
           onChange={(e) => { setAction(e.target.value); setPage(1) }}
           className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
         />
-        <input
-          type="date"
-          dir="ltr"
-          value={from_date}
-          onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-          className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-        />
-        <input
-          type="date"
-          dir="ltr"
-          value={to_date}
-          onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-          className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-        />
+        <div dir="ltr" className="inline-block">
+          <input
+            type="date"
+            dir="ltr"
+            value={from_date}
+            onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
+            className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+          />
+        </div>
+        <div dir="ltr" className="inline-block">
+          <input
+            type="date"
+            dir="ltr"
+            value={to_date}
+            onChange={(e) => { setToDate(e.target.value); setPage(1) }}
+            className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+          />
+        </div>
       </div>
 
       <div className="bg-[#141720] rounded-xl border border-[#1e2130] overflow-hidden">
@@ -95,10 +104,10 @@ export default function AuditPage() {
                   <td className="px-4 py-3 text-gray-400 text-xs">
                     {log.users?.name ?? log.users?.email ?? 'system'}
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs text-right" dir="ltr">
+                  <td className="px-4 py-3 text-gray-500 text-xs text-right">
                     {formatDate(log.created_at)}
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs max-w-[200px] truncate text-left" dir="ltr" title={JSON.stringify(log.details)}>
+                  <td className="px-4 py-3 text-gray-500 text-xs text-right max-w-[220px] truncate" title={JSON.stringify(log.details)}>
                     {formatDetails(log.details)}
                   </td>
                 </tr>
