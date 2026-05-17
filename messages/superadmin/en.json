@@ -1,0 +1,39 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "tenants": "Tenants",
+    "plans": "Plans",
+    "reports": "Reports",
+    "subscriptions": "Subscriptions",
+    "settings": "Settings",
+    "notifications": "Notifications",
+    "support": "Support",
+    "backup": "Backup",
+    "automation": "Automation",
+    "communications": "Communications",
+    "developer": "Developer",
+    "featureFlags": "Feature Flags",
+    "impersonate": "Impersonate"
+  },
+  "overview": {
+    "title": "Overview",
+    "totalTenants": "Total Tenants",
+    "activeTenants": "Active Tenants",
+    "trialTenants": "On Free Trial",
+    "totalRevenue": "Total Revenue",
+    "growthChart": "Tenant Growth (Last 6 Months)",
+    "loading": "Loading...",
+    "error": "Failed to load data",
+    "currency": "SAR"
+  },
+  "settings": {
+    "title": "System Settings",
+    "loading": "Loading...",
+    "keys": {
+      "maintenance_mode": "Maintenance Mode",
+      "allow_new_registrations": "Allow New Registrations",
+      "max_trial_days": "Max Trial Days",
+      "support_email": "Support Email"
+    }
+  }
+}

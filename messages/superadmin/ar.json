@@ -1,0 +1,39 @@
+{
+  "nav": {
+    "overview": "نظرة عامة",
+    "tenants": "المشتركين",
+    "plans": "الخطط",
+    "reports": "التقارير",
+    "subscriptions": "الاشتراكات",
+    "settings": "الإعدادات",
+    "notifications": "الإشعارات",
+    "support": "الدعم",
+    "backup": "النسخ الاحتياطي",
+    "automation": "الأتمتة",
+    "communications": "التواصل",
+    "developer": "المطور",
+    "featureFlags": "Feature Flags",
+    "impersonate": "انتحال الهوية"
+  },
+  "overview": {
+    "title": "نظرة عامة",
+    "totalTenants": "إجمالي المشتركين",
+    "activeTenants": "مشتركين نشطين",
+    "trialTenants": "على تجربة مجانية",
+    "totalRevenue": "إجمالي الإيرادات",
+    "growthChart": "نمو المشتركين (آخر 6 أشهر)",
+    "loading": "جاري التحميل...",
+    "error": "فشل تحميل البيانات",
+    "currency": "ر.س"
+  },
+  "settings": {
+    "title": "إعدادات النظام",
+    "loading": "جاري التحميل...",
+    "keys": {
+      "maintenance_mode": "وضع الصيانة",
+      "allow_new_registrations": "السماح بالتسجيل الجديد",
+      "max_trial_days": "أقصى أيام تجريبية",
+      "support_email": "إيميل الدعم"
+    }
+  }
+}
