@@ -23,7 +23,6 @@ export default function AuditPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-white">سجل الأحداث</h1>
 
-      {/* Filters */}
       <div className="flex gap-3 flex-wrap">
         <input
           placeholder="نوع الإجراء..."
@@ -69,25 +68,41 @@ export default function AuditPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1e2130]">
-                {data?.data.map((log: AuditLog) => (
-                  <tr key={log.id} className="hover:bg-[#1e2130] transition-colors">
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${actionColor(log.action)}`}>
-                        {log.action}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-400">{log.entity ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-400 font-mono text-xs">
-                      {log.user_id ? log.user_id.slice(0, 8) + '...' : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500">
-                      {new Date(log.created_at).toLocaleDateString('ar-SA')}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs font-mono max-w-xs truncate">
-                      {log.details ? JSON.stringify(log.details) : '—'}
-                    </td>
-                  </tr>
-                ))}
+                {data?.data.map((log: AuditLog) => {
+                  const detailsText = log.details
+                    ? Object.entries(log.details)
+                        .slice(0, 2)
+                        .map(([k, v]) => `${k}: ${v}`)
+                        .join(' | ')
+                    : '—'
+
+                  return (
+                    <tr key={log.id} className="hover:bg-[#1e2130] transition-colors">
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${actionColor(log.action)}`}>
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-400">{log.entity ?? '—'}</td>
+                      <td className="px-4 py-3 text-gray-400 font-mono text-xs">
+                        {log.user_id ? log.user_id.slice(0, 8) : 'system'}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">
+                        {new Date(log.created_at).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </td>
+                      <td
+                        className="px-4 py-3 text-gray-500 text-xs max-w-xs truncate"
+                        title={JSON.stringify(log.details)}
+                      >
+                        {detailsText}
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>
