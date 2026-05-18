@@ -13,7 +13,7 @@ const keyLabels: Record<string, { ar: string; en: string }> = {
   refund_amount: { ar: 'مبلغ الاسترداد', en: 'Refund' },
   total:         { ar: 'الإجمالي', en: 'Total' },
   items_count:   { ar: 'عدد الأصناف', en: 'Items' },
-  //icon:          { ar: 'الأيقونة', en: 'Icon' },
+  icon:          { ar: 'الأيقونة', en: 'Icon' },
   name:          { ar: 'الاسم', en: 'Name' },
 }
 
@@ -31,19 +31,23 @@ function formatDate(dateStr: string) {
   return `${day} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
 }
 
-const hideKey = new Set(['icon', 'name', 'email'])
+const skipKeys = new Set(['icon', 'email'])
+const hideKey = new Set(['name'])
+
+
 
 function DetailsCell({ details, locale }: { details: Record<string, unknown> | null; locale: string }) {
   const isAr = locale === 'ar'
   if (!details) return <span className="text-gray-600">—</span>
 
   const entries = Object.entries(details)
-    .filter(([, v]) => {
-      if (v === null || v === undefined) return false
-      if (typeof v === 'object' && !Array.isArray(v)) return false
-      return true
-    })
-    .slice(0, 2)
+  .filter(([k, v]) => {
+    if (v === null || v === undefined) return false
+    if (typeof v === 'object' && !Array.isArray(v)) return false
+    if (skipKeys.has(k)) return false
+    return true
+  })
+  .slice(0, 2)
 
   const parts = entries.map(([k, v]) => {
     const rawVal = String(typeof v === 'number'
