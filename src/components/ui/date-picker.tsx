@@ -34,6 +34,10 @@ export function DatePicker({ value, onChange, placeholder = 'اختر تاريخ
             onChange(date ? format(date, 'yyyy-MM-dd') : '')
             setOpen(false)
           }}
+          weekStartsOn={0}
+          captionLayout="dropdown"
+            startMonth={new Date(2020, 0)}
+            endMonth={new Date(2030, 11)}
         />
       </PopoverContent>
     </Popover>
