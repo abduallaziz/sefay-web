@@ -15,6 +15,8 @@ const keyLabels: Record<string, { ar: string; en: string }> = {
   refund_amount: { ar: 'مبلغ الاسترداد', en: 'Refund' },
   total:         { ar: 'الإجمالي', en: 'Total' },
   items_count:   { ar: 'عدد الأصناف', en: 'Items' },
+  price:         { ar: 'السعر', en: 'Price' },
+  category:      { ar: 'الفئة', en: 'Category' },
   type:          { ar: 'النوع', en: 'Type' },
 }
 
