@@ -6,15 +6,16 @@ import { useAuditLogs } from '@/features/superadmin/audit/hooks/useAuditLogs'
 import type { AuditLog } from '@/features/superadmin/audit/api/audit.api'
 import { DatePicker } from '@/components/ui/date-picker'
 
+const skipKeys = new Set(['icon', 'email', 'items'])
+const hideKey = new Set(['name'])
+
 const keyLabels: Record<string, { ar: string; en: string }> = {
-  email:         { ar: '', en: '' },
   mode:          { ar: 'النوع', en: 'Mode' },
   active:        { ar: 'الحالة', en: 'Status' },
   refund_amount: { ar: 'مبلغ الاسترداد', en: 'Refund' },
   total:         { ar: 'الإجمالي', en: 'Total' },
   items_count:   { ar: 'عدد الأصناف', en: 'Items' },
-  icon:          { ar: 'الأيقونة', en: 'Icon' },
-  name:          { ar: 'الاسم', en: 'Name' },
+  type:          { ar: 'النوع', en: 'Type' },
 }
 
 const valueLabels: Record<string, { ar: string; en: string }> = {
@@ -22,6 +23,7 @@ const valueLabels: Record<string, { ar: string; en: string }> = {
   partial: { ar: 'جزئي', en: 'Partial' },
   true:    { ar: 'نشط', en: 'Active' },
   false:   { ar: 'غير نشط', en: 'Inactive' },
+  single:  { ar: 'فردي', en: 'Single' },
 }
 
 function formatDate(dateStr: string) {
@@ -31,23 +33,24 @@ function formatDate(dateStr: string) {
   return `${day} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
 }
 
-const skipKeys = new Set(['icon', 'email'])
-const hideKey = new Set(['name'])
-
-
-
 function DetailsCell({ details, locale }: { details: Record<string, unknown> | null; locale: string }) {
   const isAr = locale === 'ar'
   if (!details) return <span className="text-gray-600">—</span>
 
   const entries = Object.entries(details)
-  .filter(([k, v]) => {
-    if (v === null || v === undefined) return false
-    if (typeof v === 'object' && !Array.isArray(v)) return false
-    if (skipKeys.has(k)) return false
-    return true
-  })
-  .slice(0, 2)
+    .filter(([k, v]) => {
+      if (v === null || v === undefined) return false
+      if (typeof v === 'object' && !Array.isArray(v)) return false
+      if (skipKeys.has(k)) return false
+      return true
+    })
+    .slice(0, 2)
+
+  if (entries.length === 0) {
+    const nameVal = details['name']
+    if (nameVal) return <span className="text-gray-300 text-xs">{String(nameVal)}</span>
+    return <span className="text-gray-600">—</span>
+  }
 
   const parts = entries.map(([k, v]) => {
     const rawVal = String(typeof v === 'number'
@@ -60,7 +63,6 @@ function DetailsCell({ details, locale }: { details: Record<string, unknown> | n
 
     const keyLabel = keyLabels[k]
     const label = keyLabel ? (isAr ? keyLabel.ar : keyLabel.en) : k
-    if (!label) return displayVal
     return `${label}: ${displayVal}`
   })
 
@@ -139,13 +141,13 @@ export default function AuditPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm table-fixed">
               <thead className="bg-[#0f1117] text-gray-500 text-xs">
                 <tr>
-                  <th className="text-right px-4 py-3 w-36">{isAr ? 'الإجراء' : 'Action'}</th>
-                  <th className="text-right px-4 py-3 w-24">{isAr ? 'الكيان' : 'Entity'}</th>
-                  <th className="text-right px-4 py-3 w-32">{isAr ? 'المستخدم' : 'User'}</th>
-                  <th className="text-right px-4 py-3 w-32">{isAr ? 'التاريخ' : 'Date'}</th>
+                  <th className="text-right px-4 py-3 w-[140px]">{isAr ? 'الإجراء' : 'Action'}</th>
+                  <th className="text-right px-4 py-3 w-[100px]">{isAr ? 'الكيان' : 'Entity'}</th>
+                  <th className="text-right px-4 py-3 w-[130px]">{isAr ? 'المستخدم' : 'User'}</th>
+                  <th className="text-right px-4 py-3 w-[130px]">{isAr ? 'التاريخ' : 'Date'}</th>
                   <th className="text-right px-4 py-3">{isAr ? 'التفاصيل' : 'Details'}</th>
                 </tr>
               </thead>
@@ -160,13 +162,13 @@ export default function AuditPage() {
                     <td className="px-4 py-3 text-gray-400 text-xs text-right">
                       {log.entity ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs text-right">
+                    <td className="px-4 py-3 text-gray-400 text-xs text-right truncate">
                       {log.users?.name ?? log.users?.email ?? 'system'}
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs text-right">
                       {formatDate(log.created_at)}
                     </td>
-                    <td className="px-4 py-3 max-w-[280px] overflow-hidden">
+                    <td className="px-4 py-3 overflow-hidden">
                       <DetailsCell details={log.details} locale={locale} />
                     </td>
                   </tr>
