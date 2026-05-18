@@ -31,24 +31,32 @@ function formatDate(dateStr: string) {
   return `${day} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
 }
 
+const hideKey = new Set(['icon', 'name', 'email'])
+
 function DetailsCell({ details, locale }: { details: Record<string, unknown> | null; locale: string }) {
   const isAr = locale === 'ar'
   if (!details) return <span className="text-gray-600">—</span>
 
   const entries = Object.entries(details)
-    .filter(([, v]) => v !== null && v !== undefined)
+    .filter(([, v]) => {
+      if (v === null || v === undefined) return false
+      if (typeof v === 'object' && !Array.isArray(v)) return false
+      return true
+    })
     .slice(0, 2)
 
   const parts = entries.map(([k, v]) => {
-    const keyLabel = keyLabels[k]
-    const label = keyLabel ? (isAr ? keyLabel.ar : keyLabel.en) : k
     const rawVal = String(typeof v === 'number'
       ? (Number.isInteger(v) ? v : parseFloat(v.toFixed(2)))
       : v)
     const translated = valueLabels[rawVal]
     const displayVal = translated ? (isAr ? translated.ar : translated.en) : rawVal
 
-    if (label === '') return displayVal
+    if (hideKey.has(k)) return displayVal
+
+    const keyLabel = keyLabels[k]
+    const label = keyLabel ? (isAr ? keyLabel.ar : keyLabel.en) : k
+    if (!label) return displayVal
     return `${label}: ${displayVal}`
   })
 
