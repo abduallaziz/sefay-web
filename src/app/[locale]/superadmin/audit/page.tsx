@@ -8,7 +8,9 @@ function formatDate(dateStr: string) {
   const d = new Date(dateStr)
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const day = String(d.getUTCDate()).padStart(2, '0')
-  return `${day} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
+  const month = months[d.getUTCMonth()]
+  const year = d.getUTCFullYear()
+  return `${day} ${month} ${year}`
 }
 
 function formatDetails(details: Record<string, unknown> | null): string {
@@ -17,7 +19,8 @@ function formatDetails(details: Record<string, unknown> | null): string {
     .slice(0, 2)
     .map(([k, v]) => {
       if (v === null || v === undefined) return null
-      if (typeof v === 'object') return `${k}: ${JSON.stringify(v).slice(0, 20)}`
+      if (typeof v === 'object') return `${k}: ...`
+      if (typeof v === 'number') return `${k}: ${Math.round(v * 100) / 100}`
       return `${k}: ${String(v)}`
     })
     .filter(Boolean)
@@ -39,6 +42,11 @@ export default function AuditPage() {
     return 'bg-gray-500/10 text-gray-400'
   }
 
+  const dateInputStyle = {
+    direction: 'ltr' as const,
+    colorScheme: 'dark',
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-white">سجل الأحداث</h1>
@@ -53,7 +61,7 @@ export default function AuditPage() {
         <div dir="ltr" className="inline-block">
           <input
             type="date"
-            dir="ltr"
+            style={dateInputStyle}
             value={from_date}
             onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
             className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
@@ -62,7 +70,7 @@ export default function AuditPage() {
         <div dir="ltr" className="inline-block">
           <input
             type="date"
-            dir="ltr"
+            style={dateInputStyle}
             value={to_date}
             onChange={(e) => { setToDate(e.target.value); setPage(1) }}
             className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
