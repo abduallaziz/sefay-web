@@ -15,28 +15,28 @@ function formatDate(dateStr: string) {
 function DetailsCell({ details }: { details: Record<string, unknown> | null }) {
   if (!details) return <span className="text-gray-600">—</span>
 
-  const entries = Object.entries(details).slice(0, 2).reverse()
+  const entries = Object.entries(details)
+    .filter(([, v]) => v !== null && v !== undefined)
+    .slice(0, 2)
 
   return (
-    <span className="flex items-center gap-1 flex-wrap justify-end">
+    <span className="flex items-center gap-1 flex-wrap">
       {entries.map(([k, v], i) => {
-        if (v === null || v === undefined) return null
-
         let val = ''
         if (Array.isArray(v)) val = `[${(v as unknown[]).length}]`
         else if (typeof v === 'object') val = '{}'
-        else if (typeof v === 'number') val = String(Math.round(v * 100) / 100)
+        else if (typeof v === 'number') val = String(Number.isInteger(v) ? v : Math.round(v * 100) / 100)
         else val = String(v)
 
         return (
           <React.Fragment key={k}>
-            {i < entries.length - 1 && (
-              <span className="text-gray-600 mx-1">•</span>
-            )}
             <span className="text-xs" dir="ltr">
               <span className="text-gray-500">{k}:</span>{' '}
               <span className="text-gray-300">{val}</span>
             </span>
+            {i < entries.length - 1 && (
+              <span className="text-gray-600">•</span>
+            )}
           </React.Fragment>
         )
       })}
