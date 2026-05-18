@@ -78,33 +78,35 @@ export default function AuditPage() {
           <div className="p-8 text-center text-red-400">حدث خطأ في تحميل البيانات</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm" dir="ltr">
+            <table className="w-full text-sm">
               <thead className="bg-[#0f1117] text-gray-500 text-xs">
                 <tr>
-                  <th className="text-left px-4 py-3">Action</th>
-                  <th className="text-left px-4 py-3">Entity</th>
-                  <th className="text-left px-4 py-3">User</th>
-                  <th className="text-left px-4 py-3">Date</th>
-                  <th className="text-left px-4 py-3">Details</th>
+                  <th className="text-right px-4 py-3 w-36">الإجراء</th>
+                  <th className="text-right px-4 py-3 w-24">الكيان</th>
+                  <th className="text-right px-4 py-3 w-32">المستخدم</th>
+                  <th className="text-right px-4 py-3 w-32">التاريخ</th>
+                  <th className="text-right px-4 py-3">التفاصيل</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1e2130]">
                 {data?.data.map((log: AuditLog) => (
                   <tr key={log.id} className="hover:bg-[#1e2130] transition-colors">
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-right">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${actionColor(log.action)}`}>
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{log.entity ?? '—'}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">
+                    <td className="px-4 py-3 text-gray-400 text-xs text-right">
+                      {log.entity ?? '—'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 text-xs text-right">
                       {log.users?.name ?? log.users?.email ?? 'system'}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">
-                      {formatDate(log.created_at)}
+                    <td className="px-4 py-3 text-gray-500 text-xs text-right" dir="ltr">
+                      <span className="block text-right">{formatDate(log.created_at)}</span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs max-w-[220px] truncate" title={JSON.stringify(log.details)}>
-                      {formatDetails(log.details)}
+                    <td className="px-4 py-3 text-gray-500 text-xs text-right max-w-[260px] truncate">
+                      <span dir="ltr" className="block text-left">{formatDetails(log.details)}</span>
                     </td>
                   </tr>
                 ))}
