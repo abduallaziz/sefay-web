@@ -1,9 +1,28 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useLocale } from 'next-intl'
 import { useAuditLogs } from '@/features/superadmin/audit/hooks/useAuditLogs'
 import type { AuditLog } from '@/features/superadmin/audit/api/audit.api'
 import { DatePicker } from '@/components/ui/date-picker'
+
+const keyLabels: Record<string, { ar: string; en: string }> = {
+  email:         { ar: '', en: '' },
+  mode:          { ar: 'النوع', en: 'Mode' },
+  active:        { ar: 'الحالة', en: 'Status' },
+  refund_amount: { ar: 'مبلغ الاسترداد', en: 'Refund' },
+  total:         { ar: 'الإجمالي', en: 'Total' },
+  items_count:   { ar: 'عدد الأصناف', en: 'Items' },
+  icon:          { ar: 'الأيقونة', en: 'Icon' },
+  name:          { ar: 'الاسم', en: 'Name' },
+}
+
+const valueLabels: Record<string, { ar: string; en: string }> = {
+  full:    { ar: 'كامل', en: 'Full' },
+  partial: { ar: 'جزئي', en: 'Partial' },
+  true:    { ar: 'نشط', en: 'Active' },
+  false:   { ar: 'غير نشط', en: 'Inactive' },
+}
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr)
@@ -12,39 +31,44 @@ function formatDate(dateStr: string) {
   return `${day} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
 }
 
-function DetailsCell({ details }: { details: Record<string, unknown> | null }) {
+function DetailsCell({ details, locale }: { details: Record<string, unknown> | null; locale: string }) {
+  const isAr = locale === 'ar'
   if (!details) return <span className="text-gray-600">—</span>
 
   const entries = Object.entries(details)
     .filter(([, v]) => v !== null && v !== undefined)
     .slice(0, 2)
 
-  return (
-    <span className="flex items-center gap-1 flex-wrap">
-      {entries.map(([k, v], i) => {
-        let val = ''
-        if (Array.isArray(v)) val = `[${(v as unknown[]).length}]`
-        else if (typeof v === 'object') val = '{}'
-        else if (typeof v === 'number') val = String(Number.isInteger(v) ? v : Math.round(v * 100) / 100)
-        else val = String(v)
+  const parts = entries.map(([k, v]) => {
+    const keyLabel = keyLabels[k]
+    const label = keyLabel ? (isAr ? keyLabel.ar : keyLabel.en) : k
+    const rawVal = String(typeof v === 'number'
+      ? (Number.isInteger(v) ? v : parseFloat(v.toFixed(2)))
+      : v)
+    const translated = valueLabels[rawVal]
+    const displayVal = translated ? (isAr ? translated.ar : translated.en) : rawVal
 
-        return (
-          <React.Fragment key={k}>
-            <span className="text-xs" dir="ltr">
-              <span className="text-gray-500">{k}:</span>{' '}
-              <span className="text-gray-300">{val}</span>
-            </span>
-            {i < entries.length - 1 && (
-              <span className="text-gray-600">•</span>
-            )}
-          </React.Fragment>
-        )
-      })}
+    if (label === '') return displayVal
+    return `${label}: ${displayVal}`
+  })
+
+  return (
+    <span className="flex items-center gap-1 flex-nowrap overflow-hidden">
+      {parts.map((part, i) => (
+        <React.Fragment key={i}>
+          <span className="text-gray-300 text-xs whitespace-nowrap">{part}</span>
+          {i < parts.length - 1 && (
+            <span className="text-gray-600 text-xs mx-1">•</span>
+          )}
+        </React.Fragment>
+      ))}
     </span>
   )
 }
 
 export default function AuditPage() {
+  const locale = useLocale()
+  const isAr = locale === 'ar'
   const [page, setPage] = useState(1)
   const [action, setAction] = useState('')
   const [from_date, setFromDate] = useState('')
@@ -61,11 +85,13 @@ export default function AuditPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-white">سجل الأحداث</h1>
+      <h1 className="text-2xl font-bold text-white">
+        {isAr ? 'سجل الأحداث' : 'Audit Log'}
+      </h1>
 
       <div className="flex gap-3 flex-wrap items-center">
         <input
-          placeholder="نوع الإجراء..."
+          placeholder={isAr ? 'نوع الإجراء...' : 'Action type...'}
           value={action}
           onChange={(e) => { setAction(e.target.value); setPage(1) }}
           className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
@@ -73,36 +99,42 @@ export default function AuditPage() {
         <DatePicker
           value={from_date}
           onChange={(v) => { setFromDate(v); setPage(1) }}
-          placeholder="من تاريخ"
+          placeholder={isAr ? 'من تاريخ' : 'From date'}
         />
         <DatePicker
           value={to_date}
           onChange={(v) => { setToDate(v); setPage(1) }}
-          placeholder="إلى تاريخ"
+          placeholder={isAr ? 'إلى تاريخ' : 'To date'}
         />
       </div>
 
       <div className="bg-[#141720] rounded-xl border border-[#1e2130] overflow-hidden">
         <div className="p-4 border-b border-[#1e2130]">
           <p className="text-sm text-gray-500">
-            إجمالي: <span className="font-semibold text-white">{data?.total ?? '—'}</span> حدث
+            {isAr ? 'إجمالي:' : 'Total:'}{' '}
+            <span className="font-semibold text-white">{data?.total ?? '—'}</span>{' '}
+            {isAr ? 'حدث' : 'events'}
           </p>
         </div>
 
         {isLoading ? (
-          <div className="p-8 text-center text-gray-500">جاري التحميل...</div>
+          <div className="p-8 text-center text-gray-500">
+            {isAr ? 'جاري التحميل...' : 'Loading...'}
+          </div>
         ) : isError ? (
-          <div className="p-8 text-center text-red-400">حدث خطأ في تحميل البيانات</div>
+          <div className="p-8 text-center text-red-400">
+            {isAr ? 'حدث خطأ في تحميل البيانات' : 'Error loading data'}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-[#0f1117] text-gray-500 text-xs">
                 <tr>
-                  <th className="text-right px-4 py-3 w-36">الإجراء</th>
-                  <th className="text-right px-4 py-3 w-24">الكيان</th>
-                  <th className="text-right px-4 py-3 w-32">المستخدم</th>
-                  <th className="text-right px-4 py-3 w-32">التاريخ</th>
-                  <th className="text-right px-4 py-3">التفاصيل</th>
+                  <th className="text-right px-4 py-3 w-36">{isAr ? 'الإجراء' : 'Action'}</th>
+                  <th className="text-right px-4 py-3 w-24">{isAr ? 'الكيان' : 'Entity'}</th>
+                  <th className="text-right px-4 py-3 w-32">{isAr ? 'المستخدم' : 'User'}</th>
+                  <th className="text-right px-4 py-3 w-32">{isAr ? 'التاريخ' : 'Date'}</th>
+                  <th className="text-right px-4 py-3">{isAr ? 'التفاصيل' : 'Details'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#1e2130]">
@@ -122,8 +154,8 @@ export default function AuditPage() {
                     <td className="px-4 py-3 text-gray-500 text-xs text-right">
                       {formatDate(log.created_at)}
                     </td>
-                    <td className="px-4 py-3 max-w-[280px]">
-                      <DetailsCell details={log.details} />
+                    <td className="px-4 py-3 max-w-[280px] overflow-hidden">
+                      <DetailsCell details={log.details} locale={locale} />
                     </td>
                   </tr>
                 ))}
@@ -139,15 +171,17 @@ export default function AuditPage() {
               disabled={page === 1}
               className="text-sm text-gray-400 hover:text-white disabled:opacity-30"
             >
-              السابق
+              {isAr ? 'السابق' : 'Previous'}
             </button>
-            <span className="text-xs text-gray-500">صفحة {page}</span>
+            <span className="text-xs text-gray-500">
+              {isAr ? `صفحة ${page}` : `Page ${page}`}
+            </span>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={data.data.length < 30}
               className="text-sm text-gray-400 hover:text-white disabled:opacity-30"
             >
-              التالي
+              {isAr ? 'التالي' : 'Next'}
             </button>
           </div>
         )}
