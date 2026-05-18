@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useAuditLogs } from '@/features/superadmin/audit/hooks/useAuditLogs'
 import type { AuditLog } from '@/features/superadmin/audit/api/audit.api'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -12,19 +12,36 @@ function formatDate(dateStr: string) {
   return `${day} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
 }
 
-function formatDetails(details: Record<string, unknown> | null): string {
-  if (!details) return '—'
-  return Object.entries(details)
-    .slice(0, 2)
-    .map(([k, v]) => {
-      if (v === null || v === undefined) return null
-      if (Array.isArray(v)) return `${k}: [${(v as unknown[]).length}]`
-      if (typeof v === 'object') return `${k}: ${Object.keys(v as object).length} fields`
-      if (typeof v === 'number') return `${k}: ${Math.round(v * 100) / 100}`
-      return `${k}: ${String(v)}`
-    })
-    .filter(Boolean)
-    .join(' • ')
+function DetailsCell({ details }: { details: Record<string, unknown> | null }) {
+  if (!details) return <span className="text-gray-600">—</span>
+
+  const entries = Object.entries(details).slice(0, 2)
+
+  return (
+    <span className="flex items-center gap-1 flex-wrap">
+      {entries.map(([k, v], i) => {
+        if (v === null || v === undefined) return null
+
+        let val = ''
+        if (Array.isArray(v)) val = `[${(v as unknown[]).length}]`
+        else if (typeof v === 'object') val = '{}'
+        else if (typeof v === 'number') val = String(Math.round(v * 100) / 100)
+        else val = String(v)
+
+        return (
+          <React.Fragment key={k}>
+            <span className="text-gray-400 text-xs" dir="ltr">
+              <span className="text-gray-500">{k}:</span>{' '}
+              <span>{val}</span>
+            </span>
+            {i < entries.length - 1 && (
+              <span className="text-gray-600 mx-1">•</span>
+            )}
+          </React.Fragment>
+        )
+      })}
+    </span>
+  )
 }
 
 export default function AuditPage() {
@@ -102,11 +119,11 @@ export default function AuditPage() {
                     <td className="px-4 py-3 text-gray-400 text-xs text-right">
                       {log.users?.name ?? log.users?.email ?? 'system'}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs text-right" dir="ltr">
-                      <span className="block text-right">{formatDate(log.created_at)}</span>
+                    <td className="px-4 py-3 text-gray-500 text-xs text-right">
+                      {formatDate(log.created_at)}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs text-right max-w-[260px] truncate">
-                      <span dir="ltr" className="block text-left">{formatDetails(log.details)}</span>
+                    <td className="px-4 py-3 max-w-[280px]">
+                      <DetailsCell details={log.details} />
                     </td>
                   </tr>
                 ))}
