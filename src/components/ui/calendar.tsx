@@ -45,7 +45,7 @@ function Calendar({
         disabled: "text-gray-600 opacity-50",
         hidden: "invisible",
         dropdowns: "flex gap-2 items-center justify-center",
-        dropdown: "bg-[#141720] border border-[#1e2130] text-white text-sm rounded-md px-2 py-1 cursor-pointer focus:outline-none",
+        dropdown: "bg-[#0f1117] border-2 border-[#3b82f6] text-white text-sm rounded-md px-2 py-1 cursor-pointer focus:outline-none",
         dropdown_root: "relative",
         ...classNames,
       }}
