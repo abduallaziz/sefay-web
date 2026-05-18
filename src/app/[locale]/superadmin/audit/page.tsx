@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useAuditLogs } from '@/features/superadmin/audit/hooks/useAuditLogs'
 import type { AuditLog } from '@/features/superadmin/audit/api/audit.api'
+import { DatePicker } from '@/components/ui/date-picker'
 
 function formatDate(dateStr: string) {
   const d = new Date(dateStr)
@@ -17,7 +18,8 @@ function formatDetails(details: Record<string, unknown> | null): string {
     .slice(0, 2)
     .map(([k, v]) => {
       if (v === null || v === undefined) return null
-      if (typeof v === 'object') return `${k}: ...`
+      if (Array.isArray(v)) return `${k}: [${(v as unknown[]).length}]`
+      if (typeof v === 'object') return `${k}: ${Object.keys(v as object).length} fields`
       if (typeof v === 'number') return `${k}: ${Math.round(v * 100) / 100}`
       return `${k}: ${String(v)}`
     })
@@ -51,19 +53,15 @@ export default function AuditPage() {
           onChange={(e) => { setAction(e.target.value); setPage(1) }}
           className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
         />
-        <input
-          type="text"
-          placeholder="من: YYYY-MM-DD"
+        <DatePicker
           value={from_date}
-          onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-          className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 w-40"
+          onChange={(v) => { setFromDate(v); setPage(1) }}
+          placeholder="من تاريخ"
         />
-        <input
-          type="text"
-          placeholder="إلى: YYYY-MM-DD"
+        <DatePicker
           value={to_date}
-          onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-          className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 w-40"
+          onChange={(v) => { setToDate(v); setPage(1) }}
+          placeholder="إلى تاريخ"
         />
       </div>
 
@@ -122,15 +120,15 @@ export default function AuditPage() {
               disabled={page === 1}
               className="text-sm text-gray-400 hover:text-white disabled:opacity-30"
             >
-              Previous
+              السابق
             </button>
-            <span className="text-xs text-gray-500">Page {page}</span>
+            <span className="text-xs text-gray-500">صفحة {page}</span>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={data.data.length < 30}
               className="text-sm text-gray-400 hover:text-white disabled:opacity-30"
             >
-              Next
+              التالي
             </button>
           </div>
         )}
