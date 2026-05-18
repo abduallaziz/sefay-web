@@ -6,7 +6,7 @@ import { useAuditLogs } from '@/features/superadmin/audit/hooks/useAuditLogs'
 import type { AuditLog } from '@/features/superadmin/audit/api/audit.api'
 import { DatePicker } from '@/components/ui/date-picker'
 
-const skipKeys = new Set(['icon', 'email', 'items', 'color'])
+const skipKeys = new Set(['icon', 'email', 'items', 'color', 'name'])
 const hideKey = new Set(['name'])
 
 const keyLabels: Record<string, { ar: string; en: string }> = {
@@ -24,6 +24,7 @@ const valueLabels: Record<string, { ar: string; en: string }> = {
   true:    { ar: 'نشط', en: 'Active' },
   false:   { ar: 'غير نشط', en: 'Inactive' },
   single:  { ar: 'فردي', en: 'Single' },
+  price:   { ar: 'السعر', en: 'Price' },
   bundle:  { ar: 'حزمة', en: 'Bundle' },
 }
 
