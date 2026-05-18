@@ -8,9 +8,7 @@ function formatDate(dateStr: string) {
   const d = new Date(dateStr)
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
   const day = String(d.getUTCDate()).padStart(2, '0')
-  const month = months[d.getUTCMonth()]
-  const year = d.getUTCFullYear()
-  return `${day} ${month} ${year}`
+  return `${day} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`
 }
 
 function formatDetails(details: Record<string, unknown> | null): string {
@@ -42,11 +40,6 @@ export default function AuditPage() {
     return 'bg-gray-500/10 text-gray-400'
   }
 
-  const dateInputStyle = {
-    direction: 'ltr' as const,
-    colorScheme: 'dark',
-  }
-
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold text-white">سجل الأحداث</h1>
@@ -58,24 +51,20 @@ export default function AuditPage() {
           onChange={(e) => { setAction(e.target.value); setPage(1) }}
           className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
         />
-        <div dir="ltr" className="inline-block">
-          <input
-            type="date"
-            style={dateInputStyle}
-            value={from_date}
-            onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
-            className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-          />
-        </div>
-        <div dir="ltr" className="inline-block">
-          <input
-            type="date"
-            style={dateInputStyle}
-            value={to_date}
-            onChange={(e) => { setToDate(e.target.value); setPage(1) }}
-            className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-          />
-        </div>
+        <input
+          type="text"
+          placeholder="من: YYYY-MM-DD"
+          value={from_date}
+          onChange={(e) => { setFromDate(e.target.value); setPage(1) }}
+          className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 w-40"
+        />
+        <input
+          type="text"
+          placeholder="إلى: YYYY-MM-DD"
+          value={to_date}
+          onChange={(e) => { setToDate(e.target.value); setPage(1) }}
+          className="bg-[#141720] border border-[#1e2130] rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 w-40"
+        />
       </div>
 
       <div className="bg-[#141720] rounded-xl border border-[#1e2130] overflow-hidden">
@@ -90,38 +79,40 @@ export default function AuditPage() {
         ) : isError ? (
           <div className="p-8 text-center text-red-400">حدث خطأ في تحميل البيانات</div>
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-[#0f1117] text-gray-500 text-xs">
-              <tr>
-                <th className="text-right px-4 py-3">الإجراء</th>
-                <th className="text-right px-4 py-3">الكيان</th>
-                <th className="text-right px-4 py-3">المستخدم</th>
-                <th className="text-right px-4 py-3">التاريخ</th>
-                <th className="text-right px-4 py-3">التفاصيل</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#1e2130]">
-              {data?.data.map((log: AuditLog) => (
-                <tr key={log.id} className="hover:bg-[#1e2130] transition-colors">
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${actionColor(log.action)}`}>
-                      {log.action}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{log.entity ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">
-                    {log.users?.name ?? log.users?.email ?? 'system'}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs text-right">
-                    {formatDate(log.created_at)}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs text-right max-w-[220px] truncate" title={JSON.stringify(log.details)}>
-                    {formatDetails(log.details)}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" dir="ltr">
+              <thead className="bg-[#0f1117] text-gray-500 text-xs">
+                <tr>
+                  <th className="text-left px-4 py-3">Action</th>
+                  <th className="text-left px-4 py-3">Entity</th>
+                  <th className="text-left px-4 py-3">User</th>
+                  <th className="text-left px-4 py-3">Date</th>
+                  <th className="text-left px-4 py-3">Details</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-[#1e2130]">
+                {data?.data.map((log: AuditLog) => (
+                  <tr key={log.id} className="hover:bg-[#1e2130] transition-colors">
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${actionColor(log.action)}`}>
+                        {log.action}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">{log.entity ?? '—'}</td>
+                    <td className="px-4 py-3 text-gray-400 text-xs">
+                      {log.users?.name ?? log.users?.email ?? 'system'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs">
+                      {formatDate(log.created_at)}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs max-w-[220px] truncate" title={JSON.stringify(log.details)}>
+                      {formatDetails(log.details)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {data && data.total > 30 && (
@@ -131,15 +122,15 @@ export default function AuditPage() {
               disabled={page === 1}
               className="text-sm text-gray-400 hover:text-white disabled:opacity-30"
             >
-              السابق
+              Previous
             </button>
-            <span className="text-xs text-gray-500">صفحة {page}</span>
+            <span className="text-xs text-gray-500">Page {page}</span>
             <button
               onClick={() => setPage((p) => p + 1)}
               disabled={data.data.length < 30}
               className="text-sm text-gray-400 hover:text-white disabled:opacity-30"
             >
-              التالي
+              Next
             </button>
           </div>
         )}
