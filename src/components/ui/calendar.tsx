@@ -19,7 +19,7 @@ function Calendar({
         months: "flex flex-col sm:flex-row gap-2",
         month: "flex flex-col gap-4",
         month_caption: "flex justify-center pt-1 relative items-center w-full",
-        caption_label: "text-sm font-medium text-white",
+        caption_label: "text-sm font-medium text-white cursor-pointer",
         nav: "flex items-center gap-1",
         button_previous: cn(
           "absolute left-1 top-0 h-7 w-7 flex items-center justify-center rounded-md text-gray-400 hover:text-white hover:bg-[#1e2130]"
@@ -44,15 +44,10 @@ function Calendar({
         outside: "text-gray-600 opacity-50",
         disabled: "text-gray-600 opacity-50",
         hidden: "invisible",
+        dropdowns: "flex gap-2 items-center justify-center",
+        dropdown: "bg-[#141720] border border-[#1e2130] text-white text-sm rounded-md px-2 py-1 cursor-pointer focus:outline-none",
+        dropdown_root: "relative",
         ...classNames,
-      }}
-      components={{
-        Chevron: ({ orientation }) =>
-          orientation === "left" ? (
-            <ChevronLeftIcon className="h-4 w-4" />
-          ) : (
-            <ChevronRightIcon className="h-4 w-4" />
-          ),
       }}
       {...props}
     />
