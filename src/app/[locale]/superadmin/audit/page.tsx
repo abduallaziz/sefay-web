@@ -13,7 +13,7 @@ const keyLabels: Record<string, { ar: string; en: string }> = {
   refund_amount: { ar: 'مبلغ الاسترداد', en: 'Refund' },
   total:         { ar: 'الإجمالي', en: 'Total' },
   items_count:   { ar: 'عدد الأصناف', en: 'Items' },
-  icon:          { ar: 'الأيقونة', en: 'Icon' },
+  //icon:          { ar: 'الأيقونة', en: 'Icon' },
   name:          { ar: 'الاسم', en: 'Name' },
 }
 
